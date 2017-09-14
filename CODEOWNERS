@@ -12,5 +12,13 @@
 # You can also use email addresses if you prefer.
 #docs/*  docs@example.com
 
+
+# Legal
+LICENSE @qjkxkcd
+
+# Display settings
+.editorconfig               @zwimer
+
 # Agreed upon by everyone
-Peer-Review-Metrics.md @zwimer @Istyatur
+CODEOWNERS					@zwimer @Istyatur @qjkxkcd @burtonwilliamt
+Peer-Review-Metrics.md      @zwimer @Istyatur @qjkxkcd @burtonwilliamt
