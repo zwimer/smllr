@@ -14,11 +14,10 @@
 
 
 # Legal
-LICENSE @qjkxkcd
+LICENSE @stensonowen
 
 # Display settings
 .editorconfig               @zwimer
 
-# Agreed upon by everyone
-CODEOWNERS					@zwimer @Istyatur @qjkxkcd @burtonwilliamt
-Peer-Review-Metrics.md      @zwimer @Istyatur @qjkxkcd @burtonwilliamt
+# Must be agreed upon by everyone
+Peer-Review-Metrics.md      @zwimer @Istyatur @stensonowen @burtonwilliamt
