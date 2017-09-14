@@ -51,4 +51,4 @@ Did the team member actively participate in discussions, timely response to emai
 | 15 | Generally is not very constructive during meetings. Often distracts the group enough to hurt the group's productivity |
 | 0 | Team member distracts the group or does not contribute to group meetings more than 30% of the time. |
 
-<sup><sub> Appropriate is determiend by the group based on the situation. Sometimes being passive may be beneficial, such as if the discussion is about a topic you are not knowlege-able about. </sub></sup>
+<sup><sub> 5. Appropriate is determiend by the group based on the situation. Sometimes being passive may be beneficial, such as if the discussion is about a topic you are not knowlege-able about. </sub></sup>
