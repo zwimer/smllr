@@ -25,7 +25,7 @@ Did the team member produce good quality output, given the circumstances of the 
 | 15 | Work sub-par, team member refused to improve their code / has other team members do so for him. |
 | 0 | Team member refused to work more than 30% of the time. |
 
-<sup><sub> 2. Expectations different between languages and nature of the project. Expectations are referring to that person's task, not general un-changing expectations set once. </sub></sup>
+<sup><sub> 2. Expectations differ between languages and nature of the project. Expectations are referring to that person's task, not general un-changing expectations set once. </sub></sup>
 
 <sup><sub> 3. Suggestions may be ignored at the discretion of the team member in question, arguments are ok, but if the rest of the decides a suggestion should occur it becomes obligatory. </sub></sup>
 
