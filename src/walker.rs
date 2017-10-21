@@ -1,16 +1,19 @@
 
 use std::path::{Path, PathBuf};
-use std::{io, env};
-//use std::fs::
+use std::{fs, io, env};
 
 const FOLLOW_SYMLINKS_DEFAULT: bool = false;
 
-struct DirWalker {
+#[derive(Debug)]
+pub struct DirWalker {
     // files to include/exclude
     directories: Vec<PathBuf>,
     blacklist: Vec<PathBuf>,
     //regex_whitelist: Vec<Pattern>,
     //regex_blacklist: Vec<Pattern>,
+    // alternatively, the folder/regex black/whitelists could all be boxed 
+    //  traits or something that implement `match` or something
+    //  This is probably the OO way to do things but incurs vtables :/
 
     // options
     follow_symlinks: bool,
@@ -18,7 +21,7 @@ struct DirWalker {
 
 
 impl DirWalker {
-    fn new(dirs: Vec<&Path>) -> DirWalker {
+    pub fn new(dirs: Vec<&Path>) -> DirWalker {
         // if any paths are relative, append them to the current working dir
         // if getting the cwd fails, the whole process should abort
         let abs_paths: io::Result<Vec<_>> = dirs.into_iter().map(|dir| {
@@ -43,5 +46,62 @@ impl DirWalker {
         }
     }
 
+    // Note: this is suboptimal because every new element is an allocation
+    //fn traverse_folder(&self, dir: &Path) -> io::Result<Vec<fs::DirEntry>> {
+    pub fn traverse_folder(&self, dir: &Path) -> io::Result<Vec<PathBuf>> {
+        // return files/links in a folder
+        // currently includes hidden files
+        // TODO: return a set so there aren't duplicates??
+        assert!(dir.is_dir());
+        assert!(dir.exists());
+
+        let contents = fs::read_dir(dir)?;
+
+        let files = contents.filter_map(|i| {
+            // check if handle points to a real object
+            if let Err(e) = i { 
+                warn!("Couldn't identify item in {}.\nError: {}", dir.display(), e);
+                None
+            } else {
+                i.ok()
+            }
+        }).filter(|entry| {
+            // check if object is a file (skip directories/links)
+            match entry.file_type() {
+                Ok(filetype) => {
+                    // probably needs some refactoring
+                    // needs more thorough testing
+                    if filetype.is_symlink() {
+                        // check the type of the link's target
+                        // NOTE: DirEntry::metadata uses fs::symlink_metadata 
+                        //  which does not follow symlinks, but
+                        //  Path::metadata uses fs::metadata which does.
+                        // I wonder how long it will take for this to cause a bug
+                        match entry.path().metadata() {
+                            Err(e) => {
+                                warn!("Couldn't follow link {}.\nError: {}",
+                                      entry.path().display(), e); 
+                                false
+                            },
+                            Ok(md) => md.is_file(),
+                        }
+                    } else {
+                        filetype.is_file()
+                    }
+                },
+                Err(e) => {
+                    warn!("Couldn't identify type of item {}.\nError: {}", 
+                          entry.path().display(), e);
+                    false
+                }, 
+            }
+        }).map(|entry| entry.path()) // convert DirEntry to PathBuf (allocs!)
+        .filter(|path| {
+            // make sure none of them are blacklisted
+            self.blacklist.iter().all(|bl| path.starts_with(bl) == false)
+        }).collect();
+
+        Ok(files)
+    }
 }
 
