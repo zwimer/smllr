@@ -1,0 +1,7 @@
+[package]
+name = "smllr"
+version = "0.1.0"
+authors = ["owen <owen@oms.sh>", "William Burton <burtonwilliamt@gmail.com>", "Alexander <alexanderslanski@sbcglobal.net>", "zwimer <zwimer@gmail.com>"]
+license = "GPL3"
+
+[dependencies]
