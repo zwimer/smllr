@@ -1,6 +1,8 @@
 
 use std::path::{Path, PathBuf};
-use std::{fs, io, env};
+use std::{io, env};
+use std::fs::{self, DirEntry};
+use std::collections::{HashMap, HashSet};
 
 const FOLLOW_SYMLINKS_DEFAULT: bool = false;
 
@@ -14,6 +16,10 @@ pub struct DirWalker {
     // alternatively, the folder/regex black/whitelists could all be boxed 
     //  traits or something that implement `match` or something
     //  This is probably the OO way to do things but incurs vtables :/
+
+    // keep track of what inodes have been seen
+    // maps device id ("Device" in `stat`) to a collection of seen inodes
+    seen: HashMap<u64, HashSet<u64>>,
 
     // options
     follow_symlinks: bool,
@@ -42,8 +48,28 @@ impl DirWalker {
         DirWalker {
             directories: abs_paths,
             blacklist: vec![],
+            seen: HashMap::new(),
             follow_symlinks: FOLLOW_SYMLINKS_DEFAULT,
         }
+    }
+
+    fn should_handle_file(&self, de: &DirEntry) -> bool {
+        unimplemented!()
+    }
+
+    fn handle_file(&self, de: &DirEntry) {
+        unimplemented!()
+    }
+
+
+    pub fn into_folder<P: AsRef<Path>>(&self, dir: &P) {
+        // iterate through all files we should iterate through
+        // 1. for each DirEnt, check the type, then call `handle_file`
+        //      check symlink destination
+        // 2. for each file, add the inode to a `seen` map (to avoid duplicates)
+        // 3. for each folder, check its inode for duplication,
+        //    then check it against the folder blacklist,
+
     }
 
     // Note: this is suboptimal because every new element is an allocation

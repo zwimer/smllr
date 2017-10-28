@@ -6,3 +6,5 @@ license = "GPL3"
 
 [dependencies]
 log = "0.3.8"
+clap = "2.26.2"
+
