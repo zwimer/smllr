@@ -4,6 +4,7 @@
 use std::path::{Path, PathBuf};
 use std::io;
 use std::time::SystemTime;
+use std::rc::Rc;
 
 use super::{File, VFS, MetaData, Inode, FileType};
 
@@ -67,7 +68,7 @@ pub struct TestFileSystem {
     root: VirtElem,
 }
 
-impl VFS for TestFileSystem {
+impl VFS for Rc<TestFileSystem> {
     type FileIter = TestFile;
 
     fn list_dir<P: AsRef<Path>>(&self, p: P) 

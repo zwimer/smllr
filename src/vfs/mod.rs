@@ -12,6 +12,7 @@
 
 
 use std::{io, fs, time};
+use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 
 mod real_fs;
@@ -22,7 +23,7 @@ pub use self::test_fs::{TestFile, TestFileSystem};
 
 // traits
 
-pub trait VFS {
+pub trait VFS : Clone + Debug {
     type FileIter : File;
     
     fn list_dir<P: AsRef<Path>>(&self, p: P) 
@@ -40,7 +41,7 @@ pub trait VFS {
     //fn resolve_path<P: AsRef<Path>>(&self, p: P) -> io::Result<Self::FileIter>;
 }
 
-pub trait File {
+pub trait File : Debug {
     type MD : MetaData;
     fn get_inode(&self) -> io::Result<Inode>;
     fn get_path(&self) -> PathBuf;
@@ -48,7 +49,7 @@ pub trait File {
     fn get_metadata(&self) -> io::Result<Self::MD>;
 }
 
-pub trait MetaData {
+pub trait MetaData : Debug {
     //fn foo() {}
     fn len(&self) -> u64;
     fn creation_time(&self) -> io::Result<time::SystemTime>;
@@ -57,7 +58,9 @@ pub trait MetaData {
 }
 
 
-impl<'a, V: VFS> File for (&'a Path, &'a V) {
+//impl<'a, V: VFS> File for (&'a Path, &'a V) {
+impl<'a, V: VFS> File for (&'a Path, V) {
+//impl<V: VFS> File for (&Path, &V) {
     type MD = <<V as VFS>::FileIter as File>::MD;
 
     fn get_inode(&self) -> io::Result<Inode> {

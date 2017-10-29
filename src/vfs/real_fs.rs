@@ -46,7 +46,7 @@ impl File for DirEntry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct RealFileSystem;
 
 impl VFS for RealFileSystem { 

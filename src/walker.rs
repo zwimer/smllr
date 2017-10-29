@@ -2,11 +2,11 @@
 use std::path::{Path, PathBuf};
 use std::{io, env};
 use std::fs::{self, DirEntry};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashSet};
 
 use super::vfs::{VFS, RealFileSystem, Inode, DeviceId};
 
-const FOLLOW_SYMLINKS_DEFAULT: bool = false;
+//const FOLLOW_SYMLINKS_DEFAULT: bool = false;
 
 #[derive(Debug)]
 pub struct DirWalker<T: VFS> {
@@ -32,49 +32,12 @@ pub struct DirWalker<T: VFS> {
     vfs: T,
 
     // options
-    follow_symlinks: bool,
+    //follow_symlinks: bool,
 }
 
 
 use vfs::{File, MetaData, FileType};
 
-// unfortunately can't operate on only Path or DirEntry
-// It would be really inefficient to operate on Paths only
-// It is impossible to resolve a path into a DirEntry
-//  the only way to do so is to iterate over the path's parent's contents
-//  but this can fail if the path is the root, in which case it is impossible
-trait FileLookup {
-    fn path(&self) -> PathBuf;
-    fn id<V: VFS>(&self, v: &V) -> io::Result<Inode>;
-    fn kind<V: VFS>(&self, v: &V) -> io::Result<FileType>;
-}
-
-//impl<'a, T: File> FileLookup for &'a T {
-impl<T: File> FileLookup for T {
-    fn path(&self) -> PathBuf {
-        self.get_path()
-        //<self as File>.get_path()
-    }
-    fn id<V: VFS>(&self, _: &V) -> io::Result<Inode> {
-        self.get_inode()
-    }
-    fn kind<V: VFS>(&self, _: &V) -> io::Result<FileType> {
-        self.get_type()
-    }
-}
-
-impl FileLookup for Path {
-    fn path(&self) -> PathBuf {
-        self.to_owned()
-    }
-    fn id<V: VFS>(&self, v: &V) -> io::Result<Inode> {
-        v.get_metadata(self).map(|md| md.get_inode())
-    }
-    fn kind<V: VFS>(&self, v: &V) -> io::Result<FileType> {
-        v.get_metadata(self).map(|md| md.get_type())
-    }
-
-}
 
 impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData {
 
@@ -85,7 +48,7 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
             if dir.is_absolute() {
                 Ok(dir.to_owned())
             } else {
-                info!("Converting `{}` to absolute path", dir.display());
+                info!("Converting `{:?}` to absolute path", dir);
                 env::current_dir().map(|cwd| cwd.join(dir))
             }
         }).collect();
@@ -101,190 +64,94 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
             blacklist: vec![],
             blacklist_files: HashSet::new(),
             seen: HashSet::new(),
-            follow_symlinks: FOLLOW_SYMLINKS_DEFAULT,
+            //follow_symlinks: FOLLOW_SYMLINKS_DEFAULT,
             vfs: vfs,
         }
     }
 
-    fn should_handle_file<T: FileLookup>(&self, fl: &T) -> bool {
-        match fl.id(&self.vfs) {
+    fn should_handle_file<T: File>(&self, f: &T) -> bool {
+        match f.get_inode() {
             Ok(ref inode) if self.seen.contains(inode) ||
                 self.blacklist_files.contains(inode) => false,
             Err(e) => {
-                warn!("Failed to look up inode for `{}`: `{:?}`", 
-                      fl.path().display(), e);
+                warn!("Failed to look up inode for {:?}: {}", f.get_path(), e);
                 false
             },
             _ => true,
         }
     }
 
-    fn should_enter_folder<T: FileLookup>(&self, fl: &T) -> bool {
-        match fl.id(&self.vfs) {
+    fn should_traverse_folder<T: File>(&self, f: &T) -> bool {
+        match f.get_inode() {
             Ok(ref inode) if self.seen.contains(inode) => false,
             Err(e) => {
-                warn!("Failed to look up inode for `{}`: `{:?}`", 
-                      fl.path().display(), e);
+                warn!("Failed to look up inode for {:?}: {}", f.get_path(), e);
                 false
             },
             _ => {
-                let p = fl.path();
+                let p = f.get_path();
                 self.blacklist.iter().any(|bl| p.starts_with(&bl)) == false
             }
         }
     }
 
-    /*
-    fn should_enter_folder(&self, de: &F) -> bool {
-        // takes a direntry
-        if self.seen.contains(&de.get_inode()) {
-            return false
-        }
-        let p = de.get_path();
-        self.blacklist.iter().any(|bl| p.starts_with(&bl)) == false
-    }
-
-    fn should_enter_folder_(&self, p: &Path) -> bool {
-        // takes a path
-        let md = match self.vfs.get_metadata(p) {
-            Ok(md) => md,
-            Err(e) => {
-                warn!("Couldn't get metadata for `{}`: `{:?}`", p.display(), e);
-                return false
-            }
-        };
-        if self.seen.contains(&md.get_inode()) {
-            return false
-        }
-        self.blacklist.iter().any(|bl| p.starts_with(&bl)) == false
-    }
-    */
-
-    fn handle_file(&mut self, de: &F) {
+    fn handle_file<T: File>(&mut self, de: &T) {
         // register it in self.seen
         match de.get_inode() {
             Ok(inode) => self.seen.insert(inode),
             Err(e) => {
-                warn!("Failed to get inode for {}: {:?}", de.get_path().display(), e);
+                warn!("Failed to get inode for {:?}: {}", de.get_path(), e);
                 return
             }
         };
-
-
-        unimplemented!()
     }
 
-    fn handle_folder(&mut self, de: &Path) { }
-
-    // traverse 
-    pub fn traverse_path(&mut self, dir: &Path) {
-        // for f in dir
-        //  
-    }
-
-    /*
-    fn dispatch_any_file<T: FileLookup>(&mut self, fl: &T) {
-        match fl.kind(&self.vfs) {
-            Ok(FileType::File) => if self.should_handle_file(fl) {
-                self.handle_file(fl)
-            },
-            Ok(FileType::Dir) => if self.should_enter_folder(fl) {
-                self.traverse_folder_f(fl)
-            },
-            Ok(FileType::Symlink) => {
-                match self.vfs.read_link(fl.path()) {
-                    Ok(f) => self.dispatch_any_file(f),
-                    Err(e) => {
-                        warn!("Failed to resolve symlink `{}`: `{:?}`", 
-                              fl.path().display(), e);
-                    }
-                };
-                // TODO: how to handle
-                //self.dispatch_any_file(dest)
-            },
-            Ok(FileType::Other) => {},
-            Err(e) => warn!("Failed to get filetype for `{}`: `{:?}`", 
-                            fl.path().display(), e)
-        }
-    }
-    */
-
-    pub fn traverse_folder_f(&mut self, f: &F) {
+    pub fn traverse_folder<T: File>(&mut self, f: &T) {
         // assume should_handle_folder was called
-        // for direntry in F
+        // mutually recursive with Self::dispatch_any_file (sorry mom)
+        // a complex directory structure will be mirrored with a complex stack
+        //  note this is only sorta how BS does it. his isn't the call stack
         let contents = match self.vfs.list_dir(f.get_path()) {
             Ok(c) => c,
             Err(e) => {
-                warn!("Failed to list contents of dir `{}`: `{:?}`", 
-                      f.get_path().display(), e);
+                warn!("Failed to list contents of dir {:?}: {}", f.get_path(), e);
                 return
             },
         };
         for entry in contents {
-            let entry = match entry {
-                Ok(e) => e,
-                Err(e) => {
-                    warn!("Failed to identify file in dir `{}`: `{:?}`",
-                          f.get_path().display(), e);
-                    continue
-                }
-            };
-            match entry.get_type() {
-                Ok(FileType::File) => if self.should_handle_file(&entry) { 
-                    self.handle_file(&entry) 
-                },
-                Ok(FileType::Dir) => if self.should_enter_folder(&entry) {
-                    self.traverse_folder_f(&entry)
-                },
-                Ok(FileType::Symlink) => {
-                    let dest = match self.vfs.get_metadata(entry.get_path()) {
-                        Ok(f) => f,
-                        Err(e) => {
-                            warn!("Failed to resolve symlink `{}`: `{:?}`", 
-                                  entry.get_path().display(), e);
-                            continue
-                        }
-                    };
-                }
-                //Ok(Ok(FileType::File)) => unimplemented!(),
-                _ => unimplemented!()
+            match entry {
+                Ok(ref e) => self.dispatch_any_file(e),
+                Err(e) => warn!("Failed to identify file in dir {:?}: {}", f.get_path(), e),
             }
         }
     }
 
-    pub fn traverse_file_f(&mut self, f: &F) {
-        // assume should_handle was called
-        // call handle_file() or whatever
+    fn dispatch_any_file<T: File>(&mut self, f: &T) {
+        // handle a file, traverse a directory, or follow a symlink
+        match f.get_type() {
+            Ok(FileType::File) => if self.should_handle_file(f) {
+                self.handle_file(f)
+            },
+            Ok(FileType::Dir) => if self.should_traverse_folder(f) {
+                self.traverse_folder(f)
+            },
+            Ok(FileType::Symlink) => match self.vfs.read_link(f.get_path()) {
+                // if this successfully points into a loop, we'll get stuck here
+                // the stdlib should prevent this though
+                Ok(ref f) => {
+                    let tup: (&Path, V) = (f, self.vfs.clone());
+                    self.dispatch_any_file(&tup)
+                },
+                Err(e) => warn!("Couldn't resolve symlink {:?}: {}", f.get_path(), e),
+            },
+            Ok(FileType::Other) => info!("Ignoring unknown file {:?}", f.get_path()),
+            Err(e) => warn!("Failed to get type for {:?}: {}", f.get_path(), e),
+        }
     }
 
-    //pub fn into_folder<P: AsRef<Path>>(&mut self, dir: &P) -> io::Result<()> {
-    pub fn handle(&mut self, dir: &Path) {
-        // iterate through all files we should iterate through
-        // 1. for each DirEnt, check the type, then call `handle_file`
-        //      check symlink destination
-        // 2. for each file, add the inode to a `seen` map (to avoid duplicates)
-        // 3. for each folder, check its inode for duplication,
-        //    then check it against the folder blacklist,
-        
-        let md = match self.vfs.get_metadata(dir) {
-            Ok(md) => md,
-            Err(e) => {
-                warn!("File `{}` doesn't seem to exist: {:?}", dir.display(), e);
-                return
-            }
-        };
-        let kind = md.get_type();
-        match kind {
-            FileType::Dir => self.handle_folder(dir),
-            FileType::File => self.handle_file(unimplemented!()),
-            FileType::Symlink => unimplemented!(),
-            FileType::Other => {},
-        }
-        self.seen.insert(md.get_inode());
-    }
 
     // Note: this is suboptimal because every new element is an allocation
-    pub fn traverse_folder(&self, dir: &Path) -> io::Result<Vec<PathBuf>> {
+    pub fn traverse_one_folder(&self, dir: &Path) -> io::Result<Vec<PathBuf>> {
         // return files/links in a folder
         // currently includes hidden files
         // TODO: return a set so there aren't duplicates??
