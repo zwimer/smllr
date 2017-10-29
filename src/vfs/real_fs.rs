@@ -3,59 +3,11 @@
 
 use std::path::{Path, PathBuf};
 use std::fs::{self, DirEntry};
-use std::os::unix::fs::DirEntryExt; // need unix
+use std::os::unix::fs::{MetadataExt, DirEntryExt}; // need unix
 use std::{io, time};
 
 use super::{File, VFS, MetaData, Inode, FileType};
 
-/*
-#[derive(Debug)]
-pub struct RealMD(fs::Metadata);
-
-impl MetaData for RealMD {
-    fn len(&self) -> u64 {
-        self.0.len()
-    }
-    fn creation_time(&self) -> io::Result<time::SystemTime> {
-        self.0.created()
-    }
-}
-
-#[derive(Debug)]
-pub struct RealFile(DirEntry);
-
-impl File for RealFile {
-    type MD = RealMD;
-
-    fn get_path(&self) -> PathBuf {
-        // warning: heap
-        self.0.path()
-    }
-    fn get_inode(&self) -> Inode {
-        // won't compile for windows
-        Inode(self.0.ino())
-    }
-    fn get_type(&self) -> io::Result<FileType> {
-        // free/guaranteed on _most_ unixes... not sure when it's not
-        // seems to be free on mine 
-        let ft = self.0.file_type()?;
-        if ft.is_file() {
-            Ok(FileType::File)
-        } else if ft.is_dir() {
-            Ok(FileType::Dir)
-        } else if ft.is_symlink() {
-            Ok(FileType::Symlink)
-        } else {
-            // block/char device, fifo, socket, etc depending on os
-            Ok(FileType::Other)
-        }
-    }
-    fn get_metadata(&self) -> io::Result<RealMD> {
-        // WARNING always a syscall
-        self.0.metadata().map(RealMD)
-    }
-}
-*/
 impl MetaData for fs::Metadata {
     fn len(&self) -> u64 {
         self.len()
@@ -65,6 +17,9 @@ impl MetaData for fs::Metadata {
     }
     fn get_type(&self) -> FileType {
         self.file_type().into()
+    }
+    fn get_inode(&self) -> Inode {
+        Inode(self.ino())
     }
 }
 
@@ -76,9 +31,9 @@ impl File for DirEntry {
         // warning: heap
         self.path()
     }
-    fn get_inode(&self) -> Inode {
+    fn get_inode(&self) -> io::Result<Inode> {
         // unix only
-        Inode(self.ino())
+        Ok(Inode(self.ino()))
     }
     fn get_type(&self) -> io::Result<FileType> {
         // free/guaranteed on _most_ unixes... not sure when it's not
@@ -115,6 +70,21 @@ impl VFS for RealFileSystem {
         -> io::Result<<Self::FileIter as File>::MD>
     {
         fs::symlink_metadata(p)
+    }
+
+    /*
+    fn resolve_path<P: AsRef<Path>>(&self, p: P) -> io::Result<Self::FileIter> {
+        // note: this is not very efficient. use sparingly
+        // fuck, this seems impossible to do for the root dir
+        let parent = p.as_ref().parent();
+        self.list_dir(&parent).find(|e| true)
+
+        //unimplemented!()
+
+    }
+    */
+    fn read_link<P: AsRef<Path>>(&self, p: P) -> io::Result<PathBuf> {
+        fs::read_link(p)
     }
 }
 

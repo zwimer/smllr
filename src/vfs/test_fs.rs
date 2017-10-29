@@ -23,6 +23,9 @@ impl MetaData for TestMD {
     fn get_type(&self) -> FileType {
         unimplemented!()
     }
+    fn get_inode(&self) -> Inode {
+        unimplemented!()
+    }
 }
 
 
@@ -41,8 +44,8 @@ impl File for TestFile {
     fn get_path(&self) -> PathBuf {
         Path::new(&self.path).to_owned()
     }
-    fn get_inode(&self) -> Inode {
-        self.inode
+    fn get_inode(&self) -> io::Result<Inode> {
+        Ok(self.inode)
     }
     fn get_type(&self) -> io::Result<FileType> {
         Ok(self.kind)
@@ -82,6 +85,13 @@ impl VFS for TestFileSystem {
     fn get_symlink_metadata<P: AsRef<Path>>(&self, p: P) 
         -> io::Result<<Self::FileIter as File>::MD>
     {
+        unimplemented!()
+    }
+
+    //fn resolve_path<P: AsRef<Path>>(&self, p: P) -> io::Result<Self::FileIter> {
+    //    unimplemented!()
+    //}
+    fn read_link<P: AsRef<Path>>(&self, p: P) -> io::Result<PathBuf> {
         unimplemented!()
     }
 }

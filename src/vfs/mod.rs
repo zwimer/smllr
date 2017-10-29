@@ -34,11 +34,15 @@ pub trait VFS {
     // information on symlink
     fn get_symlink_metadata<P: AsRef<Path>>(&self, p: P) 
         -> io::Result<<Self::FileIter as File>::MD>;
+
+    fn read_link<P: AsRef<Path>>(&self, p: P) -> io::Result<PathBuf>;
+
+    //fn resolve_path<P: AsRef<Path>>(&self, p: P) -> io::Result<Self::FileIter>;
 }
 
 pub trait File {
     type MD : MetaData;
-    fn get_inode(&self) -> Inode;
+    fn get_inode(&self) -> io::Result<Inode>;
     fn get_path(&self) -> PathBuf;
     fn get_type(&self) -> io::Result<FileType>;
     fn get_metadata(&self) -> io::Result<Self::MD>;
@@ -49,12 +53,31 @@ pub trait MetaData {
     fn len(&self) -> u64;
     fn creation_time(&self) -> io::Result<time::SystemTime>;
     fn get_type(&self) -> FileType;
+    fn get_inode(&self) -> Inode;
+}
+
+
+impl<'a, V: VFS> File for (&'a Path, &'a V) {
+    type MD = <<V as VFS>::FileIter as File>::MD;
+
+    fn get_inode(&self) -> io::Result<Inode> {
+        self.1.get_metadata(self.0).map(|md| md.get_inode())
+    }
+    fn get_path(&self) -> PathBuf {
+        self.0.to_owned()
+    }
+    fn get_type(&self) -> io::Result<FileType> {
+        self.1.get_metadata(self.0).map(|md| md.get_type())
+    }
+    fn get_metadata(&self) -> io::Result<Self::MD> {
+        self.1.get_metadata(self.0)
+    }
 }
 
 
 // helper types
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FileType {
     File,
     Dir,
@@ -77,7 +100,8 @@ impl From<fs::FileType> for FileType {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Inode(u64);
-// pub struct DeviceId(u64); // TODO ?
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DeviceId(u64);
 
