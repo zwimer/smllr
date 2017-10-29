@@ -1,14 +1,18 @@
 #[macro_use] extern crate log;
-/*#[macro_use]*/ extern crate clap;
+extern crate env_logger;
+extern crate clap;
 
 use clap::{App, Arg};
+use env_logger::LogBuilder; 
+use log::LogLevelFilter;
 
 mod walker;
-//use walker::{DirWalker};
+use walker::{DirWalker};
 
 mod vfs;
+use vfs::RealFileSystem;
 
-//use std::path::Path;
+use std::path::{Path, PathBuf};
 
 fn main() {
     let matches = App::new("smllr")
@@ -50,9 +54,17 @@ fn main() {
              )
         .get_matches();
 
-    let x: Vec<_> = matches.values_of("paths").unwrap().collect();
-    println!("{:?}", x);
+    let dirs: Vec<_> = matches.values_of("paths").unwrap().collect();
+    println!("{:?}", dirs);
 
-    //let dw = DirWalker::new(vec![Path::new(".")]);
+
+    // for now print all log info
+    LogBuilder::new().filter(None, LogLevelFilter::max()).init().unwrap();
+
+
+    let fs = RealFileSystem;
+    let paths: Vec<&Path> = dirs.iter().map(Path::new).collect();
+    let mut dw = DirWalker::new(fs, paths);
+    dw.traverse_all();
     //println!("{:?}", dw.traverse_folder(Path::new(".")));
 }

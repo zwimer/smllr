@@ -6,6 +6,7 @@ license = "GPL3"
 
 [dependencies]
 log = "0.3.8"
+env_logger = "0.4.3"
 clap = "2.26.2"
 regex = "0.2.2"
 

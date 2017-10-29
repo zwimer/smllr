@@ -95,12 +95,13 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
         }
     }
 
-    fn handle_file<T: File>(&mut self, de: &T) {
+    fn handle_file<T: File>(&mut self, f: &T) {
         // register it in self.seen
-        match de.get_inode() {
+        info!("\tHANDLING FILE {:?}", f.get_path());
+        match f.get_inode() {
             Ok(inode) => self.seen.insert(inode),
             Err(e) => {
-                warn!("Failed to get inode for {:?}: {}", de.get_path(), e);
+                warn!("Failed to get inode for {:?}: {}", f.get_path(), e);
                 return
             }
         };
@@ -111,6 +112,14 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
         // mutually recursive with Self::dispatch_any_file (sorry mom)
         // a complex directory structure will be mirrored with a complex stack
         //  note this is only sorta how BS does it. his isn't the call stack
+        info!("\tHANDLING FOLDER {:?}", f.get_path());
+        match f.get_inode() {
+            Ok(inode) => self.seen.insert(inode),
+            Err(e) => {
+                warn!("Failed to get inode for {:?}: {}", f.get_path(), e);
+                return
+            }
+        };
         let contents = match self.vfs.list_dir(f.get_path()) {
             Ok(c) => c,
             Err(e) => {
@@ -149,7 +158,16 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
         }
     }
 
+    pub fn traverse_all(&mut self) {
+        for d in self.directories.clone() { // uhhh for now
+            let tup: (&Path, V) = (&d, self.vfs.clone());
+            if self.should_traverse_folder(&tup) {
+                self.traverse_folder(&tup)
+            }
+        }
+    }
 
+    /*
     // Note: this is suboptimal because every new element is an allocation
     pub fn traverse_one_folder(&self, dir: &Path) -> io::Result<Vec<PathBuf>> {
         // return files/links in a folder
@@ -194,5 +212,6 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
 
         Ok(files)
     }
+    */
 }
 
