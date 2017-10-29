@@ -4,10 +4,12 @@ use std::{io, env};
 use std::fs::{self, DirEntry};
 use std::collections::{HashMap, HashSet};
 
+use super::vfs::{VFS, RealFileSystem};
+
 const FOLLOW_SYMLINKS_DEFAULT: bool = false;
 
 #[derive(Debug)]
-pub struct DirWalker {
+pub struct DirWalker<T: VFS> {
     // files to include/exclude
     directories: Vec<PathBuf>,
     blacklist: Vec<PathBuf>,
@@ -21,13 +23,18 @@ pub struct DirWalker {
     // maps device id ("Device" in `stat`) to a collection of seen inodes
     seen: HashMap<u64, HashSet<u64>>,
 
+    vfs: T,
+
     // options
     follow_symlinks: bool,
 }
 
 
-impl DirWalker {
-    pub fn new(dirs: Vec<&Path>) -> DirWalker {
+use vfs::{File, MetaData, FileType};
+
+impl<M, F, T: VFS<FileIter=F>> DirWalker<T> where F: File<MD=M>, M: MetaData {
+//impl<M: MetaData, F: File<MD=M>, T: VFS<FileIter=F>> DirWalker<T> {
+    pub fn new(vfs: T, dirs: Vec<&Path>) -> DirWalker<T> {
         // if any paths are relative, append them to the current working dir
         // if getting the cwd fails, the whole process should abort
         let abs_paths: io::Result<Vec<_>> = dirs.into_iter().map(|dir| {
@@ -50,6 +57,7 @@ impl DirWalker {
             blacklist: vec![],
             seen: HashMap::new(),
             follow_symlinks: FOLLOW_SYMLINKS_DEFAULT,
+            vfs: vfs,
         }
     }
 
@@ -73,7 +81,6 @@ impl DirWalker {
     }
 
     // Note: this is suboptimal because every new element is an allocation
-    //fn traverse_folder(&self, dir: &Path) -> io::Result<Vec<fs::DirEntry>> {
     pub fn traverse_folder(&self, dir: &Path) -> io::Result<Vec<PathBuf>> {
         // return files/links in a folder
         // currently includes hidden files
@@ -81,7 +88,7 @@ impl DirWalker {
         assert!(dir.is_dir());
         assert!(dir.exists());
 
-        let contents = fs::read_dir(dir)?;
+        let contents = self.vfs.list_dir(dir)?;
 
         let files = contents.filter_map(|i| {
             // check if handle points to a real object
@@ -93,35 +100,23 @@ impl DirWalker {
             }
         }).filter(|entry| {
             // check if object is a file (skip directories/links)
-            match entry.file_type() {
-                Ok(filetype) => {
-                    // probably needs some refactoring
-                    // needs more thorough testing
-                    if filetype.is_symlink() {
-                        // check the type of the link's target
-                        // NOTE: DirEntry::metadata uses fs::symlink_metadata 
-                        //  which does not follow symlinks, but
-                        //  Path::metadata uses fs::metadata which does.
-                        // I wonder how long it will take for this to cause a bug
-                        match entry.path().metadata() {
-                            Err(e) => {
-                                warn!("Couldn't follow link {}.\nError: {}",
-                                      entry.path().display(), e); 
-                                false
-                            },
-                            Ok(md) => md.is_file(),
-                        }
-                    } else {
-                        filetype.is_file()
-                    }
+            let filetype = match entry.get_type() {
+                Ok(FileType::Symlink) => {
+                    self.vfs.get_metadata(entry.get_path()).map(|m| m.get_type())
                 },
+                x => x,
+            };
+            match filetype {
+                Ok(FileType::File) => true,
+                Ok(FileType::Symlink) => unreachable!(),
+                Ok(FileType::Dir) | Ok(FileType::Other) => false,
                 Err(e) => {
-                    warn!("Couldn't identify type of item {}.\nError: {}", 
-                          entry.path().display(), e);
+                    warn!("Couldn't identify type of file `{}`: `{:?}`", 
+                          entry.get_path().display(), e);
                     false
-                }, 
+                },
             }
-        }).map(|entry| entry.path()) // convert DirEntry to PathBuf (allocs!)
+        }).map(|entry| entry.get_path()) // convert DirEntry to PathBuf (allocs!)
         .filter(|path| {
             // make sure none of them are blacklisted
             self.blacklist.iter().all(|bl| path.starts_with(bl) == false)

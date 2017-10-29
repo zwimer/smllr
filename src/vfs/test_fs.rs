@@ -20,6 +20,9 @@ impl MetaData for TestMD {
     fn creation_time(&self) -> io::Result<SystemTime> {
         Ok(self.creation)
     }
+    fn get_type(&self) -> FileType {
+        unimplemented!()
+    }
 }
 
 
@@ -69,4 +72,17 @@ impl VFS for TestFileSystem {
     {
         unimplemented!()
     }
+
+    fn get_metadata<P: AsRef<Path>>(&self, p: P) 
+        -> io::Result<<Self::FileIter as File>::MD> 
+    {
+        unimplemented!()
+    }
+
+    fn get_symlink_metadata<P: AsRef<Path>>(&self, p: P) 
+        -> io::Result<<Self::FileIter as File>::MD>
+    {
+        unimplemented!()
+    }
 }
+

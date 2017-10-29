@@ -8,6 +8,7 @@ use std::{io, time};
 
 use super::{File, VFS, MetaData, Inode, FileType};
 
+/*
 #[derive(Debug)]
 pub struct RealMD(fs::Metadata);
 
@@ -54,6 +55,41 @@ impl File for RealFile {
         self.0.metadata().map(RealMD)
     }
 }
+*/
+impl MetaData for fs::Metadata {
+    fn len(&self) -> u64 {
+        self.len()
+    }
+    fn creation_time(&self) -> io::Result<time::SystemTime> {
+        self.created()
+    }
+    fn get_type(&self) -> FileType {
+        self.file_type().into()
+    }
+}
+
+
+impl File for DirEntry {
+    type MD = fs::Metadata;
+
+    fn get_path(&self) -> PathBuf {
+        // warning: heap
+        self.path()
+    }
+    fn get_inode(&self) -> Inode {
+        // unix only
+        Inode(self.ino())
+    }
+    fn get_type(&self) -> io::Result<FileType> {
+        // free/guaranteed on _most_ unixes... not sure when it's not
+        // seems to be free on mine 
+        let ft = self.file_type()?;
+        Ok(ft.into())
+    }
+    fn get_metadata(&self) -> io::Result<fs::Metadata> {
+        self.metadata()
+    }
+}
 
 #[derive(Debug)]
 pub struct RealFileSystem;
@@ -69,6 +105,16 @@ impl VFS for RealFileSystem {
             Ok(rd) => Ok(Box::new(rd)),
             Err(e) => Err(e)
         }
+    }
+
+    fn get_metadata<P: AsRef<Path>>(&self, p: P) -> io::Result<<Self::FileIter as File>::MD> {
+        fs::metadata(p)
+    }
+
+    fn get_symlink_metadata<P: AsRef<Path>>(&self, p: P) 
+        -> io::Result<<Self::FileIter as File>::MD>
+    {
+        fs::symlink_metadata(p)
     }
 }
 
