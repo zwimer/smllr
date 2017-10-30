@@ -5,11 +5,11 @@ use std::path::{Path, PathBuf};
 use std::io;
 use std::time::SystemTime;
 use std::rc::Rc;
-use std::collections::HashMap;
+use std::collections::{HashMap};
 
 use super::{File, VFS, MetaData, Inode, DeviceId, FileType};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TestMD {
     len: u64,
     creation: SystemTime,
@@ -37,10 +37,10 @@ impl MetaData for TestMD {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TestFile {
-    path: String,
-    contents: String,
+    path: PathBuf,
+    contents: Option<String>,
     kind: FileType,
     inode: Inode,
     metadata: Option<TestMD>,
@@ -84,47 +84,41 @@ impl VirtElem {
 }
 */
 
+/*
+struct FsErrors {
+    file_read: bool,
+    dir_read: bool,
+    stat: bool,
+}
+*/
+
 #[derive(Debug)]
 pub struct TestFileSystem {
     files: HashMap<PathBuf, TestFile>,
-    symlinks: HashMap<PathBuf, PathBuf>,
-    //root: VirtElem,
+    symlinks: HashMap<PathBuf, (TestFile, PathBuf)>,
 }
 
-/*
 impl TestFileSystem {
-    fn lookup<'a>(&'a self, path: &Path) -> Option<&'a TestFile> {
-        let mut current: Option<&VirtElem> = Some(&self.root);
-        for part in path {
-            match current {
-                Some(&VirtElem::File { ref loc }) => if loc.get_path() == path {
-                    return Some(loc)
+    fn lookup<'a>(&'a self, path: &Path) -> io::Result<&'a TestFile> {
+        if let Some(tf) = self.files.get(path) {
+            Ok(tf)
+        } else {
+            // traverse the symlink chain
+            let mut cur = self.symlinks.get(path);
+            let mut seen: Vec<&Path> = vec![]; // SystemTime isn't Hash
+            while let Some(c) = cur {
+                if seen.contains(&c.1.as_path()) {
+                    // infinite symlink loop
+                    return Err(io::Error::from_raw_os_error(40))
                 } else {
-                    return None
-                },
-                Some(&VirtElem::Dir { ref loc, ref contents }) => {
-                    if path.starts_with(loc) {
-                        current = contents.iter()
-                            .find(|&c| path.starts_with(c.get_path()));
-                    } else {
-                        current = None;
-                    }
-                },
-                Some(&VirtElem::SymLink { ref loc, ref target }) => {
-                    if path.starts_with(loc) {
-                        current = Some(target);
-                    } else {
-                        current = None;
-                    }
-                },
-                None => return None,
-                _ => unimplemented!()
+                    seen.push(&c.1);
+                    cur = self.symlinks.get(&c.1);
+                }
             }
+            Err(io::Error::new(io::ErrorKind::NotFound, "No such file"))
         }
-        None
     }
 }
-*/
 
 impl VFS for Rc<TestFileSystem> {
     type FileIter = TestFile;
@@ -132,26 +126,54 @@ impl VFS for Rc<TestFileSystem> {
     fn list_dir<P: AsRef<Path>>(&self, p: P) 
         -> io::Result<Box<Iterator<Item=io::Result<TestFile>>>> 
     {
-        unimplemented!()
+        let mut v = vec![];
+        for (path,file) in &self.files {
+            if path.parent() == Some(p.as_ref()) {
+                // wll never need to return `/`
+                v.push(Ok(file.clone()));
+            }
+        }
+        for (src, &(ref file, ref _dst)) in &self.symlinks {
+            if src.parent() == Some(p.as_ref()) {
+                //let elem = self.lookup(dst).map(|x| x.clone());
+                v.push(Ok(file.clone()));
+            }
+        }
+        //v.push(Err(io::Error::from_raw_os_error(1)));
+        Ok(Box::new(v.into_iter()))
     }
 
-    fn get_metadata<P: AsRef<Path>>(&self, p: P) 
+    fn get_metadata<P: AsRef<Path>>(&self, path: P) 
         -> io::Result<<Self::FileIter as File>::MD> 
     {
-        unimplemented!()
+        // FileType cannot be symlink
+        match self.files.get(path.as_ref()) {
+            Some(f) => f.get_metadata(),
+            None => match self.symlinks.get(path.as_ref()) {
+                Some(&(_, ref p)) => self.lookup(p).and_then(|f| f.get_metadata()),
+                None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file"))
+            }
+        }
     }
 
-    fn get_symlink_metadata<P: AsRef<Path>>(&self, p: P) 
+    fn get_symlink_metadata<P: AsRef<Path>>(&self, path: P) 
         -> io::Result<<Self::FileIter as File>::MD>
     {
-        unimplemented!()
+        // FileType can be symlink
+        match self.files.get(path.as_ref()) {
+            Some(f) => f.get_metadata(),
+            None => match self.symlinks.get(path.as_ref()) {
+                Some(&(ref f, _)) => f.get_metadata(),
+                None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file"))
+            }
+        }
     }
 
-    //fn resolve_path<P: AsRef<Path>>(&self, p: P) -> io::Result<Self::FileIter> {
-    //    unimplemented!()
-    //}
-    fn read_link<P: AsRef<Path>>(&self, p: P) -> io::Result<PathBuf> {
-        unimplemented!()
+    fn read_link<P: AsRef<Path>>(&self, path: P) -> io::Result<PathBuf> {
+        match self.symlinks.get(path.as_ref()) {
+            Some(&(_, ref p)) => Ok(p.to_owned()),
+            None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file"))
+        }
     }
 }
 

@@ -12,7 +12,7 @@ use walker::{DirWalker};
 mod vfs;
 use vfs::RealFileSystem;
 
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 
 fn main() {
     let matches = App::new("smllr")

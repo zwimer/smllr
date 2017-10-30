@@ -1,10 +1,9 @@
 
 use std::path::{Path, PathBuf};
 use std::{io, env};
-use std::fs::{self, DirEntry};
 use std::collections::{HashSet};
 
-use super::vfs::{VFS, RealFileSystem, Inode, DeviceId};
+use super::vfs::{VFS, Inode, DeviceId};
 
 //const FOLLOW_SYMLINKS_DEFAULT: bool = false;
 
@@ -71,7 +70,7 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
         }
     }
 
-    fn should_handle_file<T: File>(&self, f: &T, dev_id: DeviceId) -> bool {
+    fn should_handle_file<T: File>(&self, f: &T, _dev_id: DeviceId) -> bool {
         match f.get_inode() {
             Ok(ref inode) if self.seen.contains(inode) ||
                 self.blacklist_files.contains(inode) => false,
@@ -97,7 +96,7 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
         }
     }
 
-    fn handle_file<T: File>(&mut self, f: &T, dev_id: DeviceId) {
+    fn handle_file<T: File>(&mut self, f: &T, _dev_id: DeviceId) {
         // register it in self.seen
         info!("\tHANDLING FILE {:?}", f.get_path());
         match f.get_inode() {
