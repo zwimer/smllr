@@ -28,6 +28,8 @@ pub struct DirWalker<T: VFS> {
     //seen: HashMap<Inode, Option<Vec<u64>>>,
     //seen: HashMap<Inode, Vec<u64>>,
     seen: HashSet<Inode>, // for now
+    //seen: HashMap<DeviceId
+    // can we guarantee that a file will have the same device id as its parent dir?
 
     vfs: T,
 
@@ -69,7 +71,7 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
         }
     }
 
-    fn should_handle_file<T: File>(&self, f: &T) -> bool {
+    fn should_handle_file<T: File>(&self, f: &T, dev_id: DeviceId) -> bool {
         match f.get_inode() {
             Ok(ref inode) if self.seen.contains(inode) ||
                 self.blacklist_files.contains(inode) => false,
@@ -95,7 +97,7 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
         }
     }
 
-    fn handle_file<T: File>(&mut self, f: &T) {
+    fn handle_file<T: File>(&mut self, f: &T, dev_id: DeviceId) {
         // register it in self.seen
         info!("\tHANDLING FILE {:?}", f.get_path());
         match f.get_inode() {
@@ -120,6 +122,13 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
                 return
             }
         };
+        let dev_id = match f.get_metadata().and_then(|md| md.get_device()) {
+            Ok(di) => di,
+            Err(e) => {
+                warn!("Failed to get metadata for {:?}: {}", f.get_path(), e);
+                return
+            }
+        };
         let contents = match self.vfs.list_dir(f.get_path()) {
             Ok(c) => c,
             Err(e) => {
@@ -129,17 +138,32 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
         };
         for entry in contents {
             match entry {
-                Ok(ref e) => self.dispatch_any_file(e),
+                Ok(ref e) => self.dispatch_any_file(e, Some(dev_id)),
                 Err(e) => warn!("Failed to identify file in dir {:?}: {}", f.get_path(), e),
             }
         }
     }
 
-    fn dispatch_any_file<T: File>(&mut self, f: &T) {
+    fn dispatch_any_file<T: File>(&mut self, f: &T, dev_id: Option<DeviceId>) {
         // handle a file, traverse a directory, or follow a symlink
         match f.get_type() {
-            Ok(FileType::File) => if self.should_handle_file(f) {
-                self.handle_file(f)
+            //Ok(FileType::File) => if self.should_handle_file(f, dev_id) {
+            //    self.handle_file(f, dev_id)
+            //},
+            Ok(FileType::File) => {
+                let dev_id = match dev_id {
+                    Some(id) => id,
+                    None => match f.get_metadata().and_then(|md| md.get_device()) {
+                        Ok(id) => id,
+                        Err(e) => {
+                            warn!("Couldn't get device id for {:?}: {}", f.get_path(), e);
+                            return
+                        },
+                    },
+                };
+                if self.should_handle_file(f, dev_id) {
+                    self.handle_file(f, dev_id)
+                }
             },
             Ok(FileType::Dir) => if self.should_traverse_folder(f) {
                 self.traverse_folder(f)
@@ -149,7 +173,7 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
                 // the stdlib should prevent this though
                 Ok(ref f) => {
                     let tup: (&Path, V) = (f, self.vfs.clone());
-                    self.dispatch_any_file(&tup)
+                    self.dispatch_any_file(&tup, None)
                 },
                 Err(e) => warn!("Couldn't resolve symlink {:?}: {}", f.get_path(), e),
             },
@@ -161,9 +185,7 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
     pub fn traverse_all(&mut self) {
         for d in self.directories.clone() { // uhhh for now
             let tup: (&Path, V) = (&d, self.vfs.clone());
-            if self.should_traverse_folder(&tup) {
-                self.traverse_folder(&tup)
-            }
+            self.dispatch_any_file(&tup, None);
         }
     }
 

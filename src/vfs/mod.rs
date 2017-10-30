@@ -12,7 +12,7 @@
 
 
 use std::{io, fs, time};
-use std::fmt::Debug;
+use std::fmt::{Debug};
 use std::path::{Path, PathBuf};
 
 mod real_fs;
@@ -37,8 +37,6 @@ pub trait VFS : Clone + Debug {
         -> io::Result<<Self::FileIter as File>::MD>;
 
     fn read_link<P: AsRef<Path>>(&self, p: P) -> io::Result<PathBuf>;
-
-    //fn resolve_path<P: AsRef<Path>>(&self, p: P) -> io::Result<Self::FileIter>;
 }
 
 pub trait File : Debug {
@@ -50,17 +48,14 @@ pub trait File : Debug {
 }
 
 pub trait MetaData : Debug {
-    //fn foo() {}
     fn len(&self) -> u64;
     fn creation_time(&self) -> io::Result<time::SystemTime>;
     fn get_type(&self) -> FileType;
     fn get_inode(&self) -> Inode;
+    fn get_device(&self) -> io::Result<DeviceId>;
 }
 
-
-//impl<'a, V: VFS> File for (&'a Path, &'a V) {
 impl<'a, V: VFS> File for (&'a Path, V) {
-//impl<V: VFS> File for (&Path, &V) {
     type MD = <<V as VFS>::FileIter as File>::MD;
 
     fn get_inode(&self) -> io::Result<Inode> {

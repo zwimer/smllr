@@ -4,9 +4,10 @@
 use std::path::{Path, PathBuf};
 use std::fs::{self, DirEntry};
 use std::os::unix::fs::{MetadataExt, DirEntryExt}; // need unix
+use std::os::linux::fs::MetadataExt as MetadataExt_linux; // ew
 use std::{io, time};
 
-use super::{File, VFS, MetaData, Inode, FileType};
+use super::{File, VFS, MetaData, Inode, DeviceId, FileType};
 
 impl MetaData for fs::Metadata {
     fn len(&self) -> u64 {
@@ -20,6 +21,9 @@ impl MetaData for fs::Metadata {
     }
     fn get_inode(&self) -> Inode {
         Inode(self.ino())
+    }
+    fn get_device(&self) -> io::Result<DeviceId> {
+        Ok(DeviceId(self.st_dev()))
     }
 }
 
@@ -72,17 +76,6 @@ impl VFS for RealFileSystem {
         fs::symlink_metadata(p)
     }
 
-    /*
-    fn resolve_path<P: AsRef<Path>>(&self, p: P) -> io::Result<Self::FileIter> {
-        // note: this is not very efficient. use sparingly
-        // fuck, this seems impossible to do for the root dir
-        let parent = p.as_ref().parent();
-        self.list_dir(&parent).find(|e| true)
-
-        //unimplemented!()
-
-    }
-    */
     fn read_link<P: AsRef<Path>>(&self, p: P) -> io::Result<PathBuf> {
         fs::read_link(p)
     }

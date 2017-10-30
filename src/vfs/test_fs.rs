@@ -5,13 +5,17 @@ use std::path::{Path, PathBuf};
 use std::io;
 use std::time::SystemTime;
 use std::rc::Rc;
+use std::collections::HashMap;
 
-use super::{File, VFS, MetaData, Inode, FileType};
+use super::{File, VFS, MetaData, Inode, DeviceId, FileType};
 
 #[derive(Debug, Clone, Copy)]
 pub struct TestMD {
     len: u64,
     creation: SystemTime,
+    kind: FileType,
+    inode: Inode,
+    device: DeviceId,
 }
 
 impl MetaData for TestMD {
@@ -22,10 +26,13 @@ impl MetaData for TestMD {
         Ok(self.creation)
     }
     fn get_type(&self) -> FileType {
-        unimplemented!()
+        self.kind
     }
     fn get_inode(&self) -> Inode {
-        unimplemented!()
+        self.inode
+    }
+    fn get_device(&self) -> io::Result<DeviceId> {
+        Ok(self.device)
     }
 }
 
@@ -56,17 +63,68 @@ impl File for TestFile {
     }
 }
 
+/*
 #[derive(Debug)]
 enum VirtElem {
-    File(TestFile),
-    Dir(Vec<VirtElem>),
-    SymLink(PathBuf),
+    File { loc: TestFile },
+    Dir { loc: PathBuf, contents: Vec<VirtElem>},
+    SymLink { loc: PathBuf, target: Box<VirtElem> },
 }
+*/
+
+/*
+impl VirtElem {
+    fn get_path(&self) -> PathBuf {
+        match self {
+            &VirtElem::File { ref loc } => loc.get_path(),
+            &VirtElem::Dir { ref loc, .. } => loc.to_owned(),
+            &VirtElem::SymLink { ref loc, .. } => loc.to_owned(),
+        }
+    }
+}
+*/
 
 #[derive(Debug)]
 pub struct TestFileSystem {
-    root: VirtElem,
+    files: HashMap<PathBuf, TestFile>,
+    symlinks: HashMap<PathBuf, PathBuf>,
+    //root: VirtElem,
 }
+
+/*
+impl TestFileSystem {
+    fn lookup<'a>(&'a self, path: &Path) -> Option<&'a TestFile> {
+        let mut current: Option<&VirtElem> = Some(&self.root);
+        for part in path {
+            match current {
+                Some(&VirtElem::File { ref loc }) => if loc.get_path() == path {
+                    return Some(loc)
+                } else {
+                    return None
+                },
+                Some(&VirtElem::Dir { ref loc, ref contents }) => {
+                    if path.starts_with(loc) {
+                        current = contents.iter()
+                            .find(|&c| path.starts_with(c.get_path()));
+                    } else {
+                        current = None;
+                    }
+                },
+                Some(&VirtElem::SymLink { ref loc, ref target }) => {
+                    if path.starts_with(loc) {
+                        current = Some(target);
+                    } else {
+                        current = None;
+                    }
+                },
+                None => return None,
+                _ => unimplemented!()
+            }
+        }
+        None
+    }
+}
+*/
 
 impl VFS for Rc<TestFileSystem> {
     type FileIter = TestFile;
