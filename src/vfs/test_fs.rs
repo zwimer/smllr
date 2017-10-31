@@ -50,7 +50,7 @@ impl File for TestFile {
     type MD = TestMD;
 
     fn get_path(&self) -> PathBuf {
-        Path::new(&self.path).to_owned()
+        self.path.clone()
     }
     fn get_inode(&self) -> io::Result<Inode> {
         Ok(self.inode)
@@ -62,27 +62,6 @@ impl File for TestFile {
         self.metadata.ok_or(io::Error::new(io::ErrorKind::Other, "No MD"))
     }
 }
-
-/*
-#[derive(Debug)]
-enum VirtElem {
-    File { loc: TestFile },
-    Dir { loc: PathBuf, contents: Vec<VirtElem>},
-    SymLink { loc: PathBuf, target: Box<VirtElem> },
-}
-*/
-
-/*
-impl VirtElem {
-    fn get_path(&self) -> PathBuf {
-        match self {
-            &VirtElem::File { ref loc } => loc.get_path(),
-            &VirtElem::Dir { ref loc, .. } => loc.to_owned(),
-            &VirtElem::SymLink { ref loc, .. } => loc.to_owned(),
-        }
-    }
-}
-*/
 
 /*
 struct FsErrors {
@@ -99,6 +78,56 @@ pub struct TestFileSystem {
 }
 
 impl TestFileSystem {
+
+    // helpers
+    fn get_next_inode(&self) -> Inode {
+        Inode((self.files.len() + self.symlinks.len()) as u64)
+    }
+    fn create_regular(&mut self, path: &Path, kind: FileType) {
+        let inode = self.get_next_inode();
+        let md = TestMD {
+            len: 0,
+            creation: SystemTime::now(),
+            kind,
+            inode,
+            device: DeviceId(0),
+        };
+        let tf = TestFile {
+            path: path.to_owned(),
+            kind,
+            inode,
+            contents: None,
+            metadata: Some(md),
+        };
+        self.files.insert(path.to_owned(), tf);
+    }
+
+    // insert into
+    pub fn new() -> Rc<Self> {
+        Rc::new(TestFileSystem { 
+            files: HashMap::new(), 
+            symlinks: HashMap::new(), 
+        })
+    }
+    pub fn create_file<P: AsRef<Path>>(&mut self, path: P) {
+        self.create_regular(path.as_ref(), FileType::File);
+    }
+    pub fn create_dir <P: AsRef<Path>>(&mut self, path: P) { 
+        self.create_regular(path.as_ref(), FileType::Dir);
+    }
+    pub fn create_symlink<P: AsRef<Path>>(&mut self, path: P, target: P) { 
+        let tf = TestFile {
+            path: path.as_ref().to_owned(),
+            kind: FileType::Symlink,
+            inode: self.get_next_inode(),
+            contents: None,
+            metadata: None,
+        };
+        let val = (tf, target.as_ref().to_owned());
+        self.symlinks.insert(path.as_ref().to_owned(), val);
+    }
+
+    // getters
     fn lookup<'a>(&'a self, path: &Path) -> io::Result<&'a TestFile> {
         if let Some(tf) = self.files.get(path) {
             Ok(tf)
@@ -128,18 +157,16 @@ impl VFS for Rc<TestFileSystem> {
     {
         let mut v = vec![];
         for (path,file) in &self.files {
-            if path.parent() == Some(p.as_ref()) {
-                // wll never need to return `/`
+            let parent = path.parent();
+            if parent == Some(p.as_ref()) || parent.is_none() {
                 v.push(Ok(file.clone()));
             }
         }
         for (src, &(ref file, ref _dst)) in &self.symlinks {
             if src.parent() == Some(p.as_ref()) {
-                //let elem = self.lookup(dst).map(|x| x.clone());
                 v.push(Ok(file.clone()));
             }
         }
-        //v.push(Err(io::Error::from_raw_os_error(1)));
         Ok(Box::new(v.into_iter()))
     }
 

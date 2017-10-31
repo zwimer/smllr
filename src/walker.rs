@@ -32,6 +32,7 @@ pub struct DirWalker<T: VFS> {
 
     vfs: T,
 
+    count: usize,
     // options
     //follow_symlinks: bool,
 }
@@ -67,6 +68,7 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
             seen: HashSet::new(),
             //follow_symlinks: FOLLOW_SYMLINKS_DEFAULT,
             vfs: vfs,
+            count: 0,
         }
     }
 
@@ -99,6 +101,7 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
     fn handle_file<T: File>(&mut self, f: &T, _dev_id: DeviceId) {
         // register it in self.seen
         info!("\tHANDLING FILE {:?}", f.get_path());
+        self.count += 1;
         match f.get_inode() {
             Ok(inode) => self.seen.insert(inode),
             Err(e) => {
@@ -181,58 +184,12 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
         }
     }
 
-    pub fn traverse_all(&mut self) {
+    pub fn traverse_all(&mut self) -> usize {
         for d in self.directories.clone() { // uhhh for now
             let tup: (&Path, V) = (&d, self.vfs.clone());
             self.dispatch_any_file(&tup, None);
         }
+        self.count
     }
 
-    /*
-    // Note: this is suboptimal because every new element is an allocation
-    pub fn traverse_one_folder(&self, dir: &Path) -> io::Result<Vec<PathBuf>> {
-        // return files/links in a folder
-        // currently includes hidden files
-        // TODO: return a set so there aren't duplicates??
-        assert!(dir.exists());
-        assert!(dir.is_dir());
-
-        let contents = self.vfs.list_dir(dir)?;
-
-        let files = contents.filter_map(|i| {
-            // check if handle points to a real object
-            if let Err(e) = i { 
-                warn!("Couldn't identify item in {}.\nError: {}", dir.display(), e);
-                None
-            } else {
-                i.ok()
-            }
-        }).filter(|entry| {
-            // check if object is a file (skip directories/links)
-            let filetype = match entry.get_type() {
-                Ok(FileType::Symlink) => {
-                    self.vfs.get_metadata(entry.get_path()).map(|m| m.get_type())
-                },
-                x => x,
-            };
-            match filetype {
-                Ok(FileType::File) => true,
-                Ok(FileType::Symlink) => unreachable!(),
-                Ok(FileType::Dir) | Ok(FileType::Other) => false,
-                Err(e) => {
-                    warn!("Couldn't identify type of file `{}`: `{:?}`", 
-                          entry.get_path().display(), e);
-                    false
-                },
-            }
-        }).map(|entry| entry.get_path()) // convert DirEntry to PathBuf (allocs!)
-        .filter(|path| {
-            // make sure none of them are blacklisted
-            self.blacklist.iter().all(|bl| path.starts_with(bl) == false)
-        }).collect();
-
-        Ok(files)
-    }
-    */
 }
-

@@ -6,13 +6,15 @@ use clap::{App, Arg};
 use env_logger::LogBuilder; 
 use log::LogLevelFilter;
 
-mod walker;
-use walker::{DirWalker};
+use std::path::{Path};
 
-mod vfs;
+mod walker;
+pub use walker::{DirWalker};
+
+pub mod vfs;
 use vfs::RealFileSystem;
 
-use std::path::{Path};
+mod test;
 
 fn main() {
     let matches = App::new("smllr")
