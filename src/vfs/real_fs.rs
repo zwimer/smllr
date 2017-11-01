@@ -10,10 +10,10 @@ use std::{io, time};
 use super::{File, VFS, MetaData, Inode, DeviceId, FileType};
 
 impl MetaData for fs::Metadata {
-    fn len(&self) -> u64 {
+    fn get_len(&self) -> u64 {
         self.len()
     }
-    fn creation_time(&self) -> io::Result<time::SystemTime> {
+    fn get_creation_time(&self) -> io::Result<time::SystemTime> {
         self.created()
     }
     fn get_type(&self) -> FileType {

@@ -48,8 +48,8 @@ pub trait File : Debug {
 }
 
 pub trait MetaData : Debug {
-    fn len(&self) -> u64;
-    fn creation_time(&self) -> io::Result<time::SystemTime>;
+    fn get_len(&self) -> u64;
+    fn get_creation_time(&self) -> io::Result<time::SystemTime>;
     fn get_type(&self) -> FileType;
     fn get_inode(&self) -> Inode;
     fn get_device(&self) -> io::Result<DeviceId>;

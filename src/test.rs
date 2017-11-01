@@ -18,8 +18,9 @@ mod test {
     fn empty_fs() {
         let fs = TestFileSystem::new();
         let paths = vec![Path::new("/")];
-        let mut dw = DirWalker::new(fs, paths);
-        let count: usize = dw.traverse_all();
+        //let mut dw = DirWalker::new(fs, paths);
+        //let count: usize = dw.traverse_all();
+        let count = DirWalker::new(fs, paths).traverse_all();
         assert_eq!(count, 0);
     }
 

@@ -19,10 +19,10 @@ pub struct TestMD {
 }
 
 impl MetaData for TestMD {
-    fn len(&self) -> u64 {
+    fn get_len(&self) -> u64 {
         self.len
     }
-    fn creation_time(&self) -> io::Result<SystemTime> {
+    fn get_creation_time(&self) -> io::Result<SystemTime> {
         Ok(self.creation)
     }
     fn get_type(&self) -> FileType {
