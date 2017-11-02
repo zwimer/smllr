@@ -16,6 +16,8 @@ use vfs::RealFileSystem;
 
 mod test;
 
+mod proxy;
+
 fn main() {
     let matches = App::new("smllr")
         // paths without an argument after 
