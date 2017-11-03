@@ -2,6 +2,7 @@
 extern crate env_logger;
 extern crate regex;
 extern crate clap;
+extern crate md5;
 
 use clap::{App, Arg};
 use env_logger::LogBuilder; 
@@ -19,6 +20,9 @@ use vfs::RealFileSystem;
 mod test;
 
 mod proxy;
+
+const FILE_READ_BUFFER_SIZE: usize = 4096;
+const FIRST_K_BYTES: usize = 4096;
 
 fn main() {
     let matches = App::new("smllr")
