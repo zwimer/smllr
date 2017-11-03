@@ -2,8 +2,9 @@
 use std::path::{Path, PathBuf};
 use std::{io, env};
 use std::collections::{HashSet};
+use regex::Regex;
 
-use super::vfs::{VFS, Inode, DeviceId};
+use super::vfs::{VFS};
 
 //const FOLLOW_SYMLINKS_DEFAULT: bool = false;
 
@@ -11,30 +12,17 @@ use super::vfs::{VFS, Inode, DeviceId};
 pub struct DirWalker<T: VFS> {
     // files to include/exclude
     directories: Vec<PathBuf>,
-    blacklist: Vec<PathBuf>,
-    //blacklist_files: HashSet<PathBuf>,
-    blacklist_files: HashSet<Inode>,
+    blacklist_dirs: Vec<PathBuf>,
+    blacklist_patterns: Vec<Regex>,
 
-    //regex_whitelist: Vec<Pattern>,
-    //regex_blacklist: Vec<Pattern>,
-    // alternatively, the folder/regex black/whitelists could all be boxed 
-    //  traits or something that implement `match` or something
-    //  This is probably the OO way to do things but incurs vtables :/
+    // keep track of the files and folders we've seen
+    // `files` will only be files, `folders` will only be directories
+    // symlinks will be resolved to their targets or discarded
+    files: HashSet<PathBuf>,
+    folders: HashSet<PathBuf>,
 
-    // keep track of what inodes have been seen
-    // maps device id ("Device" in `stat`) to a collection of seen inodes
-    //seen: HashMap<u64, HashSet<u64>>,
-    //seen: HashMap<Inode, Option<Vec<u64>>>,
-    //seen: HashMap<Inode, Vec<u64>>,
-    seen: HashSet<Inode>, // for now
-    //seen: HashMap<DeviceId
-    // can we guarantee that a file will have the same device id as its parent dir?
-
+    // file system being traversed
     vfs: T,
-
-    count: usize,
-    // options
-    //follow_symlinks: bool,
 }
 
 
@@ -63,133 +51,115 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
 
         DirWalker {
             directories: abs_paths,
-            blacklist: vec![],
-            blacklist_files: HashSet::new(),
-            seen: HashSet::new(),
-            //follow_symlinks: FOLLOW_SYMLINKS_DEFAULT,
+            blacklist_dirs: vec![],
+            blacklist_patterns: vec![],
+            files: HashSet::new(),
+            folders: HashSet::new(),
             vfs: vfs,
-            count: 0,
         }
     }
 
-    fn should_handle_file<T: File>(&self, f: &T, _dev_id: DeviceId) -> bool {
-        match f.get_inode() {
-            Ok(ref inode) if self.seen.contains(inode) ||
-                self.blacklist_files.contains(inode) => false,
-            Err(e) => {
-                warn!("Failed to look up inode for {:?}: {}", f.get_path(), e);
-                false
-            },
-            _ => true,
-        }
-    }
-
-    fn should_traverse_folder<T: File>(&self, f: &T) -> bool {
-        match f.get_inode() {
-            Ok(ref inode) if self.seen.contains(inode) => false,
-            Err(e) => {
-                warn!("Failed to look up inode for {:?}: {}", f.get_path(), e);
-                false
-            },
-            _ => {
-                let p = f.get_path();
-                self.blacklist.iter().any(|bl| p.starts_with(&bl)) == false
+    /// Determine whether a file is in scope (i.e. not seen already or blacklisted)
+    fn should_handle_file(&self, path: &Path) -> bool {
+        // only handle files that
+        //  1) haven't been seen before and
+        //  2) don't match a blacklist regex pattern
+        //      NOTE: if a path is invalid unicode it will never match a pattern
+        self.files.contains(path) == false && {
+            if let Some(path_str) = path.to_str() {
+                self.blacklist_patterns.iter().all(|re| !re.is_match(path_str))
+            } else {
+                true
             }
         }
     }
 
-    fn handle_file<T: File>(&mut self, f: &T, _dev_id: DeviceId) {
-        // register it in self.seen
-        info!("\tHANDLING FILE {:?}", f.get_path());
-        self.count += 1;
-        match f.get_inode() {
-            Ok(inode) => self.seen.insert(inode),
-            Err(e) => {
-                warn!("Failed to get inode for {:?}: {}", f.get_path(), e);
-                return
+    /// Determine whether a folder is in scope(i.e. not seen already or blacklisted)
+    fn should_traverse_folder(&self, path: &Path) -> bool {
+        // only look into folders that
+        //  1) haven't been seen before, 
+        //  2) don't match a folder blacklist, and
+        //  3) don't match a regex pattern blacklist
+        //      NOTE: again, bad unicode paths will not match any regex
+        self.folders.contains(path) == false && 
+            self.blacklist_dirs.iter().all(|dir| !path.starts_with(dir)) && {
+                if let Some(path_str) = path.to_str() {
+                    self.blacklist_patterns.iter().all(|re| !re.is_match(path_str))
+                } else {
+                    true
+                }
             }
-        };
     }
 
-    pub fn traverse_folder<T: File>(&mut self, f: &T) {
+    /// Perform operation on a file: in this case just add it to a hashset
+    fn handle_file(&mut self, path: &Path) {
+        // do your thing: here just add to a field of filepaths
+        info!("\tHANDLING FILE {:?}", path);
+        let was_absent = self.files.insert(path.to_owned());
+        assert!(was_absent);
+    }
+
+    /// Operate on a folder: iterate through its contents recursively
+    pub fn traverse_folder(&mut self, path: &Path) {
         // assume should_handle_folder was called
         // mutually recursive with Self::dispatch_any_file (sorry mom)
         // a complex directory structure will be mirrored with a complex stack
         //  note this is only sorta how BS does it. his isn't the call stack
-        info!("\tHANDLING FOLDER {:?}", f.get_path());
-        match f.get_inode() {
-            Ok(inode) => self.seen.insert(inode),
-            Err(e) => {
-                warn!("Failed to get inode for {:?}: {}", f.get_path(), e);
-                return
-            }
-        };
-        let dev_id = match f.get_metadata().and_then(|md| md.get_device()) {
-            Ok(di) => di,
-            Err(e) => {
-                warn!("Failed to get metadata for {:?}: {}", f.get_path(), e);
-                return
-            }
-        };
-        let contents = match self.vfs.list_dir(f.get_path()) {
+
+        let was_absent = self.folders.insert(path.to_owned());
+        assert!(was_absent);
+
+        let contents = match self.vfs.list_dir(path) {
             Ok(c) => c,
             Err(e) => {
-                warn!("Failed to list contents of dir {:?}: {}", f.get_path(), e);
+                warn!("Failed to list contents of dir {:?}: {}", path, e);
                 return
             },
         };
         for entry in contents {
             match entry {
-                Ok(ref e) => self.dispatch_any_file(e, Some(dev_id)),
-                Err(e) => warn!("Failed to identify file in dir {:?}: {}", f.get_path(), e),
+                Ok(ref e) => self.dispatch_any_file(&e.get_path(), e.get_type().ok()),
+                Err(e) => warn!("Failed to identify file in dir {:?}: {}", path, e),
             }
         }
     }
 
-    fn dispatch_any_file<T: File>(&mut self, f: &T, dev_id: Option<DeviceId>) {
+    /// Check and possibly handle any filesystem object
+    fn dispatch_any_file(&mut self, path: &Path, filetype: Option<FileType>) {
         // handle a file, traverse a directory, or follow a symlink
-        match f.get_type() {
-            //Ok(FileType::File) => if self.should_handle_file(f, dev_id) {
-            //    self.handle_file(f, dev_id)
-            //},
-            Ok(FileType::File) => {
-                let dev_id = match dev_id {
-                    Some(id) => id,
-                    None => match f.get_metadata().and_then(|md| md.get_device()) {
-                        Ok(id) => id,
-                        Err(e) => {
-                            warn!("Couldn't get device id for {:?}: {}", f.get_path(), e);
-                            return
-                        },
-                    },
-                };
-                if self.should_handle_file(f, dev_id) {
-                    self.handle_file(f, dev_id)
-                }
-            },
-            Ok(FileType::Dir) => if self.should_traverse_folder(f) {
-                self.traverse_folder(f)
-            },
-            Ok(FileType::Symlink) => match self.vfs.read_link(f.get_path()) {
-                // if this successfully points into a loop, we'll get stuck here
-                // the stdlib should prevent this though
-                Ok(ref f) => {
-                    let tup: (&Path, V) = (f, self.vfs.clone());
-                    self.dispatch_any_file(&tup, None)
+        let filetype = match filetype {
+            Some(ft) => ft,
+            None => match self.vfs.get_metadata(path) {
+                Ok(md) => md.get_type(),
+                Err(e) => {
+                    warn!("Couldn't get metadata for {:?}: {}", path, e);
+                    return
                 },
-                Err(e) => warn!("Couldn't resolve symlink {:?}: {}", f.get_path(), e),
+            }
+        };
+        match filetype {
+            FileType::File => if self.should_handle_file(path) {
+                self.handle_file(path)
             },
-            Ok(FileType::Other) => info!("Ignoring unknown file {:?}", f.get_path()),
-            Err(e) => warn!("Failed to get type for {:?}: {}", f.get_path(), e),
+            FileType::Dir => if self.should_traverse_folder(path) {
+                self.traverse_folder(path)
+            },
+            FileType::Symlink => match self.vfs.read_link(path) {
+                Ok(ref f) => self.dispatch_any_file(f, None),
+                Err(e) => warn!("Couldn't resolve symlink {:?}: {}", path, e),
+            },
+            FileType::Other => info!("Ignoring unknown file {:?}", path),
         }
     }
 
-    pub fn traverse_all(&mut self) -> usize {
-        for d in self.directories.clone() { // uhhh for now
-            let tup: (&Path, V) = (&d, self.vfs.clone());
-            self.dispatch_any_file(&tup, None);
+    /// Collect all specified files into a set; this kills the DirWalker
+    pub fn traverse_all(mut self) -> HashSet<PathBuf> {
+        // steal directories (performance hack, ask owen)
+        let directories = ::std::mem::replace(&mut self.directories, vec![]);
+        for path in directories {
+            self.dispatch_any_file(&path, None);
         }
-        self.count
+        self.files
     }
 
 }

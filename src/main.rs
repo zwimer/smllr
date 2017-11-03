@@ -1,5 +1,6 @@
 #[macro_use] extern crate log;
 extern crate env_logger;
+extern crate regex;
 extern crate clap;
 
 use clap::{App, Arg};
@@ -66,7 +67,8 @@ fn main() {
 
     let fs = RealFileSystem;
     let paths: Vec<&Path> = dirs.iter().map(Path::new).collect();
-    let mut dw = DirWalker::new(fs, paths);
-    dw.traverse_all();
+    let dw = DirWalker::new(fs, paths);
+    let files = dw.traverse_all();
+    println!("{:?}", files.len());
     //println!("{:?}", dw.traverse_folder(Path::new(".")));
 }
