@@ -28,17 +28,14 @@ impl<'a> From<&'a Path> for Duplicates {
 // // // // // // // // // // // // // // // // // // // // //
 
 #[derive(Debug)]
-struct FirstKBytesProxy {
-    delay: Option<Duplicates>,
-    thunk: HashMap<Hash, HashProxy>,
+enum FirstKBytesProxy {
+    Delay(Duplicates),
+    Thunk(HashMap<Hash, HashProxy>),
 }
 
 impl FirstKBytesProxy {
     fn new(path: &Path) -> Self {
-        FirstKBytesProxy {
-            delay: Some(path.into()),
-            thunk: HashMap::new(),
-        }
+        FirstKBytesProxy::Delay(path.into())
     }
     fn get_first_k_bytes(path: &Path) -> io::Result<[u8;K]> {
         // if the file is less than K bytes, the last K-n will be zeros
@@ -52,9 +49,9 @@ impl FirstKBytesProxy {
 // // // // // // // // // // // // // // // // // // // // //
 
 #[derive(Debug)]
-struct HashProxy {
-    delay: Option<Duplicates>,
-    thunk: HashMap<Hash, Duplicates>,
+enum HashProxy {
+    Delay(Duplicates),
+    Thunk(HashMap<Hash, Duplicates>),
 }
 
 impl HashProxy {
@@ -66,12 +63,37 @@ impl HashProxy {
         let hash: Hash = *md5::compute(v);
         Ok(hash)
     }
+    fn new(path: &Path) -> Self {
+        HashProxy::Delay(path.into())
+    }
     fn insert(&mut self, dup: Duplicates) {
         // if self.delay is empty, then this is the first insert
-        if let Some(old) = self.delay.take() {
+        /*match self {
+            &mut HashProxy::Delay(delay) => {
+                *self = HashProxy::Thunk(HashMap::new());
+            },
+            &mut HashProxy::Thunk(ref thunk) => {}
+        };
+        */
+        //if let HashProxy::Delay(_) = *self {
+        /*if let &HashProxy::Delay(d) = &*self {
+            *self = HashProxy::Thunk(HashMap::new());
+        }
+        */
+        let d2 = {
+            match &*self {
+                &HashProxy::Thunk(ref d) => Some(d.clone()),
+                _ => None,
+            }
+        };
+        match (d2, self) {
+            (Some(delay), &mut HashProxy::Delay(_)) => {
 
-        } else {
-            self.delay = Some(dup);
+            },
+            (_, &mut HashProxy::Thunk(ref mut thunk)) => {
+
+            },
+            _ => unreachable!(),
         }
     }
 }
