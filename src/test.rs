@@ -20,8 +20,8 @@ mod test {
         let paths = vec![Path::new("/")];
         //let mut dw = DirWalker::new(fs, paths);
         //let count: usize = dw.traverse_all();
-        let count = DirWalker::new(fs, paths).traverse_all();
-        assert_eq!(count, 0);
+        let files = DirWalker::new(fs, paths).traverse_all();
+        assert_eq!(files.len(), 0);
     }
 
     #[test]
@@ -32,9 +32,9 @@ mod test {
             fs.create_dir("/");
             fs.create_file("/alpha");
         }
-        let mut dw = DirWalker::new(fs, vec![Path::new("/")]);
-        let count: usize = dw.traverse_all();
-        assert_eq!(count, 1);
+        let dw = DirWalker::new(fs, vec![Path::new("/")]);
+        let files = dw.traverse_all();
+        assert_eq!(files.len(), 1);
     }
 
     #[test]
@@ -53,9 +53,9 @@ mod test {
             fs.create_symlink("/x", "/xx");
             fs.create_symlink("/xx", "/x");
         }
-        let mut dw = DirWalker::new(fs, vec![Path::new("/")]);
-        let count = dw.traverse_all();
-        assert_eq!(count, 1);
+        let dw = DirWalker::new(fs, vec![Path::new("/")]);
+        let files = dw.traverse_all();
+        assert_eq!(files.len(), 1);
     }
 
 }

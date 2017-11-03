@@ -1,5 +1,6 @@
 #[macro_use] extern crate log;
 extern crate env_logger;
+extern crate regex;
 extern crate clap;
 
 use clap::{App, Arg};
@@ -7,6 +8,7 @@ use env_logger::LogBuilder;
 use log::LogLevelFilter;
 
 use std::path::{Path};
+use std::ffi::OsStr;
 
 mod walker;
 pub use walker::{DirWalker};
@@ -28,7 +30,7 @@ fn main() {
              .required(true)
              )
         // paths to skip (`--skip /tmp --skip /usr`)
-        .arg(Arg::with_name("paths_n")
+        .arg(Arg::with_name("bad_paths")
              .long("skip")
              .short("x")
              .help("A folder or filename to omit")
@@ -36,17 +38,10 @@ fn main() {
              .takes_value(true)
              )
         // regex to skip / include
-        .arg(Arg::with_name("regex_n")
+        .arg(Arg::with_name("bad_regex")
              .short("o")
              .long("skip-re")
              .help("Files whose filenames match a blacklisted regex will be skipped")
-             .multiple(true)
-             .takes_value(true)
-             )
-        .arg(Arg::with_name("regex_y")
-             .short("i")
-             .long("only-re")
-             .help("Only files whose names match a whitelisted regex will be checked")
              .multiple(true)
              .takes_value(true)
              )
@@ -58,9 +53,16 @@ fn main() {
              )
         .get_matches();
 
-    let dirs: Vec<_> = matches.values_of("paths").unwrap().collect();
-    println!("{:?}", dirs);
-
+    let dirs: Vec<&OsStr> = matches.values_of_os("paths").unwrap().collect();
+    //matches.contains("bad_paths");
+    let dirs_n: Vec<&OsStr> = match matches.is_present("bad_paths") {
+        true  => matches.values_of_os("bad_paths").unwrap().collect(),
+        false => vec![],
+    };
+    let pats_n: Vec<_> = match matches.is_present("bad_regex") {
+        true  => matches.values_of("bad_regex").unwrap().collect(),
+        false => vec![],
+    };
 
     // for now print all log info
     LogBuilder::new().filter(None, LogLevelFilter::max()).init().unwrap();
@@ -68,7 +70,9 @@ fn main() {
 
     let fs = RealFileSystem;
     let paths: Vec<&Path> = dirs.iter().map(Path::new).collect();
-    let mut dw = DirWalker::new(fs, paths);
-    dw.traverse_all();
-    //println!("{:?}", dw.traverse_folder(Path::new(".")));
+    let dw = DirWalker::new(fs, paths)
+        .blacklist_folders(dirs_n)
+        .blacklist_patterns(pats_n);
+    let files = dw.traverse_all();
+    println!("{:?}", files.len());
 }

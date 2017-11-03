@@ -55,23 +55,6 @@ pub trait MetaData : Debug {
     fn get_device(&self) -> io::Result<DeviceId>;
 }
 
-impl<'a, V: VFS> File for (&'a Path, V) {
-    type MD = <<V as VFS>::FileIter as File>::MD;
-
-    fn get_inode(&self) -> io::Result<Inode> {
-        self.1.get_metadata(self.0).map(|md| md.get_inode())
-    }
-    fn get_path(&self) -> PathBuf {
-        self.0.to_owned()
-    }
-    fn get_type(&self) -> io::Result<FileType> {
-        self.1.get_metadata(self.0).map(|md| md.get_type())
-    }
-    fn get_metadata(&self) -> io::Result<Self::MD> {
-        self.1.get_metadata(self.0)
-    }
-}
-
 
 // helper types
 
