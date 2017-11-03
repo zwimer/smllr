@@ -27,7 +27,7 @@ fn main() {
              .required(true)
              )
         // paths to skip (`--skip /tmp --skip /usr`)
-        .arg(Arg::with_name("paths_n")
+        .arg(Arg::with_name("bad_paths")
              .long("skip")
              .short("x")
              .help("A folder or filename to omit")
@@ -35,17 +35,10 @@ fn main() {
              .takes_value(true)
              )
         // regex to skip / include
-        .arg(Arg::with_name("regex_n")
+        .arg(Arg::with_name("bad_regex")
              .short("o")
              .long("skip-re")
              .help("Files whose filenames match a blacklisted regex will be skipped")
-             .multiple(true)
-             .takes_value(true)
-             )
-        .arg(Arg::with_name("regex_y")
-             .short("i")
-             .long("only-re")
-             .help("Only files whose names match a whitelisted regex will be checked")
              .multiple(true)
              .takes_value(true)
              )
@@ -58,6 +51,8 @@ fn main() {
         .get_matches();
 
     let dirs: Vec<_> = matches.values_of("paths").unwrap().collect();
+    let dirs_n: Vec<_> = matches.values_of("bad_paths").unwrap().collect();
+    let pats_n: Vec<_> = matches.values_of("bad_regex").unwrap().collect();
     println!("{:?}", dirs);
 
 
@@ -67,8 +62,10 @@ fn main() {
 
     let fs = RealFileSystem;
     let paths: Vec<&Path> = dirs.iter().map(Path::new).collect();
-    let dw = DirWalker::new(fs, paths);
+    let dw = DirWalker::new(fs, paths)
+        .blacklist_folders(dirs_n)
+        .blacklist_patterns(pats_n)
+        ;
     let files = dw.traverse_all();
     println!("{:?}", files.len());
-    //println!("{:?}", dw.traverse_folder(Path::new(".")));
 }
