@@ -1,6 +1,7 @@
 
 use std::path::{Path, PathBuf};
 use std::{io, env};
+use std::ffi::OsStr;
 use std::collections::{HashSet};
 use regex::{self, Regex};
 
@@ -52,7 +53,8 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
     }
 
     /// Create a new DirWalker from a list of directories
-    pub fn new(vfs: V, dirs: Vec<&Path>) -> DirWalker<V> {
+    pub fn new<P: AsRef<Path>>(vfs: V, dirs: Vec<P>) -> DirWalker<V> {
+        let dirs: Vec<&Path> = dirs.iter().map(|p| p.as_ref()).collect();
         let abs_paths = Self::get_abs_paths(&dirs);
 
         DirWalker {
@@ -66,7 +68,7 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
     }
 
     /// Build up a DirWalker with a list of blacklisted folders
-    pub fn blacklist_folders(mut self, bl: Vec<&str>) -> Self {
+    pub fn blacklist_folders(mut self, bl: Vec<&OsStr>) -> Self {
         let paths = bl.into_iter().map(|s| Path::new(s)).collect();
         let abs_paths = Self::get_abs_paths(&paths);
         self.blacklist_dirs = abs_paths;
