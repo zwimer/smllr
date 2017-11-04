@@ -19,7 +19,7 @@ use vfs::RealFileSystem;
 
 mod test;
 
-mod proxy;
+mod catalog;
 
 // Temporary struct: should move once we know where 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]

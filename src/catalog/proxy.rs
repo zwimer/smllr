@@ -8,6 +8,8 @@
 // Rc only allows mutation if the count == 1 because that's what it should do
 // fuck it we'll do it not live (read: statically)
 
+
+
 use std::collections::{HashMap};
 use std::path::{Path, PathBuf};
 //use std::rc::Rc;
@@ -16,18 +18,18 @@ use std::fs::File;
 use std::io::{self, Read};
 
 //use super::vfs::File;
-use super::ID;
-use super::FIRST_K_BYTES as K;
+use super::super::ID;
+use super::super::FIRST_K_BYTES as K;
 
 use md5;
 
 
 //#[derive(Debug, Hash, PartialEq, Eq, Clone)]
 //struct Hash([u8;16]);
-type Hash = [u8;16];
+pub type Hash = [u8;16];
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
-struct FirstBytes([u8;K]);
+pub struct FirstBytes([u8;K]);
 
 #[derive(Debug, Clone)]
 struct Duplicates(Vec<PathBuf>);
@@ -77,7 +79,7 @@ struct InsResults<T> {
 // // // // // // // // // // // // // // // // // // // // //
 
 #[derive(Debug)]
-enum FirstKBytesProxy {
+pub enum FirstKBytesProxy {
     Delay { path: PathBuf, dups: Duplicates },
     Thunk(HashMap<FirstBytes, HashProxy>),
 }
