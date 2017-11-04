@@ -29,7 +29,7 @@ pub struct ID {
 }
 
 const FILE_READ_BUFFER_SIZE: usize = 4096;
-const FIRST_K_BYTES: usize = 4096;
+const FIRST_K_BYTES: usize = 32;
 
 fn main() {
     let matches = App::new("smllr")

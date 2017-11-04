@@ -22,8 +22,12 @@ use super::FIRST_K_BYTES as K;
 use md5;
 
 
+//#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+//struct Hash([u8;16]);
 type Hash = [u8;16];
 
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+struct FirstBytes([u8;K]);
 
 #[derive(Debug, Clone)]
 struct Duplicates(Vec<PathBuf>);
@@ -74,20 +78,88 @@ struct InsResults<T> {
 
 #[derive(Debug)]
 enum FirstKBytesProxy {
-    Delay(Duplicates),
-    Thunk(HashMap<Hash, HashProxy>),
+    Delay { path: PathBuf, dups: Duplicates },
+    Thunk(HashMap<FirstBytes, HashProxy>),
 }
 
 impl FirstKBytesProxy {
-    fn new(path: &Path) -> Self {
-        FirstKBytesProxy::Delay(Duplicates::from(path))
+    pub fn new(path: &Path) -> Self {
+        FirstKBytesProxy::Delay { 
+            path: path.to_path_buf(), 
+            dups: Duplicates::from(path)
+        }
     }
-    fn get_first_k_bytes(path: &Path) -> io::Result<[u8;K]> {
+
+    fn get_first_bytes(path: &Path) -> io::Result<FirstBytes> {
         // if the file is less than K bytes, the last K-n will be zeros
         let mut f = File::open(path)?;
         let mut v = [0u8; K];
         f.read(&mut v)?;
-        Ok(v)
+        Ok(FirstBytes(v))
+    }
+    fn get_first_bytes_or_warn(path: &Path) -> Option<FirstBytes> {
+        match Self::get_first_bytes(path) {
+            Ok(k) => Some(k),
+            Err(e) => {
+                warn!("Failed to read first k bytes of {:?}: {}", path, e);
+                None
+            }
+        }
+    }
+    fn get_first_bytes_res(path: &Path, new: bool) -> InsRes<FirstBytes> {
+        match (new, Self::get_first_bytes_or_warn(path)) {
+            (true, Some(k)) => InsRes::NewSucc { val: k },
+            (false,Some(k)) => InsRes::OldSucc { val: k, path: path.to_path_buf() },
+            (_, None) => InsRes::Failure { path: path.to_path_buf() },
+        }
+    }
+    fn get_delay(&self) -> Option<(PathBuf, Duplicates)> {
+        match self {
+            &FirstKBytesProxy::Delay { ref path,ref dups } => 
+                Some((path.clone(), dups.clone())),
+            &FirstKBytesProxy::Thunk(_) => None,
+        }
+    }
+
+    // must return more complex type:
+    //  will have to return info for either 1 or 2 HashProxy insertions
+    fn insert(&mut self, path: &Path, first_bytes: Option<FirstBytes>) 
+        -> InsResults<FirstBytes>
+    {
+        /*
+        let path_res = Self::get_first_bytes_res(path, true);
+
+        if let Some((del_p, del_d)) = self.get_delay() {
+            // if we're changing state from a Thunk to a Delay
+            let mut hm = HashMap::new();
+
+            if let InsRes::NewSucc { val: ref k } = path_res {
+                let hp = HashProxy::new(path);
+                hm.insert(k.clone(), hp);
+            }
+
+            let del_res = Self::get_first_bytes_res(&del_p, false);
+            if let InsRes::OldSucc { val: ref h, .. } = del_res {
+                let hp = HashProxy::new(&del_p);
+                hm.insert(h.clone(), hp);
+            }
+
+            *self = FirstKBytesProxy::Thunk(hm);
+            InsResults { old: Some(del_res), new: path_res }
+        } else if let FirstKBytesProxy::Thunk(ref mut thunk) = *self {
+            // already a thunk, need to insert
+            if let InsRes::NewSucc { val: ref k } = path_res {
+                //thunk.insert(h.clone(), Duplicates::from(path));
+                if let Some(entry) = thunk.get_mut(k) {
+                    entry.append(path, k);
+                }
+            }
+            InsResults { old: None, new: path_res }
+        } else {
+            unreachable!()
+        }
+        */
+        unimplemented!()
     }
 }
 
