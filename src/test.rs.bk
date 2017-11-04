@@ -8,15 +8,12 @@ mod test {
     use std::ffi::OsStr;
 
     use super::super::DirWalker;
-    use super::super::vfs::TestFileSystem;
+    use super::super::vfs::{TestFileSystem};
 
     /// add to top of a test case to set the logger to ouput everything.
     // Rust note: the starting _ indicates that this might not be used.
     fn _enable_logging() {
-        LogBuilder::new()
-            .filter(None, LogLevelFilter::max())
-            .init()
-            .unwrap();
+        LogBuilder::new().filter(None, LogLevelFilter::max()).init().unwrap();
     }
 
     /// Test with an empty filesystem; ie, nothing to process.

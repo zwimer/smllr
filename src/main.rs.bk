@@ -1,5 +1,4 @@
-#[macro_use]
-extern crate log;
+#[macro_use] extern crate log;
 extern crate env_logger;
 extern crate regex;
 extern crate clap;
@@ -11,7 +10,7 @@ use log::LogLevelFilter;
 use std::ffi::OsStr;
 
 mod walker;
-pub use walker::DirWalker;
+pub use walker::{DirWalker};
 
 pub mod vfs;
 use vfs::RealFileSystem;
@@ -58,19 +57,16 @@ fn main() {
     let dirs: Vec<&OsStr> = matches.values_of_os("paths").unwrap().collect();
     //matches.contains("bad_paths");
     let dirs_n: Vec<&OsStr> = match matches.is_present("bad_paths") {
-        true => matches.values_of_os("bad_paths").unwrap().collect(),
+        true  => matches.values_of_os("bad_paths").unwrap().collect(),
         false => vec![],
     };
     let pats_n: Vec<_> = match matches.is_present("bad_regex") {
-        true => matches.values_of("bad_regex").unwrap().collect(),
+        true  => matches.values_of("bad_regex").unwrap().collect(),
         false => vec![],
     };
 
     // for now print all log info
-    LogBuilder::new()
-        .filter(None, LogLevelFilter::max())
-        .init()
-        .unwrap();
+    LogBuilder::new().filter(None, LogLevelFilter::max()).init().unwrap();
 
     // Specifiy the filesystem used for dependancy injection
     let fs = RealFileSystem;
