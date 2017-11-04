@@ -21,6 +21,13 @@ mod test;
 
 mod proxy;
 
+// Temporary struct: should move once we know where 
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct ID {
+    device_id: u64,
+    inode: u64
+}
+
 const FILE_READ_BUFFER_SIZE: usize = 4096;
 const FIRST_K_BYTES: usize = 4096;
 
