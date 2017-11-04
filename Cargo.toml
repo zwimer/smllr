@@ -1,0 +1,12 @@
+[package]
+name = "smllr"
+version = "0.1.0"
+authors = ["owen <owen@oms.sh>", "William Burton <burtonwilliamt@gmail.com>", "Alexander <alexanderslanski@sbcglobal.net>", "zwimer <zwimer@gmail.com>"]
+license = "GPL3"
+
+[dependencies]
+log = "0.3.8"
+env_logger = "0.4.3"
+clap = "2.26.2"
+regex = "0.2.2"
+
