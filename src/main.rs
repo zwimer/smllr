@@ -24,7 +24,7 @@ mod catalog;
 // Temporary struct: should move once we know where 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct ID {
-    device_id: u64,
+    dev: u64,
     inode: u64
 }
 
