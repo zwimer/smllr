@@ -2,23 +2,38 @@
 use std::collections::HashMap;
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
-use std::{fs, io};
+use std::fs;
 use std::collections::hash_map::Entry;
 
 mod proxy;
-use self::proxy::{FirstKBytesProxy, Hash, FirstBytes};
+use self::proxy::{FirstKBytesProxy};
 use super::ID;
 
 
 
-struct FileCatalog {
+pub struct FileCatalog {
     catalog: HashMap<u64, FirstKBytesProxy>,
     //id_to_dupes: HashMap<ID, (u64, Option<(FirstBytes, Option<(Hash)>)>)>,
     shortcut: HashMap<ID, u64>,
 }
 
+impl ::std::fmt::Debug for FileCatalog {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        for (size, fkbp) in &self.catalog {
+            writeln!(f, " {:06}b: {:?}", size, fkbp)?;
+        }
+        Ok(())
+    }
+}
+
 impl FileCatalog {
 
+    pub fn new() -> Self {
+        FileCatalog {
+            catalog: HashMap::new(),
+            shortcut: HashMap::new(),
+        }
+    }
     /*
     fn get_size(path: &Path) -> io::Result<u64> {
         fs::File::open(path).and_then(|f| f.metadata()).map(|md| md.len())
@@ -36,7 +51,7 @@ impl FileCatalog {
     }
     */
 
-    fn insert(&mut self, path: &Path) {
+    pub fn insert(&mut self, path: &Path) {
         let md = fs::File::open(path).and_then(|f| f.metadata()).unwrap();
         let size: u64 = md.len();
         let id = ID { dev: md.dev(), inode: md.ino() };

@@ -20,16 +20,25 @@ use vfs::RealFileSystem;
 mod test;
 
 mod catalog;
+use catalog::FileCatalog;
 
 // Temporary struct: should move once we know where 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub struct ID {
     dev: u64,
     inode: u64
 }
 
-const FILE_READ_BUFFER_SIZE: usize = 4096;
+impl ::std::fmt::Debug for ID {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        write!(f, "{:X}:{:X}", self.dev, self.inode)
+    }
+}
+
+
+//const FILE_READ_BUFFER_SIZE: usize = 4096;
 const FIRST_K_BYTES: usize = 32;
+//const FIRST_K_BYTES: usize = 4096;
 
 fn main() {
     let matches = App::new("smllr")
@@ -86,4 +95,13 @@ fn main() {
         .blacklist_patterns(pats_n);
     let files = dw.traverse_all();
     println!("{:?}", files.len());
+
+    let mut fc = FileCatalog::new();
+    for file in &files {
+        println!("{:?}", file);
+        fc.insert(file);
+        println!("{:?}\n\n", fc);
+    }
+    //println!("{:?}", fc);
+
 }

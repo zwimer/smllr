@@ -28,9 +28,19 @@ pub type Hash = [u8;16];
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct FirstBytes([u8;K]);
+//pub type FirstBytes = Hash;
 
-#[derive(Debug, Clone)]
-struct Duplicates(Vec<PathBuf>);
+#[derive(Clone)]
+pub struct Duplicates(Vec<PathBuf>);
+
+impl ::std::fmt::Debug for Duplicates {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        for i in &self.0 {
+            write!(f, "{:?},  ", i)?;
+        }
+        Ok(())
+    }
+}
 
 impl Duplicates {
     fn from(path: &Path) -> Self {
@@ -39,13 +49,17 @@ impl Duplicates {
     fn get_path(&self) -> &Path {
         &self.0[0]
     }
-    fn append(&mut self, path: &Path) {
-        // need to return anything?
+    fn push(&mut self, path: &Path) {
         self.0.push(path.to_path_buf());
+    }
+    fn append(&mut self, othr: &mut Duplicates) {
+        // need to return anything?
+        self.0.append(&mut othr.0);
     }
 }
 
 
+/*
 
 // either the current insert or the delay can fail
 // on success, percolate the result of your computation back up
@@ -70,10 +84,10 @@ struct InsResults<T> {
     old: Option<InsRes<T>>,
 }
 
+*/
 
 // // // // // // // // // // // // // // // // // // // // //
 
-#[derive(Debug)]
 pub enum FirstKBytesProxy {
     Delay { 
         //path: PathBuf, 
@@ -84,6 +98,29 @@ pub enum FirstKBytesProxy {
         thunk: HashMap<FirstBytes, HashProxy>,
         shortcut: HashMap<ID, FirstBytes>,
     },
+}
+
+impl ::std::fmt::Debug for FirstKBytesProxy {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        write!(f, "FKBProxy::")?;
+        match self {
+            &FirstKBytesProxy::Delay { ref id, ref dups } => {
+                write!(f, "Delay: ({:?})  {:?}", id, dups)?;
+            },
+            &FirstKBytesProxy::Thunk { ref thunk, .. } => {
+                write!(f, "Thunk: ")?;
+                for (bytes, hp) in thunk {
+                    let s = String::from_utf8_lossy(&bytes.0);
+                    write!(f, "``")?;
+                    for c in s.chars().take(3) { write!(f, "{}", c)?; }
+                    write!(f, "..")?;
+                    for c in s.chars().skip(29) { write!(f, "{}", c)?; }
+                    write!(f, "'':  {:?}", hp)?;
+                }
+            },
+        }
+        Ok(())
+    }
 }
 
 impl FirstKBytesProxy {
@@ -101,6 +138,7 @@ impl FirstKBytesProxy {
         let mut v = [0u8; K];
         f.read(&mut v)?;
         Ok(FirstBytes(v))
+        //Ok(*md5::compute(v))
     }
     //fn get_first_bytes_or_panic(path: &Path) -> FirstBytes {
     //    Self::get_first_bytes(path).unwrap()
@@ -122,14 +160,14 @@ impl FirstKBytesProxy {
             (_, None) => InsRes::Failure { path: path.to_path_buf() },
         }
     }
-    */
-    fn get_delay(&self) -> Option<(ID, Duplicates)> {
+    fn _get_delay(&self) -> Option<(ID, Duplicates)> {
         match self {
             &FirstKBytesProxy::Delay { ref id, ref dups } => 
                 Some((id.clone(), dups.clone())),
             &FirstKBytesProxy::Thunk { .. } => None,
         }
     }
+    */
 
     /// Transition type from a Delay to a Thunk with the introduction of a new file
     /// Preview both files and add them to the contents of the new Thunk
@@ -163,19 +201,18 @@ impl FirstKBytesProxy {
         shortcut.insert(del_id, old_first_bytes.clone());
 
         let new_dups = Duplicates::from(new_path);
-        thunk.insert(new_first_bytes, HashProxy::from(new_dups));
-        thunk.insert(old_first_bytes, HashProxy::from(del_dups));
+        thunk.insert(new_first_bytes, HashProxy::from(new_id, new_dups));
+        thunk.insert(old_first_bytes, HashProxy::from(del_id, del_dups));
 
         *self = FirstKBytesProxy::Thunk { thunk, shortcut };
     }
 
     pub fn insert(&mut self, id: ID, path: &Path) { 
         //if let Some(ref id, ref mut dups}) = self.get_delay() { }
-        //let should_transition: Option<()> = match self {
         match self {
             // Insert a hard link to what's already stored in Delay
             &mut FirstKBytesProxy::Delay { id: id2, ref mut dups } if id==id2 => {
-                dups.append(path);
+                dups.push(path);
             },
             // Add another path and its first bytes if we're a Thunk
             &mut FirstKBytesProxy::Thunk { ref mut thunk, ref mut shortcut } => {
@@ -184,11 +221,11 @@ impl FirstKBytesProxy {
                 match thunk.entry(first_bytes) {
                     // call `insert` on the underlying HashProxy
                     Entry::Occupied(mut occ_entry) => {
-                        occ_entry.get_mut().insert(id, path)
+                        occ_entry.get_mut().insert(id, Duplicates::from(path))
                     },
                     // not there: create a new HashProxy
                     Entry::Vacant(vac_entry) => {
-                        vac_entry.insert(HashProxy::new(path));
+                        vac_entry.insert(HashProxy::new(id, path));
                     },
                 }
             },
@@ -197,7 +234,6 @@ impl FirstKBytesProxy {
                 self.transition(id, path)
             },
         }
-
     }
     /*
     // must return more complex type:
@@ -209,7 +245,7 @@ impl FirstKBytesProxy {
         let path_res = Self::get_first_bytes_res(path, true);
 
         if let Some((del_p, del_d)) = self.get_delay() {
-            // if we're changing state from a Thunk to a Delay
+    H       // if we're changing state from a Thunk to a Delay
             let mut hm = HashMap::new();
 
             if let InsRes::NewSucc { val: ref k } = path_res {
@@ -245,31 +281,86 @@ impl FirstKBytesProxy {
 
 // // // // // // // // // // // // // // // // // // // // //
 
-#[derive(Debug)]
-enum HashProxy {
-    Delay { path: PathBuf, dups: Duplicates },
-    Thunk(HashMap<Hash, Duplicates>),
+//#[derive(Debug)]
+pub enum HashProxy {
+    Delay { 
+        //path: PathBuf, 
+        id: ID,
+        dups: Duplicates,
+    },
+    //Thunk(HashMap<Hash, Duplicates>),
+    Thunk {
+        thunk: HashMap<Hash, Duplicates>,
+        shortcut: HashMap<ID, Hash>,
+    },
 }
 
 impl HashProxy {
-    fn new(path: &Path) -> Self {
-        HashProxy::Delay { path: path.to_path_buf(), dups: Duplicates::from(path) }
+    fn new(id: ID, path: &Path) -> Self {
+        HashProxy::Delay { id, dups: Duplicates::from(path) }
     }
-    fn from(dups: Duplicates) -> Self {
-        HashProxy::Delay {
-            path: dups.get_path().to_path_buf(),
-            dups,
-        }
+    fn from(id: ID, dups: Duplicates) -> Self {
+        HashProxy::Delay { id, dups, }
     }
-
     fn get_hash(path: &Path) -> io::Result<Hash> {
         // not buffered for now
         let mut f = File::open(path)?;
         let mut v = vec![];
         f.read_to_end(&mut v)?;
-        let hash: Hash = *md5::compute(v);
-        Ok(hash)
+        Ok(*md5::compute(v))
     }
+    fn transition(&mut self, new_id: ID, new_dups: Duplicates) {
+        // convert Delay to Thunk
+        let (del_id, del_dups) = match *self {
+            HashProxy::Delay { id, ref mut dups } => {
+                assert!(id != new_id);
+                (id, dups.clone())
+            },
+            _ => unreachable!(),
+        };
+        let mut thunk = HashMap::new();
+        let mut shortcut = HashMap::new();
+
+        let new_hash = Self::get_hash(new_dups.get_path()).unwrap();
+        let old_hash = Self::get_hash(del_dups.get_path()).unwrap();
+
+        shortcut.insert(new_id, new_hash.clone());
+        shortcut.insert(del_id, old_hash.clone());
+
+        thunk.insert(new_hash, new_dups);
+        thunk.insert(old_hash, del_dups);
+
+        *self = HashProxy::Thunk { thunk, shortcut };
+    }
+
+    fn insert(&mut self, id: ID, mut dups: Duplicates) {
+        match self {
+            // hard link is contained in Delay: just append it
+            &mut HashProxy::Delay { id: id2, dups: ref mut dups2 } if id==id2 => {
+                dups2.append(&mut dups);
+            },
+            // just add file and its hash to the thunk
+            &mut HashProxy::Thunk { ref mut thunk, ref mut shortcut } => {
+                let hash = Self::get_hash(dups.get_path()).unwrap();
+                shortcut.insert(id, hash.clone());
+                match thunk.entry(hash) {
+                    Entry::Occupied(mut occ_entry) => {
+                        occ_entry.get_mut().append(&mut dups);
+                    },
+                    Entry::Vacant(vacant_entry) => {
+                        vacant_entry.insert(dups);
+                    },
+                }
+            },
+            // New non-link file is added from the delay stage: transition self
+            &mut HashProxy::Delay { .. } => {
+                self.transition(id, dups);
+            }
+
+        }
+    }
+
+    /*
     fn get_hash_or_warn(path: &Path) -> Option<Hash> {
         match Self::get_hash(path) {
             Ok(h) => Some(h),
@@ -286,7 +377,9 @@ impl HashProxy {
             (_, None) => InsRes::Failure { path: path.to_path_buf() },
         }
     }
+    */
 
+    /*
     fn get_delay(&self) -> Option<(PathBuf, Duplicates)> {
         // this is a helper for `insert()`: need to capture the contents of 
         //  HashProxy::Delay and then replace *self
@@ -295,8 +388,6 @@ impl HashProxy {
             &HashProxy::Thunk(_) => None
         }
     }
-
-    fn insert(&mut self, id: ID, path: &Path) {}
 
 
     /// Inserts a file into the structure. 
@@ -339,6 +430,26 @@ impl HashProxy {
             HashProxy::Thunk(ref mut thunk) => thunk.get_mut(hash).unwrap()
         };
         dups.append(path);
+    }
+    */
+}
+
+impl ::std::fmt::Debug for HashProxy {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        write!(f, "HashProxy::")?;
+        match self {
+            &HashProxy::Delay { ref id, ref dups } => {
+                write!(f, "Delay: ({:?})  {:?}", id, dups)?;
+            },
+            &HashProxy::Thunk { ref thunk, .. } => {
+                write!(f, "Thunk: ")?;
+                for (hash, d) in thunk {
+                    write!(f, "``{:02X}{:02X}..{:02X}{:02X}'': {:?}", 
+                             hash[0], hash[1], hash[14], hash[15], d)?;
+                }
+            },
+        }
+        Ok(())
     }
 }
 
