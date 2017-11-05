@@ -98,10 +98,26 @@ fn main() {
 
     let mut fc = FileCatalog::new();
     for file in &files {
-        println!("{:?}", file);
+    //    println!("{:?}", file);
         fc.insert(file);
-        println!("{:?}\n\n", fc);
+    //    println!("{:?}\n\n", fc);
     }
+
+    /*
+    let mut fc = FileCatalog::new();
+    fc.insert(Path::new("/home/owen/shared/rpi4/sdd/smllr/my_tests/alphaaa"));
+    //println!("alphaaa\n{:?}\n", fc);
+    fc.insert(Path::new("/home/owen/shared/rpi4/sdd/smllr/my_tests/_alpha_"));
+    //println!("_alpha_\n{:?}\n", fc);
+    fc.insert(Path::new("/home/owen/shared/rpi4/sdd/smllr/my_tests/betaaaa"));
+    //println!("betaaaa\n{:?}", fc);
+    */
+
+    let repeats = fc.get_repeats();
+    for (id, dups) in repeats {
+        println!("{:?}:  {:?}", id, dups);
+    }
+
     //println!("{:?}", fc);
 
 }

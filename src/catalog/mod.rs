@@ -8,7 +8,7 @@ use std::collections::hash_map::Entry;
 use super::ID;
 
 mod proxy;
-use self::proxy::{FirstKBytesProxy};
+use self::proxy::{FirstKBytesProxy, Duplicates};
 
 mod print;
 
@@ -31,6 +31,14 @@ impl FileCatalog {
             catalog: HashMap::new(),
             //shortcut: HashMap::new(),
         }
+    }
+
+    pub fn get_repeats(&self) -> Vec<(ID, Duplicates)> {
+        self.catalog.iter().fold(vec![], |mut acc, (_,fkbp)| {
+            let mut new = fkbp.get_repeats();
+            acc.append(&mut new);
+            acc
+        })
     }
 
     pub fn insert(&mut self, path: &Path) {

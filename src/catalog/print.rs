@@ -6,10 +6,16 @@ use super::proxy::{Duplicates, FirstKBytesProxy, HashProxy};
 
 impl Debug for Duplicates {
     fn fmt(&self, f: &mut Formatter) -> Result {
-        for i in &self.0 {
-            write!(f, "{:?},  ", i)?;
+        write!(f, "[")?;
+        if let Some(i) = self.0.get(0) {
+            write!(f, "{:?}", i)?;
+        } else {
+            write!(f, "~EMPTY~")?; // something's probably wrong
         }
-        Ok(())
+        for i in self.0.iter().skip(1) {
+            write!(f, ", {:?}", i)?;
+        }
+        write!(f, "]")
     }
 }
 
@@ -54,9 +60,13 @@ impl Debug for HashProxy {
             },
             &HashProxy::Thunk { ref thunk, .. } => {
                 write!(f, "Thunk: ")?;
-                for (hash, d) in thunk {
-                    write!(f, "``{:02X}{:02X}..{:02X}{:02X}'': {:?}", 
-                             hash[0], hash[1], hash[14], hash[15], d)?;
+                for (hash, repeats) in thunk {
+                    write!(f, "``{:02X}{:02X}..{:02X}{:02X}'':  ",
+                             hash[0], hash[1], hash[14], hash[15])?;
+                    //write!(f, "!!!{}!!!", repeats.len())?;
+                    for (id, dups) in repeats {
+                        write!(f, "{:?}=>{:?}, ", id, dups)?;
+                    }
                 }
             },
         }
