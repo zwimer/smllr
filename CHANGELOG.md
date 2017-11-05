@@ -1,6 +1,6 @@
 # Change Log
 
-## [Unreleased](https://github.com/zwimer/Smllr/tree/HEAD)
+## [Unreleased](https://github.com/zwimer/smllr/tree/HEAD)
 
 **Implemented enhancements:**
 
@@ -8,6 +8,9 @@
 
 **Merged pull requests:**
 
+- Proxy: Demo 1 [\#10](https://github.com/zwimer/smllr/pull/10) ([stensonowen](https://github.com/stensonowen))
+- Basic directory walker [\#9](https://github.com/zwimer/smllr/pull/9) ([stensonowen](https://github.com/stensonowen))
+- Added changelog generated with github\_changelog\_generator [\#8](https://github.com/zwimer/smllr/pull/8) ([Istyatur](https://github.com/Istyatur))
 - qjkxkcd -\> stensonowen [\#6](https://github.com/zwimer/smllr/pull/6) ([zwimer](https://github.com/zwimer))
 - Add code owner [\#3](https://github.com/zwimer/smllr/pull/3) ([zwimer](https://github.com/zwimer))
 - README fixed [\#2](https://github.com/zwimer/smllr/pull/2) ([zwimer](https://github.com/zwimer))
