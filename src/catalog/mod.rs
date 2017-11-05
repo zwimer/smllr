@@ -5,25 +5,23 @@ use std::path::Path;
 use std::fs;
 use std::collections::hash_map::Entry;
 
+use super::ID;
+
 mod proxy;
 use self::proxy::{FirstKBytesProxy};
-use super::ID;
+
+mod print;
 
 
 
 pub struct FileCatalog {
     catalog: HashMap<u64, FirstKBytesProxy>,
-    //id_to_dupes: HashMap<ID, (u64, Option<(FirstBytes, Option<(Hash)>)>)>,
-    shortcut: HashMap<ID, u64>,
-}
-
-impl ::std::fmt::Debug for FileCatalog {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        for (size, fkbp) in &self.catalog {
-            writeln!(f, " {:06}b: {:?}", size, fkbp)?;
-        }
-        Ok(())
-    }
+    //shortcut: HashMap<ID, u64>,
+    // For now, omit the shortcut. We're just using the real fs right now, so
+    // a file is just a Path, which has no associated metadata.
+    // In the future we could get the ID from the DirWalker for free*, but
+    // for now we need to retrieve the metadata to get the ID which gives the 
+    // size for no extra cost. So no need to map ID to size
 }
 
 impl FileCatalog {
@@ -31,31 +29,15 @@ impl FileCatalog {
     pub fn new() -> Self {
         FileCatalog {
             catalog: HashMap::new(),
-            shortcut: HashMap::new(),
+            //shortcut: HashMap::new(),
         }
     }
-    /*
-    fn get_size(path: &Path) -> io::Result<u64> {
-        fs::File::open(path).and_then(|f| f.metadata()).map(|md| md.len())
-        //let mut f = fs::File::open(path)?;
-        //let md = f.metadata()?;
-        //Ok(md.len())
-    }
-
-    //fn get_id(path: &Path)
-
-    fn get_size_or_panic(path: &Path) -> u64 {
-        Self::get_size(path).unwrap_or_else(|e| {
-            panic!("Failed to get filesize for {:?}: {}", path, e)
-        })
-    }
-    */
 
     pub fn insert(&mut self, path: &Path) {
+        // fetch mandatory info
         let md = fs::File::open(path).and_then(|f| f.metadata()).unwrap();
         let size: u64 = md.len();
         let id = ID { dev: md.dev(), inode: md.ino() };
-        self.shortcut.insert(id, size);
 
         match self.catalog.entry(size) {
             // already there: insert it into the firstkbytesproxy
