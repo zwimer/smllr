@@ -64,13 +64,6 @@ impl File for TestFile {
     }
 }
 
-/*
-struct FsErrors {
-    file_read: bool,
-    dir_read: bool,
-    stat: bool,
-}
-*/
 
 #[derive(Debug)]
 pub struct TestFileSystem {

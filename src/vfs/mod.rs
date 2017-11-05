@@ -1,15 +1,6 @@
 
 // trait / helper types for filesystem shim
 
-// filesystem object
-//  list files in a directory:
-//  get file metadata by its path
-// file object
-//  get metadata
-//  get inode
-//  get size
-//  get filetype
-
 
 use std::{fs, io, time};
 use std::fmt::Debug;

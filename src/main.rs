@@ -21,7 +21,7 @@ use vfs::RealFileSystem;
 mod test;
 
 mod catalog;
-use catalog::FileCatalog;
+use catalog::FileCataloger;
 
 // Temporary struct: should move once we know where
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
@@ -95,7 +95,7 @@ fn main() {
     println!("{:?}", files.len());
 
     // catalog all files
-    let mut fc = FileCatalog::new();
+    let mut fc = FileCataloger::new();
     for file in &files {
         fc.insert(file);
     }
@@ -108,7 +108,8 @@ fn main() {
      *  consider consolidating FirstKBytesProxy and HashProxy somehow
      *  register duplicates up? or maybe just fetch more efficiently
      *      get ID not just a vec of duplicates?
-     *  rename `Duplicates` to `Links` or something
+     *  rename `Duplicates` to `Links` or something (NAH)
+     *      HashProxy's `Duplicates` should just be one bucket for all dups+links
      *  revisit `thunk` value type of HashProxy::Thunk
      *  was FileCatalog supposed to be FileCataloger?
      *

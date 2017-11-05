@@ -14,7 +14,7 @@ mod print;
 
 
 
-pub struct FileCatalog {
+pub struct FileCataloger {
     catalog: HashMap<u64, FirstKBytesProxy>,
     //shortcut: HashMap<ID, u64>,
     // For now, omit the shortcut. We're just using the real fs right now, so
@@ -24,9 +24,9 @@ pub struct FileCatalog {
     // size for no extra cost. So no need to map ID to size
 }
 
-impl FileCatalog {
+impl FileCataloger {
     pub fn new() -> Self {
-        FileCatalog {
+        FileCataloger {
             catalog: HashMap::new(),
             //shortcut: HashMap::new(),
         }
