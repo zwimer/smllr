@@ -8,10 +8,13 @@ mod test {
     use std::path::Path;
 
     use super::super::DirWalker;
-    use super::super::vfs::{TestFileSystem};
+    use super::super::vfs::TestFileSystem;
 
     fn _enable_logging() {
-        LogBuilder::new().filter(None, LogLevelFilter::max()).init().unwrap();
+        LogBuilder::new()
+            .filter(None, LogLevelFilter::max())
+            .init()
+            .unwrap();
     }
 
     #[test]

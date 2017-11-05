@@ -1,11 +1,11 @@
 
 use std::path::{Path, PathBuf};
-use std::{io, env};
+use std::{env, io};
 use std::ffi::OsStr;
-use std::collections::{HashSet};
+use std::collections::HashSet;
 use regex::{self, Regex};
 
-use super::vfs::{VFS};
+use super::vfs::VFS;
 
 //const FOLLOW_SYMLINKS_DEFAULT: bool = false;
 
@@ -27,28 +27,37 @@ pub struct DirWalker<T: VFS> {
 }
 
 
-use vfs::{File, MetaData, FileType};
+use vfs::{File, FileType, MetaData};
 
 
-impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData {
-
+impl<M, F, V> DirWalker<V>
+where
+    V: VFS<FileIter = F>,
+    F: File<MD = M>,
+    M: MetaData,
+{
     /// Helper function to convert relative paths to absolute paths if necessary
     /// Can panic if any paths are relative and if the current directory is unknown
     fn get_abs_paths(dirs: &Vec<&Path>) -> Vec<PathBuf> {
         // if any paths are relative, append them to the current working dir
         // if getting the cwd fails, the whole process should abort
-        let abs_paths: io::Result<Vec<PathBuf>> = dirs.into_iter().map(|dir| {
-            if dir.is_absolute() {
-                Ok(dir.to_path_buf())
-            } else {
-                info!("Converting `{:?}` to absolute path", dir);
-                env::current_dir().map(|cwd| cwd.join(dir))
-            }
-        }).collect();
+        let abs_paths: io::Result<Vec<PathBuf>> = dirs.into_iter()
+            .map(|dir| {
+                if dir.is_absolute() {
+                    Ok(dir.to_path_buf())
+                } else {
+                    info!("Converting `{:?}` to absolute path", dir);
+                    env::current_dir().map(|cwd| cwd.join(dir))
+                }
+            })
+            .collect();
         abs_paths.unwrap_or_else(|e| {
-            panic!("Couldn't retrieve current working directory; \
-            try using absolute paths or fix your terminal.\n\
-            Error: {}", e)
+            panic!(
+                "Couldn't retrieve current working directory; \
+                 try using absolute paths or fix your terminal.\n\
+                 Error: {}",
+                e
+            )
         })
     }
 
@@ -77,12 +86,9 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
 
     /// Build up a DirWalker with a list of blacklisted path patterns
     pub fn blacklist_patterns(mut self, bl: Vec<&str>) -> Self {
-        let regexes: Result<Vec<Regex>, regex::Error> = bl.into_iter().map(|s| {
-            Regex::new(s)
-        }).collect();
-        let regexes = regexes.unwrap_or_else(|e| {
-            panic!("Couldn't parse regex; \nError: {}", e)
-        });
+        let regexes: Result<Vec<Regex>, regex::Error> =
+            bl.into_iter().map(|s| Regex::new(s)).collect();
+        let regexes = regexes.unwrap_or_else(|e| panic!("Couldn't parse regex; \nError: {}", e));
         self.blacklist_patterns = regexes;
         self
     }
@@ -95,7 +101,9 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
         //      NOTE: if a path is invalid unicode it will never match a pattern
         self.files.contains(path) == false && {
             if let Some(path_str) = path.to_str() {
-                self.blacklist_patterns.iter().all(|re| !re.is_match(path_str))
+                self.blacklist_patterns
+                    .iter()
+                    .all(|re| !re.is_match(path_str))
             } else {
                 true
             }
@@ -105,18 +113,20 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
     /// Determine whether a folder is in scope(i.e. not seen already or blacklisted)
     fn should_traverse_folder(&self, path: &Path) -> bool {
         // only look into folders that
-        //  1) haven't been seen before, 
+        //  1) haven't been seen before,
         //  2) don't match a folder blacklist, and
         //  3) don't match a regex pattern blacklist
         //      NOTE: again, bad unicode paths will not match any regex
-        self.folders.contains(path) == false && 
-            self.blacklist_dirs.iter().all(|dir| !path.starts_with(dir)) && {
-                if let Some(path_str) = path.to_str() {
-                    self.blacklist_patterns.iter().all(|re| !re.is_match(path_str))
-                } else {
-                    true
-                }
+        self.folders.contains(path) == false
+            && self.blacklist_dirs.iter().all(|dir| !path.starts_with(dir)) && {
+            if let Some(path_str) = path.to_str() {
+                self.blacklist_patterns
+                    .iter()
+                    .all(|re| !re.is_match(path_str))
+            } else {
+                true
             }
+        }
     }
 
     /// Perform operation on a file: in this case just add it to a hashset
@@ -141,8 +151,8 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
             Ok(c) => c,
             Err(e) => {
                 warn!("Failed to list contents of dir {:?}: {}", path, e);
-                return
-            },
+                return;
+            }
         };
         for entry in contents {
             match entry {
@@ -161,9 +171,9 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
                 Ok(md) => md.get_type(),
                 Err(e) => {
                     warn!("Couldn't get metadata for {:?}: {}", path, e);
-                    return
-                },
-            }
+                    return;
+                }
+            },
         };
         match filetype {
             FileType::File => if self.should_handle_file(path) {
@@ -189,5 +199,4 @@ impl<M, F, V> DirWalker<V> where V: VFS<FileIter=F>, F: File<MD=M>, M: MetaData 
         }
         self.files
     }
-
 }
