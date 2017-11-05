@@ -11,43 +11,46 @@
 //  get filetype
 
 
-use std::{io, fs, time};
-use std::fmt::{Debug};
+use std::{fs, io, time};
+use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 
 mod real_fs;
-pub use self::real_fs::{RealFileSystem};
+pub use self::real_fs::RealFileSystem;
 
 mod test_fs;
 pub use self::test_fs::{TestFile, TestFileSystem};
 
 // traits
 
-pub trait VFS : Clone + Debug {
-    type FileIter : File;
-    
-    fn list_dir<P: AsRef<Path>>(&self, p: P) 
-        -> io::Result<Box<Iterator<Item=io::Result<Self::FileIter>>>>;
+pub trait VFS: Clone + Debug {
+    type FileIter: File;
+
+    fn list_dir<P: AsRef<Path>>(
+        &self,
+        p: P,
+    ) -> io::Result<Box<Iterator<Item = io::Result<Self::FileIter>>>>;
 
     // follow symlink
-    fn get_metadata<P: AsRef<Path>>(&self, p: P) 
-        -> io::Result<<Self::FileIter as File>::MD>;
+    fn get_metadata<P: AsRef<Path>>(&self, p: P) -> io::Result<<Self::FileIter as File>::MD>;
     // information on symlink
-    fn get_symlink_metadata<P: AsRef<Path>>(&self, p: P) 
-        -> io::Result<<Self::FileIter as File>::MD>;
+    fn get_symlink_metadata<P: AsRef<Path>>(
+        &self,
+        p: P,
+    ) -> io::Result<<Self::FileIter as File>::MD>;
 
     fn read_link<P: AsRef<Path>>(&self, p: P) -> io::Result<PathBuf>;
 }
 
-pub trait File : Debug {
-    type MD : MetaData;
+pub trait File: Debug {
+    type MD: MetaData;
     fn get_inode(&self) -> io::Result<Inode>;
     fn get_path(&self) -> PathBuf;
     fn get_type(&self) -> io::Result<FileType>;
     fn get_metadata(&self) -> io::Result<Self::MD>;
 }
 
-pub trait MetaData : Debug {
+pub trait MetaData: Debug {
     fn get_len(&self) -> u64;
     fn get_creation_time(&self) -> io::Result<time::SystemTime>;
     fn get_type(&self) -> FileType;
@@ -85,4 +88,3 @@ impl From<fs::FileType> for FileType {
 pub struct Inode(u64);
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DeviceId(u64);
-

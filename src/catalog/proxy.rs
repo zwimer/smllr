@@ -1,5 +1,5 @@
 
-use std::collections::{HashMap};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::{self, Read};
@@ -13,10 +13,10 @@ use md5;
 // helper types
 
 // the type md5::compute() derefs to
-pub type Hash = [u8;16];
+pub type Hash = [u8; 16];
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct FirstBytes(pub(super) [u8;K]);
+pub struct FirstBytes(pub(super) [u8; K]);
 
 #[derive(Clone)]
 pub struct Duplicates(pub(super) Vec<PathBuf>);
@@ -47,13 +47,10 @@ impl Duplicates {
 pub enum FirstKBytesProxy {
     // in the first state there is one file
     // don't look up its first k bytes unless it has the same size as another
-    Delay { 
-        id: ID,
-        dups: Duplicates,
-    },
+    Delay { id: ID, dups: Duplicates },
     // after 2 files with the first k bytes have been found, store them
     // also maintain a shortcut for looking up their values by their id
-    Thunk { 
+    Thunk {
         thunk: HashMap<FirstBytes, HashProxy>,
         shortcut: HashMap<ID, FirstBytes>,
     },
@@ -62,7 +59,10 @@ pub enum FirstKBytesProxy {
 
 impl FirstKBytesProxy {
     pub fn new(id: ID, path: &Path) -> Self {
-        FirstKBytesProxy::Delay { id, dups: Duplicates::from(path) }
+        FirstKBytesProxy::Delay {
+            id,
+            dups: Duplicates::from(path),
+        }
     }
 
     fn get_first_bytes(path: &Path) -> io::Result<FirstBytes> {
@@ -70,8 +70,8 @@ impl FirstKBytesProxy {
         let mut f = File::open(path)?;
         let mut v = [0u8; K];
         f.read(&mut v)?;
-        Ok(FirstBytes(v))   // FirstBytes
-        //Ok(*md5::compute(v))  // Hash of FirstBytes
+        Ok(FirstBytes(v)) // FirstBytes
+                          //Ok(*md5::compute(v))  // Hash of FirstBytes
     }
 
     // identify all repeats under this node
@@ -79,7 +79,7 @@ impl FirstKBytesProxy {
         match self {
             &FirstKBytesProxy::Delay { .. } => vec![],
             &FirstKBytesProxy::Thunk { ref thunk, .. } => {
-                thunk.iter().fold(vec![], |mut acc, (_fb,hp)| {
+                thunk.iter().fold(vec![], |mut acc, (_fb, hp)| {
                     acc.append(&mut hp.get_repeats());
                     acc
                 })
@@ -105,7 +105,7 @@ impl FirstKBytesProxy {
                 // OPTION B: the possibly dangerous but more efficient one:
                 //let stolen_dups = ::std::mem::replace(dups, Duplicates(vec![]));
                 //(id, stolen_dups)
-            },
+            }
             _ => unreachable!(),
         };
         assert!(new_id != del_id);
@@ -131,32 +131,37 @@ impl FirstKBytesProxy {
         *self = FirstKBytesProxy::Thunk { thunk, shortcut };
     }
 
-    pub fn insert(&mut self, id: ID, path: &Path) { 
+    pub fn insert(&mut self, id: ID, path: &Path) {
         match self {
             // Insert a hard link to what's already stored in Delay
-            &mut FirstKBytesProxy::Delay { id: id2, ref mut dups } if id==id2 => {
+            &mut FirstKBytesProxy::Delay {
+                id: id2,
+                ref mut dups,
+            } if id == id2 =>
+            {
                 dups.push(path);
-            },
+            }
             // Add another path and its first bytes if we're a Thunk
-            &mut FirstKBytesProxy::Thunk { ref mut thunk, ref mut shortcut } => {
+            &mut FirstKBytesProxy::Thunk {
+                ref mut thunk,
+                ref mut shortcut,
+            } => {
                 let first_bytes = Self::get_first_bytes(path).unwrap();
                 shortcut.insert(id, first_bytes.clone());
                 match thunk.entry(first_bytes) {
                     // call `insert` on the underlying HashProxy
                     Entry::Occupied(mut occ_entry) => {
                         occ_entry.get_mut().insert(id, Duplicates::from(path))
-                    },
+                    }
                     // not there: create a new HashProxy
                     Entry::Vacant(vac_entry) => {
                         let hp = HashProxy::new(id, Duplicates::from(path));
                         vac_entry.insert(hp);
-                    },
+                    }
                 }
-            },
+            }
             // Add another path and its first bytes if we're a Delay
-            &mut FirstKBytesProxy::Delay { .. } => {
-                self.transition(id, path)
-            },
+            &mut FirstKBytesProxy::Delay { .. } => self.transition(id, path),
         }
     }
 }
@@ -164,10 +169,7 @@ impl FirstKBytesProxy {
 // // // // // // // // // // // // // // // // // // // // //
 
 pub enum HashProxy {
-    Delay { 
-        id: ID,
-        dups: Duplicates,
-    },
+    Delay { id: ID, dups: Duplicates },
     Thunk {
         //thunk: HashMap<Hash, Duplicates>,
         thunk: HashMap<Hash, HashMap<ID, Duplicates>>,
@@ -177,7 +179,7 @@ pub enum HashProxy {
 
 impl HashProxy {
     fn new(id: ID, dups: Duplicates) -> Self {
-        HashProxy::Delay { id, dups, }
+        HashProxy::Delay { id, dups }
     }
     // helper fn to hash a file
     fn get_hash(path: &Path) -> io::Result<Hash> {
@@ -193,16 +195,17 @@ impl HashProxy {
         match self {
             &HashProxy::Delay { .. } => vec![],
             &HashProxy::Thunk { ref thunk, .. } => {
-                thunk.iter().filter_map(|(_hash,repeats)| {
-                    if repeats.len() < 2{
-                        // only include entries that have >1 'repeat'
-                        None
-                    } else {
-                        Some(repeats.iter().map(|(_id,dups)| {
-                            dups.clone()
-                        }).collect())
-                    }
-                }).collect()
+                thunk
+                    .iter()
+                    .filter_map(|(_hash, repeats)| {
+                        if repeats.len() < 2 {
+                            // only include entries that have >1 'repeat'
+                            None
+                        } else {
+                            Some(repeats.iter().map(|(_id, dups)| dups.clone()).collect())
+                        }
+                    })
+                    .collect()
             }
         }
     }
@@ -213,7 +216,7 @@ impl HashProxy {
             HashProxy::Delay { id, ref mut dups } => {
                 assert!(id != new_id);
                 (id, dups.clone())
-            },
+            }
             _ => unreachable!(),
         };
         let mut thunk = HashMap::new();
@@ -247,12 +250,17 @@ impl HashProxy {
     fn insert(&mut self, id: ID, dups: Duplicates) {
         match self {
             // hard link is contained in Delay: just append it
-            &mut HashProxy::Delay { id: id2, dups: ref mut dups2 } if id==id2 => {
+            &mut HashProxy::Delay {
+                id: id2,
+                dups: ref mut dups2,
+            } if id == id2 =>
+            {
                 dups2.append(dups);
-            },
+            }
             // just add file and its hash to the thunk
-            &mut HashProxy::Thunk { 
-                ref mut thunk, ref mut shortcut
+            &mut HashProxy::Thunk {
+                ref mut thunk,
+                ref mut shortcut,
             } => {
                 let hash = Self::get_hash(dups.get_path()).unwrap();
                 shortcut.insert(id, hash.clone());
@@ -262,22 +270,19 @@ impl HashProxy {
                         // add to the repeat hashtable (the val of the thunk)
                         // either create it or append to its ID's existing entry
                         let repeats = occ_entry.get_mut();
-                        repeats.entry(id)
-                            .or_insert(Duplicates(vec![]))
-                            .append(dups);
-                    },
+                        repeats.entry(id).or_insert(Duplicates(vec![])).append(dups);
+                    }
                     Entry::Vacant(vacant_entry) => {
                         let mut hm = HashMap::new();
                         hm.insert(id, dups);
                         vacant_entry.insert(hm);
-                    },
+                    }
                 }
-            },
+            }
             // New non-link file is added from the delay stage: transition self
             &mut HashProxy::Delay { .. } => {
                 self.transition(id, dups);
             }
-
         }
     }
 }

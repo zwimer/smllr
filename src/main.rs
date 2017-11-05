@@ -1,18 +1,19 @@
-#[macro_use] extern crate log;
-extern crate env_logger;
-extern crate regex;
 extern crate clap;
+extern crate env_logger;
+#[macro_use]
+extern crate log;
 extern crate md5;
+extern crate regex;
 
 use clap::{App, Arg};
-use env_logger::LogBuilder; 
+use env_logger::LogBuilder;
 use log::LogLevelFilter;
 
-use std::path::{Path};
+use std::path::Path;
 use std::ffi::OsStr;
 
 mod walker;
-pub use walker::{DirWalker};
+pub use walker::DirWalker;
 
 pub mod vfs;
 use vfs::RealFileSystem;
@@ -22,11 +23,11 @@ mod test;
 mod catalog;
 use catalog::FileCatalog;
 
-// Temporary struct: should move once we know where 
+// Temporary struct: should move once we know where
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub struct ID {
     dev: u64,
-    inode: u64
+    inode: u64,
 }
 
 
@@ -36,7 +37,7 @@ const FIRST_K_BYTES: usize = 32;
 
 fn main() {
     let matches = App::new("smllr")
-        // paths without an argument after 
+        // paths without an argument after
         .arg(Arg::with_name("paths")
              .help("List of files or directories to deduplicate")
              .multiple(true)
@@ -70,16 +71,19 @@ fn main() {
     let dirs: Vec<&OsStr> = matches.values_of_os("paths").unwrap().collect();
     //matches.contains("bad_paths");
     let dirs_n: Vec<&OsStr> = match matches.is_present("bad_paths") {
-        true  => matches.values_of_os("bad_paths").unwrap().collect(),
+        true => matches.values_of_os("bad_paths").unwrap().collect(),
         false => vec![],
     };
     let pats_n: Vec<_> = match matches.is_present("bad_regex") {
-        true  => matches.values_of("bad_regex").unwrap().collect(),
+        true => matches.values_of("bad_regex").unwrap().collect(),
         false => vec![],
     };
 
     // for now print all log info
-    LogBuilder::new().filter(None, LogLevelFilter::max()).init().unwrap();
+    LogBuilder::new()
+        .filter(None, LogLevelFilter::max())
+        .init()
+        .unwrap();
 
     // create and customize a DirWalker over the real filesystem
     let fs = RealFileSystem;
@@ -126,7 +130,4 @@ fn main() {
     for dups in repeats {
         println!("{:?}", dups);
     }
-
-
 }
-
