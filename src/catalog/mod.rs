@@ -33,14 +33,17 @@ impl FileCatalog {
         }
     }
 
-    pub fn get_repeats(&self) -> Vec<(ID, Duplicates)> {
-        self.catalog.iter().fold(vec![], |mut acc, (_,fkbp)| {
-            let mut new = fkbp.get_repeats();
-            acc.append(&mut new);
-            acc
-        })
+    // each Vec<Duplicates> is a vector of all the Duplicates w/ the same content
+    // Each Duplicate is a vector of links that point to one inode
+    pub fn get_repeats(&self) -> Vec<Vec<Duplicates>> {
+        let mut all = vec![];
+        for (_size, ref fkbp) in &self.catalog {
+            all.append(&mut fkbp.get_repeats());
+        }
+        all
     }
 
+    // catalog a path into the catalog
     pub fn insert(&mut self, path: &Path) {
         // fetch mandatory info
         let md = fs::File::open(path).and_then(|f| f.metadata()).unwrap();
@@ -60,13 +63,4 @@ impl FileCatalog {
     }
 
 }
-
-/*
- * ID MAPS
- *  FileCataloger : ID -> size
- *  FirstProxy    : ID -> FirstKBytes
- *  HASH          : ID -> Hash
- *
- */
-
 

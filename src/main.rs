@@ -29,12 +29,6 @@ pub struct ID {
     inode: u64
 }
 
-impl ::std::fmt::Debug for ID {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "{:X}:{:X}", self.dev, self.inode)
-    }
-}
-
 
 //const FILE_READ_BUFFER_SIZE: usize = 4096;
 const FIRST_K_BYTES: usize = 32;
@@ -87,7 +81,7 @@ fn main() {
     // for now print all log info
     LogBuilder::new().filter(None, LogLevelFilter::max()).init().unwrap();
 
-
+    // create and customize a DirWalker over the real filesystem
     let fs = RealFileSystem;
     let paths: Vec<&Path> = dirs.iter().map(Path::new).collect();
     let dw = DirWalker::new(fs, paths)
@@ -96,12 +90,26 @@ fn main() {
     let files = dw.traverse_all();
     println!("{:?}", files.len());
 
+    // catalog all files
     let mut fc = FileCatalog::new();
     for file in &files {
-    //    println!("{:?}", file);
         fc.insert(file);
-    //    println!("{:?}\n\n", fc);
     }
+
+    /*
+     * TODO
+     *  change firstkbytes to a hash instead of just the first 32 bytes
+     *      change the Debug impl probably too
+     *          maybe just change them all
+     *  consider consolidating FirstKBytesProxy and HashProxy somehow
+     *  register duplicates up? or maybe just fetch more efficiently
+     *      get ID not just a vec of duplicates?
+     *  rename `Duplicates` to `Links` or something
+     *  revisit `thunk` value type of HashProxy::Thunk
+     *  was FileCatalog supposed to be FileCataloger?
+     *
+     *
+     */
 
     /*
     let mut fc = FileCatalog::new();
@@ -113,11 +121,12 @@ fn main() {
     //println!("betaaaa\n{:?}", fc);
     */
 
+    // print the duplicates
     let repeats = fc.get_repeats();
-    for (id, dups) in repeats {
-        println!("{:?}:  {:?}", id, dups);
+    for dups in repeats {
+        println!("{:?}", dups);
     }
 
-    //println!("{:?}", fc);
 
 }
+

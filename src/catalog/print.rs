@@ -1,8 +1,20 @@
 
+/* Debug impls for common types
+ * Mostly to be used for debugging to make large structs easier to read
+ *
+ */
+
 use std::fmt::{Debug, Formatter, Result};
 
+use super::super::ID;
 use super::{FileCatalog};
 use super::proxy::{Duplicates, FirstKBytesProxy, HashProxy};
+
+impl Debug for ID {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(f, "{:X}:{:X}", self.dev, self.inode)
+    }
+}
 
 impl Debug for Duplicates {
     fn fmt(&self, f: &mut Formatter) -> Result {
