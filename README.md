@@ -1,6 +1,9 @@
 # Smllr
 De-duplicate your hard drive.
 
+## Building the Project
+
+Build with "$cargo build" from within the source directory
 
 ## github_changelog_editior
 Dependancies: Ruby
