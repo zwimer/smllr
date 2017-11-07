@@ -7,15 +7,15 @@ use std::time::SystemTime;
 use std::rc::Rc;
 use std::collections::HashMap;
 
-use super::{File, VFS, MetaData, Inode, DeviceId, FileType};
+use super::{DeviceId, File, FileType, Inode, MetaData, VFS};
+use super::super::ID;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TestMD {
     len: u64,
     creation: SystemTime,
     kind: FileType,
-    inode: Inode,
-    device: DeviceId,
+    id: ID,
 }
 
 impl MetaData for TestMD {
@@ -29,10 +29,10 @@ impl MetaData for TestMD {
         self.kind
     }
     fn get_inode(&self) -> Inode {
-        self.inode
+        Inode(self.id.inode)
     }
     fn get_device(&self) -> io::Result<DeviceId> {
-        Ok(self.device)
+        Ok(DeviceId(self.id.dev))
     }
 }
 
@@ -65,13 +65,6 @@ impl File for TestFile {
     }
 }
 
-/*
-struct FsErrors {
-    file_read: bool,
-    dir_read: bool,
-    stat: bool,
-}
-*/
 
 #[derive(Debug)]
 pub struct TestFileSystem {
@@ -90,8 +83,10 @@ impl TestFileSystem {
             len: 0,
             creation: SystemTime::now(),
             kind,
-            inode,
-            device: DeviceId(0),
+            id: ID {
+                inode: inode.0,
+                dev: 0,
+            },
         };
         let tf = TestFile {
             path: path.to_owned(),

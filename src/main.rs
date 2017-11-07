@@ -1,8 +1,11 @@
 #[macro_use]
 extern crate log;
-extern crate env_logger;
-extern crate regex;
 extern crate clap;
+extern crate env_logger;
+#[macro_use]
+extern crate log;
+extern crate md5;
+extern crate regex;
 
 use clap::{App, Arg};
 use env_logger::LogBuilder;
@@ -17,6 +20,21 @@ pub mod vfs;
 use vfs::RealFileSystem;
 
 mod test;
+
+mod catalog;
+use catalog::FileCataloger;
+
+// Temporary struct: should move once we know where
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
+pub struct ID {
+    dev: u64,
+    inode: u64,
+}
+
+
+//const FILE_READ_BUFFER_SIZE: usize = 4096;
+const FIRST_K_BYTES: usize = 32;
+//const FIRST_K_BYTES: usize = 4096;
 
 fn main() {
     //First parse the arguments.
@@ -80,4 +98,42 @@ fn main() {
         .blacklist_patterns(pats_n);
     let files = dw.traverse_all();
     println!("{:?}", files.len());
+
+    // catalog all files
+    let mut fc = FileCataloger::new();
+    for file in &files {
+        fc.insert(file);
+    }
+
+    /*
+     * TODO
+     *  change firstkbytes to a hash instead of just the first 32 bytes
+     *      change the Debug impl probably too
+     *          maybe just change them all
+     *  consider consolidating FirstKBytesProxy and HashProxy somehow
+     *  register duplicates up? or maybe just fetch more efficiently
+     *      get ID not just a vec of duplicates?
+     *  rename `Duplicates` to `Links` or something (NAH)
+     *      HashProxy's `Duplicates` should just be one bucket for all dups+links
+     *  revisit `thunk` value type of HashProxy::Thunk
+     *  was FileCatalog supposed to be FileCataloger?
+     *
+     *
+     */
+
+    /*
+    let mut fc = FileCatalog::new();
+    fc.insert(Path::new("/home/owen/shared/rpi4/sdd/smllr/my_tests/alphaaa"));
+    //println!("alphaaa\n{:?}\n", fc);
+    fc.insert(Path::new("/home/owen/shared/rpi4/sdd/smllr/my_tests/_alpha_"));
+    //println!("_alpha_\n{:?}\n", fc);
+    fc.insert(Path::new("/home/owen/shared/rpi4/sdd/smllr/my_tests/betaaaa"));
+    //println!("betaaaa\n{:?}", fc);
+    */
+
+    // print the duplicates
+    let repeats = fc.get_repeats();
+    for dups in repeats {
+        println!("{:?}", dups);
+    }
 }

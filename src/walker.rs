@@ -1,6 +1,6 @@
 
 use std::path::{Path, PathBuf};
-use std::{io, env};
+use std::{env, io};
 use std::ffi::OsStr;
 use std::collections::HashSet;
 use regex::{self, Regex};
@@ -29,7 +29,7 @@ pub struct DirWalker<T: VFS> {
 }
 
 
-use vfs::{File, MetaData, FileType};
+use vfs::{File, FileType, MetaData};
 
 
 impl<M, F, V> DirWalker<V>
@@ -188,6 +188,7 @@ where
                     true
                 }
             }
+        }
     }
 
     /// Operate on a file: add file path to the HashSet.
@@ -223,5 +224,43 @@ where
                 Err(e) => warn!("Failed to identify file in dir {:?}: {}", path, e),
             }
         }
+    }
+
+    /// Check and possibly handle any filesystem object
+    fn dispatch_any_file(&mut self, path: &Path, filetype: Option<FileType>) {
+        // handle a file, traverse a directory, or follow a symlink
+        let filetype = match filetype {
+            Some(ft) => ft,
+            None => match self.vfs.get_metadata(path) {
+                Ok(md) => md.get_type(),
+                Err(e) => {
+                    warn!("Couldn't get metadata for {:?}: {}", path, e);
+                    return;
+                }
+            },
+        };
+        match filetype {
+            FileType::File => if self.should_handle_file(path) {
+                self.handle_file(path)
+            },
+            FileType::Dir => if self.should_traverse_folder(path) {
+                self.traverse_folder(path)
+            },
+            FileType::Symlink => match self.vfs.read_link(path) {
+                Ok(ref f) => self.dispatch_any_file(f, None),
+                Err(e) => warn!("Couldn't resolve symlink {:?}: {}", path, e),
+            },
+            FileType::Other => info!("Ignoring unknown file {:?}", path),
+        }
+    }
+
+    /// Collect all specified files into a set; this kills the DirWalker
+    pub fn traverse_all(mut self) -> HashSet<PathBuf> {
+        // steal directories (performance hack, ask owen)
+        let directories = ::std::mem::replace(&mut self.directories, vec![]);
+        for path in directories {
+            self.dispatch_any_file(&path, None);
+        }
+        self.files
     }
 }

@@ -3,11 +3,11 @@
 
 use std::path::{Path, PathBuf};
 use std::fs::{self, DirEntry};
-use std::os::unix::fs::{MetadataExt, DirEntryExt}; // need unix
+use std::os::unix::fs::{DirEntryExt, MetadataExt}; // need unix
 use std::os::linux::fs::MetadataExt as MetadataExt_linux; // ew
 use std::{io, time};
 
-use super::{File, VFS, MetaData, Inode, DeviceId, FileType};
+use super::{DeviceId, File, FileType, Inode, MetaData, VFS};
 
 impl MetaData for fs::Metadata {
     fn get_len(&self) -> u64 {
