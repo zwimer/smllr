@@ -1,5 +1,5 @@
-
-// shim around real file system
+// shim around real file system so it can be injected into 
+// DirWalker.
 
 use std::path::{Path, PathBuf};
 use std::fs::{self, DirEntry};
@@ -9,6 +9,7 @@ use std::{io, time};
 
 use super::{DeviceId, File, FileType, Inode, MetaData, VFS};
 
+//Wrap our metadata trait around fs::Metadata.
 impl MetaData for fs::Metadata {
     fn get_len(&self) -> u64 {
         self.len()
@@ -27,7 +28,7 @@ impl MetaData for fs::Metadata {
     }
 }
 
-
+// wrapping our File interface around the stdd DirEntry.
 impl File for DirEntry {
     type MD = fs::Metadata;
 
@@ -50,12 +51,14 @@ impl File for DirEntry {
     }
 }
 
+//Empty struct which represents the 'Real Filesystem'
+//all of its 'Member variables' are on the drive.
 #[derive(Debug, Clone, Copy)]
 pub struct RealFileSystem;
 
 impl VFS for RealFileSystem {
     type FileIter = DirEntry;
-
+    /// get an iterator over the contents of directory P
     fn list_dir<P: AsRef<Path>>(
         &self,
         p: P,
@@ -66,18 +69,18 @@ impl VFS for RealFileSystem {
             Err(e) => Err(e),
         }
     }
-
+    /// get the metadata for P
     fn get_metadata<P: AsRef<Path>>(&self, p: P) -> io::Result<<Self::FileIter as File>::MD> {
         fs::metadata(p)
     }
-
+    /// get the metadata for symlink P
     fn get_symlink_metadata<P: AsRef<Path>>(
         &self,
         p: P,
     ) -> io::Result<<Self::FileIter as File>::MD> {
         fs::symlink_metadata(p)
     }
-
+    /// resolve symlink P to its target path
     fn read_link<P: AsRef<Path>>(&self, p: P) -> io::Result<PathBuf> {
         fs::read_link(p)
     }
