@@ -13,11 +13,11 @@ pub use self::test_fs::{TestFile, TestFileSystem};
 
 //definition of traits
 //RUST NOTE: the "trait foo: baz" denotes that foo reuires that
-// any object it is implemented on also implements baz. 
-// this allows the defulat implementation of methods to 
+// any object it is implemented on also implements baz.
+// this allows the defulat implementation of methods to
 // employ the methods of baz
 
-/// The VFS [virtual file system] trait is the interface we require 
+/// The VFS [virtual file system] trait is the interface we require
 ///for the injection into the directectory walker.
 pub trait VFS: Clone + Debug {
     type FileIter: File;
@@ -61,7 +61,7 @@ pub trait MetaData: Debug {
 //RUST NOTE: rust enums can be defined over types such that
 //a variable of the the enum type can be of any of the included types.
 
-///Filetype is an ENUM of all types used for filesystem objects. 
+///Filetype is an ENUM of all types used for filesystem objects.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FileType {
     File,
@@ -70,7 +70,7 @@ pub enum FileType {
     Other,
 }
 
-/// Implementation of creation method for the FILETYPE enum. 
+/// Implementation of creation method for the FILETYPE enum.
 /// maps creation (from) method over the constitute types of FileType
 impl From<fs::FileType> for FileType {
     fn from(ft: fs::FileType) -> FileType {
@@ -81,7 +81,7 @@ impl From<fs::FileType> for FileType {
         } else if ft.is_symlink() {
             FileType::Symlink
         } else {
-            // for other filesystem objets. might be block/char device, fifo, 
+            // for other filesystem objets. might be block/char device, fifo,
             // socket, etc depending on os;
             FileType::Other
         }
@@ -95,6 +95,6 @@ impl From<fs::FileType> for FileType {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Inode(u64);
 ///Device id is a wraper around a 'long' with several traits
-/// represents a device id. 
+/// represents a device id.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DeviceId(u64);

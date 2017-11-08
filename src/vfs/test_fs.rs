@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use super::{DeviceId, File, FileType, Inode, MetaData, VFS};
 use super::super::ID;
 
-/// TestMD is the mock metadata struct. 
+/// TestMD is the mock metadata struct.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TestMD {
     len: u64,
@@ -50,7 +50,7 @@ pub struct TestFile {
 }
 
 /// implementation of the File trait
-/// for TestFile. 
+/// for TestFile.
 impl File for TestFile {
     type MD = TestMD;
 
@@ -64,13 +64,14 @@ impl File for TestFile {
         Ok(self.kind)
     }
     fn get_metadata(&self) -> io::Result<TestMD> {
-        self.metadata
-            .ok_or(io::Error::new(io::ErrorKind::Other, "No MD"))
+        self.metadata.ok_or(
+            io::Error::new(io::ErrorKind::Other, "No MD"),
+        )
     }
 }
 
 /// TestFileSystem denotes a Mock Filesystem we use instead of risking
-/// our own data. 
+/// our own data.
 #[derive(Debug)]
 pub struct TestFileSystem {
     files: HashMap<PathBuf, TestFile>,
@@ -113,14 +114,14 @@ impl TestFileSystem {
         self.files.insert(path.to_owned(), tf);
     }
 
-    /// constructor: initializes self. 
+    /// constructor: initializes self.
     pub fn new() -> Rc<Self> {
         Rc::new(TestFileSystem {
             files: HashMap::new(),
             symlinks: HashMap::new(),
         })
     }
-   /// Creates a new file at path. Anologous to '$touch path'
+    /// Creates a new file at path. Anologous to '$touch path'
     pub fn create_file<P: AsRef<Path>>(&mut self, path: P) {
         self.create_regular(path.as_ref(), FileType::File);
     }
@@ -128,7 +129,7 @@ impl TestFileSystem {
     pub fn create_dir<P: AsRef<Path>>(&mut self, path: P) {
         self.create_regular(path.as_ref(), FileType::Dir);
     }
-    /// Creates a new symlink from path to target. analogous to 
+    /// Creates a new symlink from path to target. analogous to
     /// '$ln -s -t target path
     pub fn create_symlink<P: AsRef<Path>>(&mut self, path: P, target: P) {
         // Create the symlink file.
@@ -147,9 +148,9 @@ impl TestFileSystem {
     // getters for the Mock Filesystem.
     // RUST SYNTAX: <'a> is a lifetime paramater. Lifetimes are pretty
     // unique to rust; essentially they are used to pass the parent
-    // through so they are invalidated when the parent is. 
+    // through so they are invalidated when the parent is.
 
-    ///Resolves the 
+    ///Resolves the
     fn lookup<'a>(&'a self, path: &Path) -> io::Result<&'a TestFile> {
         if let Some(tf) = self.files.get(path) {
             Ok(tf)
@@ -175,77 +176,81 @@ impl TestFileSystem {
 impl VFS for Rc<TestFileSystem> {
     type FileIter = TestFile;
 
-    /// VFS::list_dir(p)  gets an iterator over the contents of p. 
-	 fn list_dir<P: AsRef<Path>>(
+    /// VFS::list_dir(p)  gets an iterator over the contents of p.
+    fn list_dir<P: AsRef<Path>>(
         &self,
         p: P,
     ) -> io::Result<Box<Iterator<Item = io::Result<TestFile>>>> {
         let mut v = vec![];
-		  // collect all files which are children of p
+        // collect all files which are children of p
         for (path, file) in &self.files {
             let parent = path.parent();
             if parent == Some(p.as_ref()) || parent.is_none() {
                 v.push(Ok(file.clone()));
             }
         }
-		  // collect all symlinks which are children of p
+        // collect all symlinks which are children of p
         for (src, &(ref file, ref _dst)) in &self.symlinks {
             if src.parent() == Some(p.as_ref()) {
                 v.push(Ok(file.clone()));
             }
         }
-		  // return the iterator. 
+        // return the iterator.
         Ok(Box::new(v.into_iter()))
     }
 
-//RUST NOTE: match is roughly equivlent to the c's 'switch'. 
-// match expr {
-//     expr1 => block,
-//     expr2 => block,
-// }
-// is equivlent to
-// switch (expr) {
-//     case expr1:
-//         block
-//     case expr2:
-//         block
-//}
-//
-// The '_' expresion when used in match is equivelent to default in c
-//
-//Match also supports deconstructing and binding. see 
-// https://rustbyexample.com/flow_control/match.html
-// for more information.
+    //RUST NOTE: match is roughly equivlent to the c's 'switch'.
+    // match expr {
+    //     expr1 => block,
+    //     expr2 => block,
+    // }
+    // is equivlent to
+    // switch (expr) {
+    //     case expr1:
+    //         block
+    //     case expr2:
+    //         block
+    //}
+    //
+    // The '_' expresion when used in match is equivelent to default in c
+    //
+    //Match also supports deconstructing and binding. see
+    // https://rustbyexample.com/flow_control/match.html
+    // for more information.
 
-    /// VFS::get_metadata gets the Metadata of Path 
+    /// VFS::get_metadata gets the Metadata of Path
     /// FileType of path cannot be symlink; they are handled diffrently; use
-	 /// VFS::get_symlink_metadata for symlinks
+    /// VFS::get_symlink_metadata for symlinks
     fn get_metadata<P: AsRef<Path>>(&self, path: P) -> io::Result<<Self::FileIter as File>::MD> {
         match self.files.get(path.as_ref()) {
             Some(f) => f.get_metadata(),
-            None => match self.symlinks.get(path.as_ref()) {
-                Some(&(_, ref p)) => self.lookup(p).and_then(|f| f.get_metadata()),
-                None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
-            },
+            None => {
+                match self.symlinks.get(path.as_ref()) {
+                    Some(&(_, ref p)) => self.lookup(p).and_then(|f| f.get_metadata()),
+                    None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
+                }
+            }
         }
     }
 
-    /// VFS::get_symlink_metadata(p) gets the metadata for symlink p. 
+    /// VFS::get_symlink_metadata(p) gets the metadata for symlink p.
     fn get_symlink_metadata<P: AsRef<Path>>(
         &self,
         path: P,
     ) -> io::Result<<Self::FileIter as File>::MD> {
         match self.files.get(path.as_ref()) {
             Some(f) => f.get_metadata(),
-            None => match self.symlinks.get(path.as_ref()) {
-                Some(&(ref f, _)) => f.get_metadata(),
-                None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
-            },
+            None => {
+                match self.symlinks.get(path.as_ref()) {
+                    Some(&(ref f, _)) => f.get_metadata(),
+                    None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
+                }
+            }
         }
     }
 
     /// VFS::read_link(p) resolves symlink at path p to the path its pointing to
-	 /// or gives an error if the link is broken. 
+    /// or gives an error if the link is broken.
     fn read_link<P: AsRef<Path>>(&self, path: P) -> io::Result<PathBuf> {
         match self.symlinks.get(path.as_ref()) {
             Some(&(_, ref p)) => Ok(p.to_owned()),

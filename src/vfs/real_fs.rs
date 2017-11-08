@@ -1,4 +1,4 @@
-// shim around real file system so it can be injected into 
+// shim around real file system so it can be injected into
 // DirWalker.
 
 use std::path::{Path, PathBuf};
