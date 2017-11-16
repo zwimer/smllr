@@ -227,7 +227,7 @@ impl HashProxy {
             }
         }
     }
-
+	 // private helper fuction which handles the conversion from Delay to HashProxy::Thunk
     fn transition(&mut self, new_id: ID, new_dups: Duplicates) {
         // convert Delay to Thunk
         let (del_id, del_dups) = match *self {
