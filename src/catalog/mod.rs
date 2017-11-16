@@ -40,14 +40,14 @@ impl FileCataloger {
     pub fn get_repeats(&self) -> Vec<Vec<Duplicates>> {
         let mut all = vec![];
         // for each subgrouping (done by size), get all the list of duplicates and
-        // add them to are return variable. 
+        // add them to are return variable.
         for (_size, ref fkbp) in &self.catalog {
             all.append(&mut fkbp.get_repeats());
         }
         all
     }
 
-    /// inserts path into the catalog. 
+    /// inserts path into the catalog.
     pub fn insert(&mut self, path: &Path) {
         // get the metadata (needed for preliminary comparision and storage)
         let md = fs::File::open(path).and_then(|f| f.metadata()).unwrap();
@@ -60,7 +60,7 @@ impl FileCataloger {
         match self.catalog.entry(size) {
             // If another file of that size has been included, insert into that proxy
             Entry::Occupied(mut occ_entry) => occ_entry.get_mut().insert(id, path),
-            // otherwise create a new firstkbytesproxy with path as the delayed insert. 
+            // otherwise create a new firstkbytesproxy with path as the delayed insert.
             Entry::Vacant(vac_entry) => {
                 vac_entry.insert(FirstKBytesProxy::new(id, path));
             }

@@ -15,7 +15,7 @@ use md5;
 // the type md5::compute() derefs to
 pub type Hash = [u8; 16];
 
-// FirstBytes is a wrapper for a hashmap of the first bytes of a file. 
+// FirstBytes is a wrapper for a hashmap of the first bytes of a file.
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct FirstBytes(pub(super) [u8; K]);
 
@@ -48,7 +48,7 @@ impl Duplicates {
 
 // // // // // // // // // // // // // // // // // // // // //
 /// proxy of firstbytes; untill 2 elements have been added, no chance of a collision
-/// so don't make the hashmap and shortcut. 
+/// so don't make the hashmap and shortcut.
 pub enum FirstKBytesProxy {
     // in the first state there is one file
     // don't look up its first k bytes unless it has the same size as another
@@ -71,18 +71,18 @@ impl FirstKBytesProxy {
             dups: Duplicates::from(path),
         }
     }
-    /// Helper Function; gets the first bytes of file identified with path. 
+    /// Helper Function; gets the first bytes of file identified with path.
     fn get_first_bytes(path: &Path) -> io::Result<FirstBytes> {
         // if the file is less than K bytes, the last K-n will be zeros
         let mut f = File::open(path)?;
         let mut v = [0u8; K];
         f.read(&mut v)?;
         Ok(FirstBytes(v)) // FirstBytes
-                          //Ok(*md5::compute(v))  // Hash of FirstBytes
+        //Ok(*md5::compute(v))  // Hash of FirstBytes
     }
 
     // identify and return all repeats under this node, collected in vectors to indicate
-    // the collisions in lower nodes. 
+    // the collisions in lower nodes.
     pub(super) fn get_repeats(&self) -> Vec<Vec<Duplicates>> {
         match self {
             &FirstKBytesProxy::Delay { .. } => vec![],
@@ -144,13 +144,12 @@ impl FirstKBytesProxy {
     /// Add a new path to the proxy
     pub fn insert(&mut self, id: ID, path: &Path) {
         match self {
-            // If a hard link and self is a Delay, insert a hard link to what's 
+            // If a hard link and self is a Delay, insert a hard link to what's
             // already stored in Delay
             &mut FirstKBytesProxy::Delay {
                 id: id2,
                 ref mut dups,
-            } if id == id2 =>
-            {
+            } if id == id2 => {
                 dups.push(path);
             }
             // If self is a thunk get first bytes and add to shortcut. If a match for a proxy, add
@@ -227,7 +226,7 @@ impl HashProxy {
             }
         }
     }
-	 // private helper fuction which handles the conversion from Delay to HashProxy::Thunk
+    // private helper fuction which handles the conversion from Delay to HashProxy::Thunk
     fn transition(&mut self, new_id: ID, new_dups: Duplicates) {
         // convert Delay to Thunk
         let (del_id, del_dups) = match *self {
@@ -272,8 +271,7 @@ impl HashProxy {
             &mut HashProxy::Delay {
                 id: id2,
                 dups: ref mut dups2,
-            } if id == id2 =>
-            {
+            } if id == id2 => {
                 dups2.append(dups);
             }
             // If we are in a thunk state, just add file and its hash
