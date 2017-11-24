@@ -23,12 +23,19 @@ mod test;
 mod catalog;
 use catalog::FileCataloger;
 
+// Helpers:
+
 // Temporary struct: should move once we know where
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub struct ID {
     dev: u64,
     inode: u64,
 }
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+pub struct FirstBytes(pub(crate) [u8; FIRST_K_BYTES]);
+
+pub type Hash = [u8; 16];
+
 
 
 //const FILE_READ_BUFFER_SIZE: usize = 4096;
@@ -95,7 +102,7 @@ fn main() {
     println!("{:?}", files.len());
 
     // catalog all files
-    let mut fc = FileCataloger::new();
+    let mut fc = FileCataloger::new(fs);
     for file in &files {
         fc.insert(file);
     }

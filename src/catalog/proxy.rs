@@ -5,7 +5,7 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::collections::hash_map::Entry;
 
-use super::super::ID;
+use super::super::{Hash, FirstBytes, ID, vfs};
 use super::super::FIRST_K_BYTES as K;
 
 use md5;
@@ -13,13 +13,16 @@ use md5;
 // helper types
 
 // the type md5::compute() derefs to
-pub type Hash = [u8; 16];
+//pub type Hash = [u8; 16];
 
+/*
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct FirstBytes(pub(super) [u8; K]);
+*/
 
 #[derive(Clone)]
 pub struct Duplicates(pub(super) Vec<PathBuf>);
+pub struct Duplicates_<T: vfs::File>(pub(super) Vec<T>);
 
 
 impl Duplicates {
