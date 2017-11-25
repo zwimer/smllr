@@ -1,4 +1,3 @@
-
 // fake filesystem for testing
 
 use std::path::{Path, PathBuf};
@@ -68,7 +67,7 @@ impl File for TestFile {
     fn get_first_bytes(&self) -> io::Result<FirstBytes> {
         if let Some(ref cont) = self.contents {
             let mut bytes = [0u8; FIRST_K_BYTES];
-            for (c,b) in cont.bytes().zip(bytes.iter_mut()) {
+            for (c, b) in cont.bytes().zip(bytes.iter_mut()) {
                 *b = c;
             }
             Ok(FirstBytes(bytes))
@@ -222,7 +221,7 @@ impl VFS for Rc<TestFileSystem> {
     fn get_file(&self, p: &Path) -> io::Result<Self::FileIter> {
         match self.files.get(p) {
             Some(f) => Ok(f.to_owned()),
-            None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file"))
+            None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
         }
     }
 }

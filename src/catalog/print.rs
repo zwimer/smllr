@@ -1,4 +1,3 @@
-
 /* Debug impls for common types
  * Mostly to be used for debugging to make large structs easier to read
  *

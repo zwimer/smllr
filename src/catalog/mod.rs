@@ -1,4 +1,3 @@
-
 use std::collections::HashMap;
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
@@ -12,7 +11,7 @@ use self::proxy::{Duplicates, FirstKBytesProxy};
 
 mod print;
 
-use super::vfs::{VFS, File, MetaData};
+use super::vfs::VFS;
 
 
 pub struct FileCataloger<T: VFS> {
@@ -45,26 +44,6 @@ impl<T: VFS> FileCataloger<T> {
         all
     }
 
-    pub fn insert2(&mut self, file: <T as VFS>::FileIter) {
-        let md = file.get_metadata().unwrap();
-        let size: u64 = md.get_len();
-        // TODO: clean this up
-        let id = ID { 
-            dev: md.get_device().unwrap().0,
-            inode: md.get_inode().0 
-        };
-        /*
-        match self.catalog.entry(size) {
-            // already there: insert it into the firstkbytesproxy
-            Entry::Occupied(mut occ_entry) => occ_entry.get_mut().insert(id, file),
-            // not there: create a new firstkbytesproxy
-            Entry::Vacant(vac_entry) => {
-                vac_entry.insert(FirstKBytesProxy::new(id, file));
-            }
-        }
-        */
-    }
-
     // catalog a path into the catalog
     pub fn insert(&mut self, path: &Path) {
         // fetch mandatory info
@@ -77,7 +56,7 @@ impl<T: VFS> FileCataloger<T> {
 
         match self.catalog.entry(size) {
             // already there: insert it into the firstkbytesproxy
-            Entry::Occupied(mut occ_entry) => occ_entry.get_mut().insert(id, path),
+            Entry::Occupied(mut occ_entry) => occ_entry.get_mut().insert(&self.vfs, id, path),
             // not there: create a new firstkbytesproxy
             Entry::Vacant(vac_entry) => {
                 vac_entry.insert(FirstKBytesProxy::new(id, path));
