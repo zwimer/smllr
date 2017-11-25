@@ -6,8 +6,12 @@ use std::fs::{self, DirEntry};
 use std::os::unix::fs::{DirEntryExt, MetadataExt}; // need unix
 use std::os::linux::fs::MetadataExt as MetadataExt_linux; // ew
 use std::{io, time};
+use std::io::Read;
 
 use super::{DeviceId, File, FileType, Inode, MetaData, VFS};
+use super::{FirstBytes, Hash, FIRST_K_BYTES};
+
+use md5;
 
 impl MetaData for fs::Metadata {
     fn get_len(&self) -> u64 {
@@ -47,6 +51,20 @@ impl File for DirEntry {
     }
     fn get_metadata(&self) -> io::Result<fs::Metadata> {
         self.metadata()
+    }
+    fn get_first_bytes(&self) -> io::Result<FirstBytes> {
+        let mut bytes = [0u8; FIRST_K_BYTES];
+        let path = self.get_path();
+        let mut file = fs::File::open(&path)?;
+        file.read(&mut bytes)?;
+        Ok(FirstBytes(bytes))
+    }
+    fn get_hash(&self) -> io::Result<Hash> {
+        let path = self.get_path();
+        let mut file = fs::File::open(&path)?;
+        let mut v = vec![];
+        file.read_to_end(&mut v)?;
+        Ok(*md5::compute(v))
     }
 }
 
