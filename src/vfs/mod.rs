@@ -1,5 +1,5 @@
-// trait / helper types for filesystem shim
-
+// This file defines a number of traits and helper
+// for filesystem interface used for dependancy injection.
 
 use std::{fs, io, time};
 use std::fmt::Debug;
@@ -13,11 +13,17 @@ pub use self::test_fs::{TestFile, TestFileSystem};
 
 use super::{FirstBytes, Hash, FIRST_K_BYTES};
 
-// traits
+//definition of traits
+//RUST NOTE: the "trait foo: baz" denotes that foo reuires that
+// any object it is implemented on also implements baz.
+// this allows the default implementation of methods to
+// employ the methods of baz
 
+/// The VFS [virtual file system] trait is the interface we require
+///for the injection into the directectory walker.
 pub trait VFS: Clone + Debug {
     type FileIter: File;
-
+    // lists all the subobjects of a directory; essentially ls.
     fn list_dir<P: AsRef<Path>>(
         &self,
         p: P,
@@ -37,6 +43,7 @@ pub trait VFS: Clone + Debug {
     fn get_file(&self, p: &Path) -> io::Result<Self::FileIter>;
 }
 
+// the File trait defines the common interface for files.
 pub trait File: Debug {
     type MD: MetaData;
     fn get_inode(&self) -> io::Result<Inode>;
@@ -46,7 +53,8 @@ pub trait File: Debug {
     fn get_first_bytes(&self) -> io::Result<FirstBytes>;
     fn get_hash(&self) -> io::Result<Hash>;
 }
-
+// the MetaData trait defines the interface for metadata
+// it is the subset of the interface of fs::MetaData that we use
 pub trait MetaData: Debug {
     fn get_len(&self) -> u64;
     fn get_creation_time(&self) -> io::Result<time::SystemTime>;
@@ -57,7 +65,10 @@ pub trait MetaData: Debug {
 
 
 // helper types
+//RUST NOTE: rust enums can be defined over types such that
+//a variable of the the enum type can be of any of the included types.
 
+///Filetype is an ENUM of all types used for filesystem objects.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FileType {
     File,
@@ -66,6 +77,8 @@ pub enum FileType {
     Other,
 }
 
+/// Implementation of creation method for the FILETYPE enum.
+/// maps creation (from) method over the constitute types of FileType
 impl From<fs::FileType> for FileType {
     fn from(ft: fs::FileType) -> FileType {
         if ft.is_file() {
@@ -75,13 +88,20 @@ impl From<fs::FileType> for FileType {
         } else if ft.is_symlink() {
             FileType::Symlink
         } else {
-            // block/char device, fifo, socket, etc depending on os
+            // for other filesystem objets. might be block/char device, fifo,
+            // socket, etc depending on os;
             FileType::Other
         }
     }
 }
-
+//RUST NOTE: the #[derive(...)] automatically adds the traits indicated in derive
+// one should also note that Clone, Copy, Hash, PartialEQ, and EQ are part of the rust
+// std and do pretty much what it they say.
+///inode is wraper around a 'long' with several added traits (interface)
+///which represents the inode of a file
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Inode(pub u64);
+///Device id is a wraper around a 'long' with several traits
+/// represents a device id.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DeviceId(pub u64);
