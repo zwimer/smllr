@@ -81,4 +81,14 @@ impl VFS for RealFileSystem {
     fn read_link<P: AsRef<Path>>(&self, p: P) -> io::Result<PathBuf> {
         fs::read_link(p)
     }
+
+    fn get_file(&self, p: &Path) -> io::Result<Self::FileIter> {
+        let dir = p.parent().expect("Called get_file() on root dir");
+        match ::std::fs::read_dir(p).expect("Couldn't ls file dir").find(|e| {
+            e.as_ref().map(|i| i.path() == p).unwrap_or(false)
+        }) {
+            Some(f) => Ok(f.unwrap()),
+            None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file"))
+        }
+    }
 }

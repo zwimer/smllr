@@ -197,4 +197,11 @@ impl VFS for Rc<TestFileSystem> {
             None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
         }
     }
+
+    fn get_file(&self, p: &Path) -> io::Result<Self::FileIter> {
+        match self.files.get(p) {
+            Some(f) => Ok(f.to_owned()),
+            None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file"))
+        }
+    }
 }

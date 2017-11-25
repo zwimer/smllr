@@ -31,6 +31,9 @@ pub trait VFS: Clone + Debug {
     ) -> io::Result<<Self::FileIter as File>::MD>;
 
     fn read_link<P: AsRef<Path>>(&self, p: P) -> io::Result<PathBuf>;
+
+    // must be of type "File" (not a dir/link/other)
+    fn get_file(&self, p: &Path) -> io::Result<Self::FileIter>;
 }
 
 pub trait File: Debug {
