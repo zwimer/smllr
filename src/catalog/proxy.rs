@@ -138,7 +138,7 @@ impl FirstKBytesProxy {
             {
                 dups.push(path);
             }
-            // If self is a thunk get first bytes and add to shortcut. 
+            // If self is a thunk get first bytes and add to shortcut.
             // If a match for a proxy, add
             // to the proxy; otherwise create a new hashproxy.
             &mut FirstKBytesProxy::Thunk {
@@ -200,16 +200,19 @@ impl HashProxy {
                 vec![]
             },
             &HashProxy::Thunk { ref thunk, .. } => {
-                thunk.iter().filter_map(|(_hash, repeats)| {
-                    if repeats.0.len() >= 2 {
-                        // if there are 2 or more elements
-                        // (including 2 links to 1 file)
-                        Some(repeats.clone())
-                    } else {
-                        // exactly one representation on the hard drive
-                        None
-                    }
-                }).collect()
+                thunk
+                    .iter()
+                    .filter_map(|(_hash, repeats)| {
+                        if repeats.0.len() >= 2 {
+                            // if there are 2 or more elements
+                            // (including 2 links to 1 file)
+                            Some(repeats.clone())
+                        } else {
+                            // exactly one representation on the hard drive
+                            None
+                        }
+                    })
+                    .collect()
             }
         }
     }
@@ -236,10 +239,13 @@ impl HashProxy {
         // insert into shortcut
         shortcut.insert(new_id, new_hash.clone());
         shortcut.insert(del_id, old_hash.clone());
-        
+
         // thunk: HashMap < Hash, Duplicates >
         thunk.insert(new_hash, new_dups);
-        thunk.entry(old_hash).or_insert(Duplicates(vec![])).append(del_dups);
+        thunk
+            .entry(old_hash)
+            .or_insert(Duplicates(vec![]))
+            .append(del_dups);
 
         // set our pointer to the new thunk state.
         *self = HashProxy::Thunk { thunk, shortcut };

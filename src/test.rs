@@ -8,7 +8,7 @@ mod test {
     use std::path::{Path, PathBuf};
     use std::collections::HashSet;
 
-    use super::super::{DirWalker, vfs};
+    use super::super::{vfs, DirWalker};
     use super::super::vfs::{TestFile, TestFileSystem, TestMD};
     use super::super::FileCataloger;
 
