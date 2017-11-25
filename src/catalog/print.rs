@@ -1,8 +1,7 @@
-
-/* Debug impls for common types
- * Mostly to be used for debugging to make large structs easier to read
- *
- */
+// This file contiants the implementation of Debug for common types. 
+// Debug is a comon trait used to print the entire state of an object
+// In the intrest of not booring you with repitition, for all functions in this file
+// Debug() returns a string which details the contents of the container. 
 
 use std::fmt::{Debug, Formatter, Result};
 
@@ -22,7 +21,8 @@ impl Debug for Duplicates {
         if let Some(i) = self.0.get(0) {
             write!(f, "{:?}", i)?;
         } else {
-            write!(f, "~EMPTY~")?; // something's probably wrong
+            write!(f, "~EMPTY~")?; //something's probably wrong as ATM this object only 
+                                   //should be created if 2+ entries are to be added
         }
         for i in self.0.iter().skip(1) {
             write!(f, ", {:?}", i)?;
