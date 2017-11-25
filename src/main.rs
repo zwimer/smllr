@@ -104,7 +104,7 @@ fn main() {
     // catalog all files
     let mut fc = FileCataloger::new(fs);
     for file in &files {
-        fc.insert(file);
+        //fc.insert(file);
     }
 
     /*
@@ -134,8 +134,10 @@ fn main() {
     */
 
     // print the duplicates
+    /*
     let repeats = fc.get_repeats();
     for dups in repeats {
         println!("{:?}", dups);
     }
+    */
 }
