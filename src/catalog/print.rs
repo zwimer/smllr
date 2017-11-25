@@ -8,7 +8,6 @@ use std::fmt::{Debug, Formatter, Result};
 
 use super::super::ID;
 use super::FileCataloger;
-use super::VFS;
 use super::proxy::{Duplicates, FirstKBytesProxy, HashProxy};
 
 impl Debug for ID {
@@ -32,7 +31,7 @@ impl Debug for Duplicates {
     }
 }
 
-impl<T: VFS> Debug for FileCataloger<T> {
+impl Debug for FileCataloger {
     fn fmt(&self, f: &mut Formatter) -> Result {
         for (size, fkbp) in &self.catalog {
             writeln!(f, " {:06}b: {:?}", size, fkbp)?;

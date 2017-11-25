@@ -12,8 +12,6 @@ pub use self::real_fs::RealFileSystem;
 mod test_fs;
 pub use self::test_fs::{TestFile, TestFileSystem};
 
-use super::{FirstBytes, Hash, FIRST_K_BYTES};
-
 // traits
 
 pub trait VFS: Clone + Debug {
@@ -33,8 +31,6 @@ pub trait VFS: Clone + Debug {
     ) -> io::Result<<Self::FileIter as File>::MD>;
 
     fn read_link<P: AsRef<Path>>(&self, p: P) -> io::Result<PathBuf>;
-
-    //fn get_file<P: AsRef<Path>>(&self, p: P) -> io::Result<
 }
 
 pub trait File: Debug {
@@ -43,8 +39,6 @@ pub trait File: Debug {
     fn get_path(&self) -> PathBuf;
     fn get_type(&self) -> io::Result<FileType>;
     fn get_metadata(&self) -> io::Result<Self::MD>;
-    fn get_first_bytes(&self) -> io::Result<FirstBytes>;
-    fn get_hash(&self) -> io::Result<Hash>;
 }
 
 pub trait MetaData: Debug {
@@ -82,6 +76,6 @@ impl From<fs::FileType> for FileType {
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct Inode(pub u64);
+pub struct Inode(u64);
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct DeviceId(pub u64);
+pub struct DeviceId(u64);

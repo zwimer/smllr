@@ -12,12 +12,10 @@ use self::proxy::{Duplicates, FirstKBytesProxy};
 
 mod print;
 
-use super::vfs::{VFS, File, MetaData};
 
 
-pub struct FileCataloger<T: VFS> {
+pub struct FileCataloger {
     catalog: HashMap<u64, FirstKBytesProxy>,
-    vfs: T,
     //shortcut: HashMap<ID, u64>,
     // For now, omit the shortcut. We're just using the real fs right now, so
     // a file is just a Path, which has no associated metadata.
@@ -26,11 +24,10 @@ pub struct FileCataloger<T: VFS> {
     // size for no extra cost. So no need to map ID to size
 }
 
-impl<T: VFS> FileCataloger<T> {
-    pub fn new(vfs: T) -> Self {
+impl FileCataloger {
+    pub fn new() -> Self {
         FileCataloger {
             catalog: HashMap::new(),
-            vfs: vfs,
             //shortcut: HashMap::new(),
         }
     }
@@ -43,26 +40,6 @@ impl<T: VFS> FileCataloger<T> {
             all.append(&mut fkbp.get_repeats());
         }
         all
-    }
-
-    pub fn insert2(&mut self, file: <T as VFS>::FileIter) {
-        let md = file.get_metadata().unwrap();
-        let size: u64 = md.get_len();
-        // TODO: clean this up
-        let id = ID { 
-            dev: md.get_device().unwrap().0,
-            inode: md.get_inode().0 
-        };
-        /*
-        match self.catalog.entry(size) {
-            // already there: insert it into the firstkbytesproxy
-            Entry::Occupied(mut occ_entry) => occ_entry.get_mut().insert(id, file),
-            // not there: create a new firstkbytesproxy
-            Entry::Vacant(vac_entry) => {
-                vac_entry.insert(FirstKBytesProxy::new(id, file));
-            }
-        }
-        */
     }
 
     // catalog a path into the catalog

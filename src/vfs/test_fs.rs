@@ -8,10 +8,7 @@ use std::rc::Rc;
 use std::collections::HashMap;
 
 use super::{DeviceId, File, FileType, Inode, MetaData, VFS};
-use super::{FirstBytes, Hash, FIRST_K_BYTES};
 use super::super::ID;
-
-use md5;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TestMD {
@@ -64,24 +61,6 @@ impl File for TestFile {
     fn get_metadata(&self) -> io::Result<TestMD> {
         self.metadata
             .ok_or(io::Error::new(io::ErrorKind::Other, "No MD"))
-    }
-    fn get_first_bytes(&self) -> io::Result<FirstBytes> {
-        if let Some(ref cont) = self.contents {
-            let mut bytes = [0u8; FIRST_K_BYTES];
-            for (c,b) in cont.bytes().zip(bytes.iter_mut()) {
-                *b = c;
-            }
-            Ok(FirstBytes(bytes))
-        } else {
-            Err(io::Error::new(io::ErrorKind::NotFound, "No contents set"))
-        }
-    }
-    fn get_hash(&self) -> io::Result<Hash> {
-        if let Some(ref cont) = self.contents {
-            Ok(*md5::compute(cont))
-        } else {
-            Err(io::Error::new(io::ErrorKind::NotFound, "No contents set"))
-        }
     }
 }
 
