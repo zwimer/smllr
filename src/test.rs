@@ -8,7 +8,7 @@ mod test {
     use std::path::{Path, PathBuf};
     use std::collections::HashSet;
 
-    use super::super::DirWalker;
+    use super::super::{DirWalker, vfs};
     use super::super::vfs::{TestFile, TestFileSystem, TestMD};
     use super::super::FileCataloger;
 
@@ -23,8 +23,6 @@ mod test {
     fn empty_fs() {
         let fs = TestFileSystem::new();
         let paths = vec![Path::new("/")];
-        //let mut dw = DirWalker::new(fs, paths);
-        //let count: usize = dw.traverse_all();
         let files = DirWalker::new(fs, paths).traverse_all();
         assert_eq!(files.len(), 0);
     }
@@ -64,7 +62,7 @@ mod test {
     }
 
     #[test]
-    fn basic_duplicate_detection() {
+    fn dup_detect_poc() {
         let mut fs = TestFileSystem::new();
         {
             let fs = Rc::get_mut(&mut fs).unwrap();
@@ -74,15 +72,17 @@ mod test {
             fs.add(
                 TestFile::new("/file1")
                     .with_contents(String::from("lorem ipsum"))
+                    .with_inode(vfs::Inode(1))
                     .with_metadata(TestMD::new()),
             );
             fs.add(
                 TestFile::new("/file2")
                     .with_contents(String::from("lorem ipsum"))
+                    .with_inode(vfs::Inode(2))
                     .with_metadata(TestMD::new()),
             );
         }
-        let files: HashSet<PathBuf> = vec!["/file1", "/file2"].iter().map(PathBuf::from).collect();
+        let files: HashSet<_> = vec!["/file1", "/file2"].iter().map(PathBuf::from).collect();
 
         let mut fc = FileCataloger::new(fs);
         for file in &files {
@@ -90,9 +90,11 @@ mod test {
         }
 
         let repeats = fc.get_repeats();
-        // how we verify repeats will depend on the return type
-        // which I'm about to change
-        //repeats.foo();
+        assert_eq!(1, repeats.len());
+        let dup = &repeats[0].0;
+        assert_eq!(2, dup.len());
+        assert!(dup.contains(&PathBuf::from("/file1")));
+        assert!(dup.contains(&PathBuf::from("/file2")));
     }
 
 }

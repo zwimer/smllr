@@ -9,7 +9,7 @@ use super::super::vfs::{File, VFS};
 // a set of files. In code, it is an invariant that any 2 files in a
 // duplicates are identicle.
 #[derive(Clone)]
-pub struct Duplicates(pub(super) Vec<PathBuf>);
+pub struct Duplicates(pub(crate) Vec<PathBuf>);
 
 impl Duplicates {
     // Convert a path to a vector of length 1 containing that path
@@ -62,7 +62,11 @@ impl FirstKBytesProxy {
 
     pub(super) fn get_repeats(&self) -> Vec<Duplicates> {
         match self {
-            &FirstKBytesProxy::Delay { .. } => vec![],
+            &FirstKBytesProxy::Delay { ref dups, .. } => if dups.0.len() >= 2 {
+                vec![dups.clone()]
+            } else {
+                vec![]
+            },
             &FirstKBytesProxy::Thunk { ref thunk, .. } => {
                 thunk.iter().fold(vec![], |mut acc, (_fb, hp)| {
                     acc.append(&mut hp.get_repeats());
@@ -134,7 +138,8 @@ impl FirstKBytesProxy {
             {
                 dups.push(path);
             }
-            // If self is a thunk get first bytes and add to shortcut. If a match for a proxy, add
+            // If self is a thunk get first bytes and add to shortcut. 
+            // If a match for a proxy, add
             // to the proxy; otherwise create a new hashproxy.
             &mut FirstKBytesProxy::Thunk {
                 ref mut thunk,
@@ -173,7 +178,6 @@ pub enum HashProxy {
     },
     Thunk {
         thunk: HashMap<Hash, Duplicates>,
-        //thunk: HashMap<Hash, HashMap<ID, Duplicates>>,
         shortcut: HashMap<ID, Hash>,
     },
 }
@@ -190,7 +194,11 @@ impl HashProxy {
     // get all repeats under this node and return as a set of sets of duplicates.
     fn get_repeats(&self) -> Vec<Duplicates> {
         match self {
-            &HashProxy::Delay { .. } => vec![],
+            &HashProxy::Delay { ref dups, .. } => if dups.0.len() >= 2 {
+                vec![dups.clone()]
+            } else {
+                vec![]
+            },
             &HashProxy::Thunk { ref thunk, .. } => {
                 thunk.iter().filter_map(|(_hash, repeats)| {
                     if repeats.0.len() >= 2 {
