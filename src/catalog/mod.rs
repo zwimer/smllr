@@ -37,7 +37,7 @@ impl<T: VFS> FileCataloger<T> {
     // Each Duplicate is a vector of links that point to one inode
     /// get_repeats() returns a vector of vectors of lists of duplicates
     /// such that all duplicates in the catalog are grouped together
-    pub fn get_repeats(&self) -> Vec<Vec<Duplicates>> {
+    pub fn get_repeats(&self) -> Vec<Duplicates> {
         let mut all = vec![];
         // for each subgrouping (done by size), get all the list of duplicates and
         // add them to are return variable.

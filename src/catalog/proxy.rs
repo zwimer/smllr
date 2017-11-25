@@ -60,7 +60,7 @@ impl FirstKBytesProxy {
         }
     }
 
-    pub(super) fn get_repeats(&self) -> Vec<Vec<Duplicates>> {
+    pub(super) fn get_repeats(&self) -> Vec<Duplicates> {
         match self {
             &FirstKBytesProxy::Delay { .. } => vec![],
             &FirstKBytesProxy::Thunk { ref thunk, .. } => {
@@ -172,8 +172,8 @@ pub enum HashProxy {
         dups: Duplicates,
     },
     Thunk {
-        //thunk: HashMap<Hash, Duplicates>,
-        thunk: HashMap<Hash, HashMap<ID, Duplicates>>,
+        thunk: HashMap<Hash, Duplicates>,
+        //thunk: HashMap<Hash, HashMap<ID, Duplicates>>,
         shortcut: HashMap<ID, Hash>,
     },
 }
@@ -188,21 +188,20 @@ impl HashProxy {
     // helper fn to hash a file
 
     // get all repeats under this node and return as a set of sets of duplicates.
-    fn get_repeats(&self) -> Vec<Vec<Duplicates>> {
+    fn get_repeats(&self) -> Vec<Duplicates> {
         match self {
             &HashProxy::Delay { .. } => vec![],
             &HashProxy::Thunk { ref thunk, .. } => {
-                thunk
-                    .iter() // Over all entries in the hashmap, get
-                    .filter_map(|(_hash, repeats)| {
-                        if repeats.len() < 2 {
-                            // only include entries that have >1 'repeat'
-                            None
-                        } else {
-                            Some(repeats.iter().map(|(_id, dups)| dups.clone()).collect())
-                        }
-                    })//return the colletion of collections from each map.
-                    .collect()
+                thunk.iter().filter_map(|(_hash, repeats)| {
+                    if repeats.0.len() >= 2 {
+                        // if there are 2 or more elements
+                        // (including 2 links to 1 file)
+                        Some(repeats.clone())
+                    } else {
+                        // exactly one representation on the hard drive
+                        None
+                    }
+                }).collect()
             }
         }
     }
@@ -229,22 +228,11 @@ impl HashProxy {
         // insert into shortcut
         shortcut.insert(new_id, new_hash.clone());
         shortcut.insert(del_id, old_hash.clone());
+        
+        // thunk: HashMap < Hash, Duplicates >
+        thunk.insert(new_hash, new_dups);
+        thunk.entry(old_hash).or_insert(Duplicates(vec![])).append(del_dups);
 
-        if new_hash == old_hash {
-            // add both dups to the same map (or the first would be overwritten)
-            let mut hm = HashMap::new();
-            hm.insert(new_id, new_dups);
-            hm.insert(del_id, del_dups);
-            thunk.insert(old_hash, hm);
-        } else {
-            // add dups to different maps
-            let mut new_hm = HashMap::new();
-            new_hm.insert(new_id, new_dups);
-            thunk.insert(new_hash, new_hm);
-            let mut old_hm = HashMap::new();
-            old_hm.insert(del_id, del_dups);
-            thunk.insert(old_hash, old_hm);
-        }
         // set our pointer to the new thunk state.
         *self = HashProxy::Thunk { thunk, shortcut };
     }
@@ -274,12 +262,10 @@ impl HashProxy {
                         // add to the repeat hashtable (the val of the thunk)
                         // either create it or append to its ID's existing entry
                         let repeats = occ_entry.get_mut();
-                        repeats.entry(id).or_insert(Duplicates(vec![])).append(dups);
+                        repeats.append(dups);
                     } //  Otherwise just add it to a new hashmap.
                     Entry::Vacant(vacant_entry) => {
-                        let mut hm = HashMap::new();
-                        hm.insert(id, dups);
-                        vacant_entry.insert(hm);
+                        vacant_entry.insert(dups);
                     }
                 }
             }

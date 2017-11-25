@@ -86,10 +86,7 @@ impl Debug for HashProxy {
                         hash[14],
                         hash[15]
                     )?;
-                    //write!(f, "!!!{}!!!", repeats.len())?;
-                    for (id, dups) in repeats {
-                        write!(f, "{:?}=>{:?}, ", id, dups)?;
-                    }
+                    write!(f, "{:?}, ", repeats)?;
                 }
             }
         }
