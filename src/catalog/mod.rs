@@ -9,7 +9,6 @@ use super::ID;
 
 mod proxy;
 use self::proxy::{Duplicates, FirstKBytesProxy};
-use self::proxy::{_Duplicates, _FirstKBytesProxy};
 
 mod print;
 
@@ -17,8 +16,7 @@ use super::vfs::{VFS, File, MetaData};
 
 
 pub struct FileCataloger<T: VFS> {
-    //catalog: HashMap<u64, _FirstKBytesProxy<<T as VFS>::FileIter>>,
-    catalog: HashMap<u64, _FirstKBytesProxy<<T as VFS>::FileIter>>,
+    catalog: HashMap<u64, FirstKBytesProxy>,
     vfs: T,
     //shortcut: HashMap<ID, u64>,
     // For now, omit the shortcut. We're just using the real fs right now, so
@@ -39,7 +37,6 @@ impl<T: VFS> FileCataloger<T> {
 
     // each Vec<Duplicates> is a vector of all the Duplicates w/ the same content
     // Each Duplicate is a vector of links that point to one inode
-    /*
     pub fn get_repeats(&self) -> Vec<Vec<Duplicates>> {
         let mut all = vec![];
         for (_size, ref fkbp) in &self.catalog {
@@ -47,9 +44,8 @@ impl<T: VFS> FileCataloger<T> {
         }
         all
     }
-    */
 
-    pub fn _insert(&mut self, file: <T as VFS>::FileIter) {
+    pub fn insert2(&mut self, file: <T as VFS>::FileIter) {
         let md = file.get_metadata().unwrap();
         let size: u64 = md.get_len();
         // TODO: clean this up
@@ -57,17 +53,18 @@ impl<T: VFS> FileCataloger<T> {
             dev: md.get_device().unwrap().0,
             inode: md.get_inode().0 
         };
+        /*
         match self.catalog.entry(size) {
             // already there: insert it into the firstkbytesproxy
             Entry::Occupied(mut occ_entry) => occ_entry.get_mut().insert(id, file),
             // not there: create a new firstkbytesproxy
             Entry::Vacant(vac_entry) => {
-                vac_entry.insert(_FirstKBytesProxy::new(id, file));
+                vac_entry.insert(FirstKBytesProxy::new(id, file));
             }
         }
+        */
     }
 
-    /*
     // catalog a path into the catalog
     pub fn insert(&mut self, path: &Path) {
         // fetch mandatory info
@@ -87,5 +84,4 @@ impl<T: VFS> FileCataloger<T> {
             }
         }
     }
-    */
 }
