@@ -23,6 +23,8 @@ mod test;
 mod catalog;
 use catalog::FileCataloger;
 
+mod actor;
+
 // Helpers:
 
 // Temporary struct: should move once we know where

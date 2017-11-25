@@ -4,7 +4,7 @@ use std::collections::hash_map::Entry;
 
 use super::ID;
 
-mod proxy;
+pub mod proxy;
 use self::proxy::{Duplicates, FirstKBytesProxy};
 
 mod print;
