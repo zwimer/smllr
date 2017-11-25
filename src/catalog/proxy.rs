@@ -33,7 +33,7 @@ impl Duplicates {
 
 // // // // // // // // // // // // // // // // // // // // //
 /// proxy of firstbytes; untill 2 elements have been added, no chance of a collision
-/// so don't make the hashmap and shortcut. 
+/// so don't make the hashmap and shortcut.
 pub enum FirstKBytesProxy {
     // in the first state there is one file
     // don't look up its first k bytes unless it has the same size as another
@@ -125,7 +125,7 @@ impl FirstKBytesProxy {
     /// Add a new path to the proxy
     pub fn insert<T: VFS>(&mut self, vfs: &T, id: ID, path: &Path) {
         match self {
-            // If a hard link and self is a Delay, insert a hard link to what's 
+            // If a hard link and self is a Delay, insert a hard link to what's
             // already stored in Delay
             &mut FirstKBytesProxy::Delay {
                 id: id2,
@@ -275,7 +275,7 @@ impl HashProxy {
                         // either create it or append to its ID's existing entry
                         let repeats = occ_entry.get_mut();
                         repeats.entry(id).or_insert(Duplicates(vec![])).append(dups);
-                    }   //  Otherwise just add it to a new hashmap.
+                    } //  Otherwise just add it to a new hashmap.
                     Entry::Vacant(vacant_entry) => {
                         let mut hm = HashMap::new();
                         hm.insert(id, dups);

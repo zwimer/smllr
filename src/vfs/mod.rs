@@ -9,7 +9,7 @@ mod real_fs;
 pub use self::real_fs::RealFileSystem;
 
 mod test_fs;
-pub use self::test_fs::{TestFile, TestFileSystem};
+pub use self::test_fs::{TestFile, TestFileSystem, TestMD};
 
 use super::{FirstBytes, Hash, FIRST_K_BYTES};
 

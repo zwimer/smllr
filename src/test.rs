@@ -5,10 +5,12 @@ mod test {
     use env_logger::LogBuilder;
 
     use std::rc::Rc;
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
+    use std::collections::HashSet;
 
     use super::super::DirWalker;
-    use super::super::vfs::TestFileSystem;
+    use super::super::vfs::{TestFile, TestFileSystem, TestMD};
+    use super::super::FileCataloger;
 
     fn _enable_logging() {
         LogBuilder::new()
@@ -59,6 +61,38 @@ mod test {
         let dw = DirWalker::new(fs, vec![Path::new("/")]);
         let files = dw.traverse_all();
         assert_eq!(files.len(), 1);
+    }
+
+    #[test]
+    fn basic_duplicate_detection() {
+        let mut fs = TestFileSystem::new();
+        {
+            let fs = Rc::get_mut(&mut fs).unwrap();
+            fs.create_dir("/");
+            // add two identical files
+            // note that all files passed to FileCataloger must have metadata
+            fs.add(
+                TestFile::new("/file1")
+                    .with_contents(String::from("lorem ipsum"))
+                    .with_metadata(TestMD::new()),
+            );
+            fs.add(
+                TestFile::new("/file2")
+                    .with_contents(String::from("lorem ipsum"))
+                    .with_metadata(TestMD::new()),
+            );
+        }
+        let files: HashSet<PathBuf> = vec!["/file1", "/file2"].iter().map(PathBuf::from).collect();
+
+        let mut fc = FileCataloger::new(fs);
+        for file in &files {
+            fc.insert(file);
+        }
+
+        let repeats = fc.get_repeats();
+        // how we verify repeats will depend on the return type
+        // which I'm about to change
+        //repeats.foo();
     }
 
 }

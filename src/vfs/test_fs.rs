@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 use std::io;
-use std::time::SystemTime;
+use std::time::{self, SystemTime};
 use std::rc::Rc;
 use std::collections::HashMap;
 //RUST NOTE: super is the rust equivelent of .. in the filesystem.
@@ -39,6 +39,33 @@ impl MetaData for TestMD {
     }
 }
 
+impl TestMD {
+    pub fn new() -> Self {
+        TestMD {
+            len: 0,
+            creation: SystemTime::now(),
+            kind: FileType::File,
+            id: ID { dev: 0, inode: 0 },
+        }
+    }
+    pub fn with_len(mut self, n: u64) -> Self {
+        self.len = n;
+        self
+    }
+    pub fn with_creation_time(mut self, t: SystemTime) -> Self {
+        self.creation = t;
+        self
+    }
+    pub fn with_kind(mut self, k: FileType) -> Self {
+        self.kind = k;
+        self
+    }
+    pub fn with_id(mut self, id: ID) -> Self {
+        self.id = id;
+        self
+    }
+}
+
 /// TestFile denotes a mockfile.
 /// Note that we are mocking the linux-style filesystem
 /// where many things are 'files', including directories,
@@ -50,6 +77,63 @@ pub struct TestFile {
     kind: FileType,
     inode: Inode,
     metadata: Option<TestMD>,
+}
+
+// build up a File object for mock testing
+impl TestFile {
+    pub fn new(s: &str) -> Self {
+        TestFile {
+            path: PathBuf::from(s),
+            contents: None,
+            kind: FileType::File,
+            inode: Inode(0),
+            metadata: None,
+        }
+    }
+    pub fn with_contents(mut self, c: String) -> Self {
+        if let Some(ref mut md) = self.metadata {
+            md.len = c.len() as u64;
+        }
+        self.contents = Some(c);
+        self
+    }
+    pub fn with_kind(mut self, k: FileType) -> Self {
+        if let Some(ref mut md) = self.metadata {
+            md.kind = k;
+        }
+        self.kind = k;
+        self
+    }
+    pub fn with_inode(mut self, i: Inode) -> Self {
+        if let Some(ref mut md) = self.metadata {
+            md.id.inode = i.0;
+        }
+        self.inode = i;
+        self
+    }
+    pub fn with_metadata(mut self, mut md: TestMD) -> Self {
+        // fix filetype discrepancy
+        if self.kind != FileType::File {
+            md.kind = self.kind;
+        } else if md.kind != FileType::File {
+            self.kind = md.kind;
+        }
+        // fix len discrepancy
+        if let Some(ref c) = self.contents {
+            md.len = c.len() as u64;
+        } else if md.len != 0 {
+            // for now do nothing
+            // it is okay for `len` to be >0 and `contents` to be empty
+            //let contents = ::std::iter::repeat('?').take(md.len as usize).collect();
+            //self.contents = Some(contents);
+        }
+        // fix inode discrepancy
+        if self.inode.0 != 0 {
+            md.id.inode = self.inode.0;
+        }
+        self.metadata = Some(md);
+        self
+    }
 }
 
 /// implementation of the File trait for TestFile.
@@ -66,9 +150,8 @@ impl File for TestFile {
         Ok(self.kind)
     }
     fn get_metadata(&self) -> io::Result<TestMD> {
-        self.metadata.ok_or(
-            io::Error::new(io::ErrorKind::Other, "No MD"),
-        )
+        self.metadata
+            .ok_or(io::Error::new(io::ErrorKind::Other, "No MD"))
     }
     fn get_first_bytes(&self) -> io::Result<FirstBytes> {
         if let Some(ref cont) = self.contents {
@@ -115,7 +198,8 @@ impl TestFileSystem {
         // Create the metadata for the file
         let md = TestMD {
             len: 0,
-            creation: SystemTime::now(),
+            //creation: SystemTime::now(),
+            creation: time::UNIX_EPOCH,
             kind,
             id: ID {
                 inode: inode.0,
@@ -163,6 +247,9 @@ impl TestFileSystem {
         // add the symlink to the filesystem.
         let val = (tf, target.as_ref().to_owned());
         self.symlinks.insert(path.as_ref().to_owned(), val);
+    }
+    pub fn add(&mut self, tf: TestFile) {
+        self.files.insert(tf.path.to_owned(), tf);
     }
 
     // getters for the Mock Filesystem.
@@ -244,12 +331,10 @@ impl VFS for Rc<TestFileSystem> {
     fn get_metadata<P: AsRef<Path>>(&self, path: P) -> io::Result<<Self::FileIter as File>::MD> {
         match self.files.get(path.as_ref()) {
             Some(f) => f.get_metadata(),
-            None => {
-                match self.symlinks.get(path.as_ref()) {
-                    Some(&(_, ref p)) => self.lookup(p).and_then(|f| f.get_metadata()),
-                    None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
-                }
-            }
+            None => match self.symlinks.get(path.as_ref()) {
+                Some(&(_, ref p)) => self.lookup(p).and_then(|f| f.get_metadata()),
+                None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
+            },
         }
     }
 
@@ -260,12 +345,10 @@ impl VFS for Rc<TestFileSystem> {
     ) -> io::Result<<Self::FileIter as File>::MD> {
         match self.files.get(path.as_ref()) {
             Some(f) => f.get_metadata(),
-            None => {
-                match self.symlinks.get(path.as_ref()) {
-                    Some(&(ref f, _)) => f.get_metadata(),
-                    None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
-                }
-            }
+            None => match self.symlinks.get(path.as_ref()) {
+                Some(&(ref f, _)) => f.get_metadata(),
+                None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
+            },
         }
     }
 
