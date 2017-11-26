@@ -75,7 +75,6 @@ fn main() {
         .get_matches();
 
     let dirs: Vec<&OsStr> = matches.values_of_os("paths").unwrap().collect();
-    //matches.contains("bad_paths");
     let dirs_n: Vec<&OsStr> = match matches.is_present("bad_paths") {
         true => matches.values_of_os("bad_paths").unwrap().collect(),
         false => vec![],
@@ -92,7 +91,7 @@ fn main() {
         .unwrap();
 
     // create and customize a DirWalker over the real filesystem
-    let mut fs = RealFileSystem;
+    let fs = RealFileSystem;
     let paths: Vec<&Path> = dirs.iter().map(Path::new).collect();
     let dw = DirWalker::new(fs, paths)
         .blacklist_folders(dirs_n)
@@ -118,10 +117,11 @@ fn main() {
 
     // print the duplicates
     let repeats = fc.get_repeats();
+
     let selector = PathSelect::new(fs);
-    selector.select(&fs, &repeats[0]);
+    let mut actor = FilePrinter::new(fs, selector);
+
     for dups in repeats {
-        //println!("{:?}", dups);
-        FilePrinter::act(&mut fs, &selector, dups);
+        actor.act(dups);
     }
 }

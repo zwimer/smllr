@@ -5,44 +5,52 @@ use vfs::{File, MetaData, VFS};
 use catalog::proxy::Duplicates;
 
 /// Interface for choosing between files
-pub trait Selector<'a, V: VFS> {
+pub trait Selector<V: VFS> {
     // indicate that you want the max instead of the min or vice versa
     fn reverse(self) -> Self;
     // ctor
-    fn new(_: V) -> Self;
+    fn new(v: V) -> Self;
     // choose which of the Paths in Duplicates is the "true" (unchanged) one
-    fn select<'b>(&self, vfs: &V, dups: &'b Duplicates) -> &'b Path;
+    fn select<'b>(&self, dups: &'b Duplicates) -> &'b Path;
     // helpers to be called by select
-    fn min<'b>(vfs: &V, dups: &'b Duplicates) -> &'b Path;
-    fn max<'b>(vfs: &V, dups: &'b Duplicates) -> &'b Path;
+    fn min<'b>(&self, dups: &'b Duplicates) -> &'b Path;
+    fn max<'b>(&self, dups: &'b Duplicates) -> &'b Path;
 }
 
 /// Choose between files based on their path
-pub struct PathSelect {
+pub struct PathSelect<V: VFS> {
     reverse: bool,
+    vfs: V,
 }
 
 /// Chose between files based on their creation date
-pub struct DateSelect {
+pub struct DateSelect<V: VFS> {
     reverse: bool,
+    vfs: V,
 }
 
-impl<'a, V: VFS> Selector<'a, V> for PathSelect {
-    fn new(_: V) -> Self {
-        PathSelect { reverse: false }
-    }
-    fn reverse(self) -> Self {
-        PathSelect { reverse: true }
-    }
-    fn select<'b>(&self, vfs: &V, dups: &'b Duplicates) -> &'b Path {
-        // select the shallowest element (the path is the shortest)
-        if self.reverse {
-            Self::max(vfs, dups)
-        } else {
-            Self::min(vfs, dups)
+impl<V: VFS> Selector<V> for PathSelect<V> {
+    fn new(v: V) -> Self {
+        PathSelect { 
+            reverse: false,
+            vfs: v,
         }
     }
-    fn min<'b>(_: &V, dups: &'b Duplicates) -> &'b Path {
+    fn reverse(self) -> Self {
+        PathSelect { 
+            reverse: true,
+            vfs: self.vfs,
+        }
+    }
+    fn select<'b>(&self, dups: &'b Duplicates) -> &'b Path {
+        // select the shallowest element (the path is the shortest)
+        if self.reverse {
+            self.max(dups)
+        } else {
+            self.min(dups)
+        }
+    }
+    fn min<'b>(&self, dups: &'b Duplicates) -> &'b Path {
         dups.0
             .iter()
             .min_by(|&a_path, &b_path| {
@@ -52,7 +60,7 @@ impl<'a, V: VFS> Selector<'a, V> for PathSelect {
             })
             .unwrap()
     }
-    fn max<'b>(_: &V, dups: &'b Duplicates) -> &'b Path {
+    fn max<'b>(&self, dups: &'b Duplicates) -> &'b Path {
         dups.0
             .iter()
             .max_by(|&a_path, &b_path| {
@@ -72,35 +80,41 @@ fn cmp<'a, T: File>(a: &'a T, b: &'a T) -> Ordering {
     date_a.cmp(&date_b)
 }
 
-impl<'a, V: VFS> Selector<'a, V> for DateSelect {
-    fn new(_: V) -> Self {
-        DateSelect { reverse: false }
+impl<V: VFS> Selector<V> for DateSelect<V> {
+    fn new(v: V) -> Self {
+        DateSelect { 
+            reverse: false,
+            vfs: v,
+        }
     }
     fn reverse(self) -> Self {
-        DateSelect { reverse: true }
+        DateSelect { 
+            reverse: true,
+            vfs: self.vfs,
+        }
     }
-    fn min<'b>(vfs: &V, dups: &'b Duplicates) -> &'b Path {
+    fn min<'b>(&self, dups: &'b Duplicates) -> &'b Path {
         dups.0
             .iter()
-            .map(|path| (path, vfs.get_file(path).unwrap()))
+            .map(|path| (path, self.vfs.get_file(path).unwrap()))
             .min_by(|&(_, ref a), &(_, ref b)| cmp(a, b))
             .unwrap()
             .0
     }
-    fn max<'b>(vfs: &V, dups: &'b Duplicates) -> &'b Path {
+    fn max<'b>(&self, dups: &'b Duplicates) -> &'b Path {
         dups.0
             .iter()
-            .map(|path| (path, vfs.get_file(path).unwrap()))
+            .map(|path| (path, self.vfs.get_file(path).unwrap()))
             .max_by(|&(_, ref a), &(_, ref b)| cmp(a, b))
             .unwrap()
             .0
     }
-    fn select<'b>(&self, vfs: &V, dups: &'b Duplicates) -> &'b Path {
+    fn select<'b>(&self, dups: &'b Duplicates) -> &'b Path {
         // select the newest element (the SystemTime is the largest)
         if self.reverse {
-            Self::min(vfs, dups)
+            self.min(dups)
         } else {
-            Self::max(vfs, dups)
+            self.max(dups)
         }
     }
 }
