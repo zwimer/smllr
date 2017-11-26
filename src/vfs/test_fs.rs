@@ -367,4 +367,24 @@ impl VFS for Rc<TestFileSystem> {
             None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
         }
     }
+
+    fn rm_file<P: AsRef<Path>>(&mut self, p: &P) -> io::Result<()> {
+        let fs = Rc::get_mut(self).unwrap();
+        match fs.files.remove(p.as_ref()) {
+            Some(_) => Ok(()),
+            None => Err(io::Error::new(io::ErrorKind::Other, "Couldn't delete file")),
+        }
+    }
+
+    fn make_link(&mut self, src: &Path, dst: &Path) -> io::Result<()> {
+        let old_inode = {
+            self.files.get(dst)
+                .ok_or(io::Error::new(io::ErrorKind::NotFound, "No dst"))?
+                .inode
+        };
+        let name = src.to_str().expect("invalid unicode link name");
+        let fs = Rc::get_mut(self).unwrap();
+        fs.files.insert(src.to_path_buf(), TestFile::new(name).with_inode(old_inode));
+        unimplemented!()
+    }
 }

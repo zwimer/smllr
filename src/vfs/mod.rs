@@ -41,6 +41,11 @@ pub trait VFS: Clone + Debug {
 
     // must be of type "File" (not a dir/link/other)
     fn get_file(&self, p: &Path) -> io::Result<Self::FileIter>;
+
+    // must be of type "File" (not a dir/link/other)
+    fn rm_file<P: AsRef<Path>>(&mut self, p: &P) -> io::Result<()>;
+
+    fn make_link(&mut self, src: &Path, dst: &Path) -> io::Result<()>;
 }
 
 // the File trait defines the common interface for files.

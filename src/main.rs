@@ -24,6 +24,7 @@ mod catalog;
 use catalog::FileCataloger;
 
 mod actor;
+pub use actor::{FilePrinter, FileDeleter, FileLinker};
 
 // Helpers:
 
