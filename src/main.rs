@@ -24,7 +24,8 @@ mod catalog;
 use catalog::FileCataloger;
 
 mod actor;
-pub use actor::{FilePrinter, FileDeleter, FileLinker};
+pub use actor::{FileActor, FilePrinter, FileDeleter, FileLinker};
+use actor::selector::{Selector, PathSelect, DateSelect};
 
 // Helpers:
 
@@ -96,7 +97,7 @@ fn main() {
         .unwrap();
 
     // create and customize a DirWalker over the real filesystem
-    let fs = RealFileSystem;
+    let mut fs = RealFileSystem;
     let paths: Vec<&Path> = dirs.iter().map(Path::new).collect();
     let dw = DirWalker::new(fs, paths)
         .blacklist_folders(dirs_n)
@@ -118,27 +119,14 @@ fn main() {
      *  consider consolidating FirstKBytesProxy and HashProxy somehow
      *  register duplicates up? or maybe just fetch more efficiently
      *      get ID not just a vec of duplicates?
-     *  rename `Duplicates` to `Links` or something (NAH)
-     *      HashProxy's `Duplicates` should just be one bucket for all dups+links
-     *  revisit `thunk` value type of HashProxy::Thunk
-     *  was FileCatalog supposed to be FileCataloger?
-     *
-     *
      */
-
-    /*
-    let mut fc = FileCatalog::new();
-    fc.insert(Path::new("/home/owen/shared/rpi4/sdd/smllr/my_tests/alphaaa"));
-    //println!("alphaaa\n{:?}\n", fc);
-    fc.insert(Path::new("/home/owen/shared/rpi4/sdd/smllr/my_tests/_alpha_"));
-    //println!("_alpha_\n{:?}\n", fc);
-    fc.insert(Path::new("/home/owen/shared/rpi4/sdd/smllr/my_tests/betaaaa"));
-    //println!("betaaaa\n{:?}", fc);
-    */
 
     // print the duplicates
     let repeats = fc.get_repeats();
+    let selector = PathSelect::new(fs);
+    selector.select(&fs, &repeats[0]);
     for dups in repeats {
-        println!("{:?}", dups);
+        //println!("{:?}", dups);
+        FilePrinter::act(&mut fs, &selector, dups);
     }
 }

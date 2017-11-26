@@ -9,6 +9,8 @@ use catalog::proxy::Duplicates;
 pub trait Selector<'a, V: VFS> {
     // indicate that you want the max instead of the min or vice versa
     fn reverse(self) -> Self;
+    // ctor
+    fn new(_: V) -> Self;
     // choose which of the Paths in Duplicates is the "true" (unchanged) one
     fn select<'b>(&self, vfs: &V, dups: &'b Duplicates) -> &'b Path;
     // helpers to be called by select
@@ -23,8 +25,11 @@ pub struct PathSelect { reverse: bool }
 pub struct DateSelect { reverse: bool }
 
 impl<'a, V: VFS> Selector<'a, V> for PathSelect {
+    fn new(_: V) -> Self {
+        PathSelect { reverse: false }
+    }
     fn reverse(self) -> Self {
-        PathSelect { reverse: ! self.reverse }
+        PathSelect { reverse: true }
     }
     fn select<'b>(&self, vfs: &V, dups: &'b Duplicates) -> &'b Path {
         // select the shallowest element (the path is the shortest)
@@ -61,8 +66,11 @@ fn cmp<'a, T: File>(a: &'a T, b: &'a T) -> Ordering {
 }
 
 impl<'a, V: VFS> Selector<'a, V> for DateSelect {
+    fn new(_: V) -> Self {
+        DateSelect { reverse: false }
+    }
     fn reverse(self) -> Self {
-        DateSelect { reverse: ! self.reverse }
+        DateSelect { reverse: true }
     }
     fn min<'b>(vfs: &V, dups: &'b Duplicates) -> &'b Path {
         dups.0.iter()

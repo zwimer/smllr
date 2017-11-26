@@ -2,12 +2,12 @@
 use vfs::{self, VFS};
 use catalog::proxy::Duplicates;
 
-mod selector;
+pub mod selector;
 use self::selector::{Selector};
 
 
 pub trait FileActor<V: VFS> {
-    fn act<'a, S: Selector<'a, V>>(vfs: &mut V, select: S, dups: Duplicates);
+    fn act<'a, S: Selector<'a, V>>(vfs: &mut V, select: &S, dups: Duplicates);
 }
 
 /// Actor that prints file names but doesn't modify the filesystem
@@ -20,7 +20,7 @@ pub struct FileDeleter;
 pub struct FileLinker;
 
 impl<V: VFS> FileActor<V> for FilePrinter {
-    fn act<'a, S: Selector<'a, V>>(vfs: &mut V, select: S, dups: Duplicates) {
+    fn act<'a, S: Selector<'a, V>>(vfs: &mut V, select: &S, dups: Duplicates) {
         let real = select.select(vfs, &dups);
         info!("`{:?}` is the true file", real);
         for f in &dups.0 {
@@ -33,7 +33,7 @@ impl<V: VFS> FileActor<V> for FilePrinter {
 }
 
 impl<V: VFS> FileActor<V> for FileDeleter {
-    fn act<'a, S: Selector<'a, V>>(vfs: &mut V, select: S, dups: Duplicates) {
+    fn act<'a, S: Selector<'a, V>>(vfs: &mut V, select: &S, dups: Duplicates) {
         let real = select.select(vfs, &dups);
         info!("`{:?}` is the true file", real);
         for f in &dups.0 {
@@ -47,7 +47,7 @@ impl<V: VFS> FileActor<V> for FileDeleter {
 }
 
 impl<V: VFS> FileActor<V> for FileLinker {
-    fn act<'a, S: Selector<'a, V>>(vfs: &mut V, select: S, dups: Duplicates) {
+    fn act<'a, S: Selector<'a, V>>(vfs: &mut V, select: &S, dups: Duplicates) {
         let real = select.select(vfs, &dups);
         info!("`{:?}` is the true file", real);
         for f in &dups.0 {
