@@ -224,6 +224,10 @@ impl TestFileSystem {
             symlinks: HashMap::new(),
         })
     }
+    /// get size
+    pub fn len(&self) -> usize {
+        self.files.len() + self.symlinks.len()
+    }
     /// Creates a new file at path. Anologous to '$touch path'
     pub fn create_file<P: AsRef<Path>>(&mut self, path: P) {
         self.create_regular(path.as_ref(), FileType::File);
