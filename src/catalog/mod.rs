@@ -1,15 +1,16 @@
-use std::collections::HashMap;
 use std::path::Path;
+use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 
-use super::ID;
+pub use super::ID;
+use vfs::{File, MetaData, VFS};
 
 pub mod proxy;
 use self::proxy::{Duplicates, FirstKBytesProxy};
 
 mod print;
 
-use super::vfs::{File, MetaData, VFS};
+mod test; // include unit tests
 
 
 pub struct FileCataloger<T: VFS> {

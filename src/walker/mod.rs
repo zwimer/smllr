@@ -4,9 +4,9 @@ use std::ffi::OsStr;
 use std::collections::HashSet;
 use regex::{self, Regex};
 
-use super::vfs::VFS;
+use vfs::VFS;
 
-//const FOLLOW_SYMLINKS_DEFAULT: bool = false;
+mod test; //include unit tests
 
 #[derive(Debug)]
 pub struct DirWalker<T: VFS> {

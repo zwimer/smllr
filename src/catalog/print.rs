@@ -5,10 +5,11 @@
 
 use std::fmt::{Debug, Formatter, Result};
 
-use super::super::ID;
-use super::FileCataloger;
-use super::VFS;
-use super::proxy::{Duplicates, FirstKBytesProxy, HashProxy};
+use super::ID;
+use catalog::FileCataloger;
+
+use vfs::VFS;
+use catalog::proxy::{Duplicates, FirstKBytesProxy, HashProxy};
 
 impl Debug for ID {
     fn fmt(&self, f: &mut Formatter) -> Result {

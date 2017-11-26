@@ -1,10 +1,12 @@
 
-use vfs::{self, VFS};
+use vfs::VFS;
 use catalog::proxy::Duplicates;
 
 pub mod selector;
 use self::selector::{Selector};
 
+// include unit tests
+mod test;
 
 pub trait FileActor<V: VFS> {
     fn act<'a, S: Selector<'a, V>>(vfs: &mut V, select: &S, dups: Duplicates);

@@ -1,9 +1,9 @@
-extern crate clap;
-extern crate env_logger;
 #[macro_use]
 extern crate log;
 extern crate md5;
+extern crate clap;
 extern crate regex;
+extern crate env_logger;
 
 use clap::{App, Arg};
 use env_logger::LogBuilder;
@@ -18,8 +18,6 @@ pub use walker::DirWalker;
 pub mod vfs;
 use vfs::RealFileSystem;
 
-mod test;
-
 mod catalog;
 use catalog::FileCataloger;
 
@@ -29,22 +27,19 @@ use actor::selector::{Selector, PathSelect, DateSelect};
 
 // Helpers:
 
-// Temporary struct: should move once we know where
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub struct ID {
     dev: u64,
     inode: u64,
 }
+
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct FirstBytes(pub(crate) [u8; FIRST_K_BYTES]);
 
 pub type Hash = [u8; 16];
 
-
-
-//const FILE_READ_BUFFER_SIZE: usize = 4096;
 const FIRST_K_BYTES: usize = 32;
-//const FIRST_K_BYTES: usize = 4096;
+
 
 fn main() {
     let matches = App::new("smllr")

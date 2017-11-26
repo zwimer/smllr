@@ -2,7 +2,7 @@
 use std::cmp::Ordering;
 use std::path::Path;
 
-use super::vfs::{VFS, File, MetaData};
+use vfs::{VFS, File, MetaData};
 use catalog::proxy::Duplicates;
 
 /// Interface for choosing between files

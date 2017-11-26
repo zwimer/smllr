@@ -2,8 +2,9 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::collections::hash_map::Entry;
 
-use super::super::{FirstBytes, Hash, ID};
-use super::super::vfs::{File, VFS};
+use vfs::{File, VFS};
+use super::ID;
+use super::super::{FirstBytes, Hash};
 
 // Duplicates is a decorator for a vector of pathbufs which represents
 // a set of files. In code, it is an invariant that any 2 files in a

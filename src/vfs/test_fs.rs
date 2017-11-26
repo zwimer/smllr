@@ -1,15 +1,14 @@
 // mock filesystem for testing
 
-use std::path::{Path, PathBuf};
 use std::io;
-use std::time::{self, SystemTime};
 use std::rc::Rc;
+use std::path::{Path, PathBuf};
+use std::time::{self, SystemTime};
 use std::collections::HashMap;
 //RUST NOTE: super is the rust equivelent of .. in the filesystem.
-use super::{DeviceId, File, FileType, Inode, MetaData, VFS};
+use vfs::{DeviceId, File, FileType, Inode, MetaData, VFS};
 use super::{FirstBytes, Hash, FIRST_K_BYTES};
 use super::super::ID;
-
 use md5;
 
 /// TestMD is the mock metadata struct.
