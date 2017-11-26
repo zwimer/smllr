@@ -9,12 +9,14 @@ mod real_fs;
 pub use self::real_fs::RealFileSystem;
 
 mod test_fs;
-pub use self::test_fs::{TestFile, TestFileSystem};
+pub use self::test_fs::{TestFile, TestFileSystem, TestMD};
+
+use super::{FirstBytes, Hash, FIRST_K_BYTES};
 
 //definition of traits
 //RUST NOTE: the "trait foo: baz" denotes that foo reuires that
 // any object it is implemented on also implements baz.
-// this allows the defulat implementation of methods to
+// this allows the default implementation of methods to
 // employ the methods of baz
 
 /// The VFS [virtual file system] trait is the interface we require
@@ -36,6 +38,9 @@ pub trait VFS: Clone + Debug {
     ) -> io::Result<<Self::FileIter as File>::MD>;
 
     fn read_link<P: AsRef<Path>>(&self, p: P) -> io::Result<PathBuf>;
+
+    // must be of type "File" (not a dir/link/other)
+    fn get_file(&self, p: &Path) -> io::Result<Self::FileIter>;
 }
 
 // the File trait defines the common interface for files.
@@ -45,6 +50,8 @@ pub trait File: Debug {
     fn get_path(&self) -> PathBuf;
     fn get_type(&self) -> io::Result<FileType>;
     fn get_metadata(&self) -> io::Result<Self::MD>;
+    fn get_first_bytes(&self) -> io::Result<FirstBytes>;
+    fn get_hash(&self) -> io::Result<Hash>;
 }
 // the MetaData trait defines the interface for metadata
 // it is the subset of the interface of fs::MetaData that we use
@@ -93,8 +100,8 @@ impl From<fs::FileType> for FileType {
 ///inode is wraper around a 'long' with several added traits (interface)
 ///which represents the inode of a file
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct Inode(u64);
+pub struct Inode(pub u64);
 ///Device id is a wraper around a 'long' with several traits
 /// represents a device id.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct DeviceId(u64);
+pub struct DeviceId(pub u64);

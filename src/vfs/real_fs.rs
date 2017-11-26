@@ -6,8 +6,12 @@ use std::fs::{self, DirEntry};
 use std::os::unix::fs::{DirEntryExt, MetadataExt}; // need unix
 use std::os::linux::fs::MetadataExt as MetadataExt_linux; // ew
 use std::{io, time};
+use std::io::Read;
 
 use super::{DeviceId, File, FileType, Inode, MetaData, VFS};
+use super::{FirstBytes, Hash, FIRST_K_BYTES};
+
+use md5;
 
 //Wrap our metadata trait around fs::Metadata.
 impl MetaData for fs::Metadata {
@@ -49,6 +53,20 @@ impl File for DirEntry {
     fn get_metadata(&self) -> io::Result<fs::Metadata> {
         self.metadata()
     }
+    fn get_first_bytes(&self) -> io::Result<FirstBytes> {
+        let mut bytes = [0u8; FIRST_K_BYTES];
+        let path = self.get_path();
+        let mut file = fs::File::open(&path)?;
+        file.read(&mut bytes)?;
+        Ok(FirstBytes(bytes))
+    }
+    fn get_hash(&self) -> io::Result<Hash> {
+        let path = self.get_path();
+        let mut file = fs::File::open(&path)?;
+        let mut v = vec![];
+        file.read_to_end(&mut v)?;
+        Ok(*md5::compute(v))
+    }
 }
 
 //Empty struct which represents the 'Real Filesystem'
@@ -83,5 +101,16 @@ impl VFS for RealFileSystem {
     /// resolve symlink P to its target path
     fn read_link<P: AsRef<Path>>(&self, p: P) -> io::Result<PathBuf> {
         fs::read_link(p)
+    }
+
+    fn get_file(&self, p: &Path) -> io::Result<Self::FileIter> {
+        let dir = p.parent().expect("Called get_file() on root dir");
+        match ::std::fs::read_dir(dir)
+            .expect("Couldn't ls file dir")
+            .find(|e| e.as_ref().map(|i| i.path() == p).unwrap_or(false))
+        {
+            Some(f) => Ok(f.unwrap()),
+            None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
+        }
     }
 }

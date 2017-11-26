@@ -1,12 +1,13 @@
-// This file contiants the implementation of Debug for common types. 
+// This file contains the implementation of Debug for common types.
 // Debug is a comon trait used to print the entire state of an object
-// In the intrest of not booring you with repitition, for all functions in this file
-// Debug() returns a string which details the contents of the container. 
+// In the intrest of not boring you with repitition, for all functions in this file
+// Debug() returns a string which details the contents of the container.
 
 use std::fmt::{Debug, Formatter, Result};
 
 use super::super::ID;
 use super::FileCataloger;
+use super::VFS;
 use super::proxy::{Duplicates, FirstKBytesProxy, HashProxy};
 
 impl Debug for ID {
@@ -21,7 +22,7 @@ impl Debug for Duplicates {
         if let Some(i) = self.0.get(0) {
             write!(f, "{:?}", i)?;
         } else {
-            write!(f, "~EMPTY~")?; //something's probably wrong as ATM this object only 
+            write!(f, "~EMPTY~")?; //something's probably wrong as ATM this object only
                                    //should be created if 2+ entries are to be added
         }
         for i in self.0.iter().skip(1) {
@@ -31,7 +32,7 @@ impl Debug for Duplicates {
     }
 }
 
-impl Debug for FileCataloger {
+impl<T: VFS> Debug for FileCataloger<T> {
     fn fmt(&self, f: &mut Formatter) -> Result {
         for (size, fkbp) in &self.catalog {
             writeln!(f, " {:06}b: {:?}", size, fkbp)?;
@@ -85,10 +86,7 @@ impl Debug for HashProxy {
                         hash[14],
                         hash[15]
                     )?;
-                    //write!(f, "!!!{}!!!", repeats.len())?;
-                    for (id, dups) in repeats {
-                        write!(f, "{:?}=>{:?}, ", id, dups)?;
-                    }
+                    write!(f, "{:?}, ", repeats)?;
                 }
             }
         }
