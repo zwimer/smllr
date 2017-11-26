@@ -1,9 +1,9 @@
+extern crate clap;
+extern crate env_logger;
 #[macro_use]
 extern crate log;
 extern crate md5;
-extern crate clap;
 extern crate regex;
-extern crate env_logger;
 
 use clap::{App, Arg};
 use env_logger::LogBuilder;
@@ -22,8 +22,8 @@ mod catalog;
 use catalog::FileCataloger;
 
 mod actor;
-pub use actor::{FileActor, FilePrinter, FileDeleter, FileLinker};
-use actor::selector::{Selector, PathSelect, DateSelect};
+pub use actor::{FileActor, FileDeleter, FileLinker, FilePrinter};
+use actor::selector::{DateSelect, PathSelect, Selector};
 
 // Helpers:
 

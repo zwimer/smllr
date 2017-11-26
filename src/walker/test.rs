@@ -1,17 +1,25 @@
 #[cfg(test)]
 mod test {
 
-    use log::LogLevelFilter;
-    use env_logger::LogBuilder;
-
     use std::rc::Rc;
     use std::path::Path;
+    use std::ffi::OsString;
 
     use walker::DirWalker;
     use vfs::TestFileSystem;
 
+    // verify regex blacklist works
+
+    // verify path blacklist works
+
+    // symlink to a parent directory doesn't repeat files
+
+    // symlink targets aren't repeated
+
+    // only a specific directory is included and others are properly omitted
+
     #[test]
-    fn empty_fs() {
+    fn walker_empty_fs() {
         let fs = TestFileSystem::new();
         let paths = vec![Path::new("/")];
         let files = DirWalker::new(fs, paths).traverse_all();
@@ -19,7 +27,7 @@ mod test {
     }
 
     #[test]
-    fn basic_fs() {
+    fn walker_basic_fs() {
         let mut fs = TestFileSystem::new();
         {
             let fs = Rc::get_mut(&mut fs).unwrap();
@@ -32,7 +40,7 @@ mod test {
     }
 
     #[test]
-    fn handle_symlinks() {
+    fn walker_handle_symlinks() {
         let mut fs = TestFileSystem::new();
         {
             let fs = Rc::get_mut(&mut fs).unwrap();
@@ -46,10 +54,79 @@ mod test {
             // ignore symlink loops
             fs.create_symlink("/x", "/xx");
             fs.create_symlink("/xx", "/x");
+            // including a symlink that points to its parent folder
+            fs.create_symlink("/folder", "/");
         }
         let dw = DirWalker::new(fs, vec![Path::new("/")]);
         let files = dw.traverse_all();
         assert_eq!(files.len(), 1);
+    }
+
+    #[test]
+    fn walker_blacklist_regex() {
+        // verify files can be blacklisted by a regular expression
+        let mut fs = TestFileSystem::new();
+        {
+            let fs = Rc::get_mut(&mut fs).unwrap();
+            fs.create_dir("/");
+            fs.create_file("/a.pdf");
+            fs.create_file("/b.txt");
+            fs.create_file("/c.htm");
+            fs.create_file("/d.cpp");
+        }
+        let dw = DirWalker::new(fs, vec![Path::new("/")]).blacklist_patterns(vec!["/b+", ".*.cpp"]);
+        let files = dw.traverse_all();
+        assert_eq!(2, files.len());
+        assert!(files.contains(Path::new("/a.pdf")));
+        assert!(files.contains(Path::new("/c.htm")));
+    }
+
+    #[test]
+    fn walker_blacklist_folder() {
+        // verify files can be blacklisted by their folder
+        let mut fs = TestFileSystem::new();
+        {
+            let fs = Rc::get_mut(&mut fs).unwrap();
+            fs.create_dir("/");
+            fs.create_dir("/f1");
+            fs.create_dir("/f2");
+            fs.create_dir("/f3");
+            fs.create_dir("/f4");
+            fs.create_file("/f1/a.pdf");
+            fs.create_file("/f2/b.txt");
+            fs.create_file("/f3/c.htm");
+            fs.create_file("/f4/d.cpp");
+        }
+        let dw = DirWalker::new(fs, vec![Path::new("/")])
+            .blacklist_folders(vec![&OsString::from("/f1"), &OsString::from("/f2")]);
+        let files = dw.traverse_all();
+        assert_eq!(2, files.len());
+        assert!(files.contains(Path::new("/f3/c.htm")));
+        assert!(files.contains(Path::new("/f4/d.cpp")));
+    }
+
+    #[test]
+    fn walker_ignore_irrelevant_folders() {
+        // verify dirwalker only searches in directories it's told to
+        let mut fs = TestFileSystem::new();
+        {
+            let fs = Rc::get_mut(&mut fs).unwrap();
+            fs.create_dir("/");
+            fs.create_dir("/f1");
+            fs.create_dir("/f2");
+            //fs.create_dir("/f3");
+            //fs.create_dir("/f4");
+            fs.create_file("/f1/a.pdf");
+            fs.create_file("/f2/b.txt");
+            //fs.create_file("/f3/c.htm");
+            //fs.create_file("/f4/d.cpp");
+        }
+        //println!("FS: {:?}", fs);
+        let dw = DirWalker::new(fs, vec![Path::new("/f2")]);
+        let files = dw.traverse_all();
+        println!("FILES: {:?}", files);
+        assert_eq!(1, files.len());
+        assert!(files.contains(Path::new("/f2/b.txt")));
     }
 
 }

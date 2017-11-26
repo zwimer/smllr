@@ -174,11 +174,13 @@ where
                 }
             },
         };
+        println!("Checking {:?}...", path);
         match filetype {
             FileType::File => if self.should_handle_file(path) {
                 self.handle_file(path)
             },
             FileType::Dir => if self.should_traverse_folder(path) {
+                println!("Should handle folder: {:?}", path);
                 self.traverse_folder(path)
             },
             FileType::Symlink => match self.vfs.read_link(path) {
@@ -194,6 +196,7 @@ where
         // steal directories (performance hack, ask owen)
         let directories = ::std::mem::replace(&mut self.directories, vec![]);
         for path in directories {
+            println!("PATH: {:?}", path);
             self.dispatch_any_file(&path, None);
         }
         self.files

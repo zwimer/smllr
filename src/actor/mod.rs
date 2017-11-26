@@ -1,9 +1,8 @@
-
 use vfs::VFS;
 use catalog::proxy::Duplicates;
 
 pub mod selector;
-use self::selector::{Selector};
+use self::selector::Selector;
 
 // include unit tests
 mod test;
@@ -27,7 +26,7 @@ impl<V: VFS> FileActor<V> for FilePrinter {
         info!("`{:?}` is the true file", real);
         for f in &dups.0 {
             if f == real {
-                continue
+                continue;
             }
             info!("\t`{:?}` is a duplicate", f);
         }
@@ -40,7 +39,7 @@ impl<V: VFS> FileActor<V> for FileDeleter {
         info!("`{:?}` is the true file", real);
         for f in &dups.0 {
             if f == real {
-                continue
+                continue;
             }
             info!("\tDeleting `{:?}`...", f);
             vfs.rm_file(f).expect("Couldn't delete file");
@@ -54,7 +53,7 @@ impl<V: VFS> FileActor<V> for FileLinker {
         info!("`{:?}` is the true file", real);
         for f in &dups.0 {
             if f == real {
-                continue
+                continue;
             }
             info!("\tDeleting `{:?}`...", f);
             vfs.rm_file(f).expect("Couldn't delete file");
@@ -63,5 +62,3 @@ impl<V: VFS> FileActor<V> for FileLinker {
         }
     }
 }
-
-

@@ -289,15 +289,17 @@ impl VFS for Rc<TestFileSystem> {
     ) -> io::Result<Box<Iterator<Item = io::Result<TestFile>>>> {
         let mut v = vec![];
         // collect all files which are children of p
+        let is_root = p.as_ref().components().count() == 1;
         for (path, file) in &self.files {
-            let parent = path.parent();
-            if parent == Some(p.as_ref()) || parent.is_none() {
+            if path.parent() == Some(p.as_ref()) || (is_root && path.components().count() == 2) {
+                // include a file if it's parent is in `p`
+                // or if `p` is the root and `path` is 1 level down
                 v.push(Ok(file.clone()));
             }
         }
         // collect all symlinks which are children of p
         for (src, &(ref file, ref _dst)) in &self.symlinks {
-            if src.parent() == Some(p.as_ref()) {
+            if src.parent() == Some(p.as_ref()) || p.as_ref().parent().is_none() {
                 v.push(Ok(file.clone()));
             }
         }
@@ -377,13 +379,15 @@ impl VFS for Rc<TestFileSystem> {
 
     fn make_link(&mut self, src: &Path, dst: &Path) -> io::Result<()> {
         let old_inode = {
-            self.files.get(dst)
+            self.files
+                .get(dst)
                 .ok_or(io::Error::new(io::ErrorKind::NotFound, "No dst"))?
                 .inode
         };
         let name = src.to_str().expect("invalid unicode link name");
         let fs = Rc::get_mut(self).unwrap();
-        fs.files.insert(src.to_path_buf(), TestFile::new(name).with_inode(old_inode));
+        fs.files
+            .insert(src.to_path_buf(), TestFile::new(name).with_inode(old_inode));
         unimplemented!()
     }
 }

@@ -1,8 +1,7 @@
-
 use std::cmp::Ordering;
 use std::path::Path;
 
-use vfs::{VFS, File, MetaData};
+use vfs::{File, MetaData, VFS};
 use catalog::proxy::Duplicates;
 
 /// Interface for choosing between files
@@ -19,10 +18,14 @@ pub trait Selector<'a, V: VFS> {
 }
 
 /// Choose between files based on their path
-pub struct PathSelect { reverse: bool }
+pub struct PathSelect {
+    reverse: bool,
+}
 
 /// Chose between files based on their creation date
-pub struct DateSelect { reverse: bool }
+pub struct DateSelect {
+    reverse: bool,
+}
 
 impl<'a, V: VFS> Selector<'a, V> for PathSelect {
     fn new(_: V) -> Self {
@@ -40,20 +43,24 @@ impl<'a, V: VFS> Selector<'a, V> for PathSelect {
         }
     }
     fn min<'b>(_: &V, dups: &'b Duplicates) -> &'b Path {
-        dups.0.iter()
-            .min_by(|&a_path, &b_path| { 
+        dups.0
+            .iter()
+            .min_by(|&a_path, &b_path| {
                 let a_score = a_path.components().count();
                 let b_score = b_path.components().count();
                 a_score.cmp(&b_score)
-        }).unwrap()
+            })
+            .unwrap()
     }
     fn max<'b>(_: &V, dups: &'b Duplicates) -> &'b Path {
-        dups.0.iter()
-            .max_by(|&a_path, &b_path| { 
+        dups.0
+            .iter()
+            .max_by(|&a_path, &b_path| {
                 let a_score = a_path.components().count();
                 let b_score = b_path.components().count();
                 a_score.cmp(&b_score)
-        }).unwrap()
+            })
+            .unwrap()
     }
 }
 
@@ -73,18 +80,20 @@ impl<'a, V: VFS> Selector<'a, V> for DateSelect {
         DateSelect { reverse: true }
     }
     fn min<'b>(vfs: &V, dups: &'b Duplicates) -> &'b Path {
-        dups.0.iter()
-            .map(|path| (path,vfs.get_file(path).unwrap()))
-            .min_by(|&(_, ref a), &(_, ref b)| { 
-                cmp(a, b)
-        }).unwrap().0
+        dups.0
+            .iter()
+            .map(|path| (path, vfs.get_file(path).unwrap()))
+            .min_by(|&(_, ref a), &(_, ref b)| cmp(a, b))
+            .unwrap()
+            .0
     }
     fn max<'b>(vfs: &V, dups: &'b Duplicates) -> &'b Path {
-        dups.0.iter()
-            .map(|path| (path,vfs.get_file(path).unwrap()))
-            .max_by(|&(_, ref a), &(_, ref b)| { 
-                cmp(a, b)
-        }).unwrap().0
+        dups.0
+            .iter()
+            .map(|path| (path, vfs.get_file(path).unwrap()))
+            .max_by(|&(_, ref a), &(_, ref b)| cmp(a, b))
+            .unwrap()
+            .0
     }
     fn select<'b>(&self, vfs: &V, dups: &'b Duplicates) -> &'b Path {
         // select the newest element (the SystemTime is the largest)
@@ -95,5 +104,3 @@ impl<'a, V: VFS> Selector<'a, V> for DateSelect {
         }
     }
 }
-
-
