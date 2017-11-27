@@ -118,8 +118,8 @@ fn main() {
     // print the duplicates
     let repeats = fc.get_repeats();
 
-    let selector = PathSelect::new(fs);
-    let mut actor = FilePrinter::new(fs, selector);
+    let selector = PathSelect::new(&fs);
+    let mut actor = FilePrinter::new(&fs, selector);
 
     for dups in repeats {
         actor.act(dups);

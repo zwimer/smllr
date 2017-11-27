@@ -1,7 +1,6 @@
 // mock filesystem for testing
 
 use std::io;
-use std::rc::Rc;
 use std::path::{Path, PathBuf};
 use std::time::{self, SystemTime};
 use std::collections::HashMap;
@@ -174,7 +173,8 @@ impl File for TestFile {
 
 /// TestFileSystem denotes a Mock Filesystem we use instead of risking
 /// our own data.
-#[derive(Debug)]
+// Cloning is slow, but is only done during unit testing
+#[derive(Debug, Clone)]
 pub struct TestFileSystem {
     files: HashMap<PathBuf, TestFile>,
     symlinks: HashMap<PathBuf, (TestFile, PathBuf)>,
@@ -218,11 +218,11 @@ impl TestFileSystem {
     }
 
     /// constructor: initializes self.
-    pub fn new() -> Rc<Self> {
-        Rc::new(TestFileSystem {
+    pub fn new() -> Self {
+        TestFileSystem {
             files: HashMap::new(),
             symlinks: HashMap::new(),
-        })
+        }
     }
     /// get size
     pub fn len(&self) -> usize {
@@ -283,7 +283,7 @@ impl TestFileSystem {
 }
 
 // Implementation of the VFS interface for the whole of the Mock File System.
-impl VFS for Rc<TestFileSystem> {
+impl VFS for TestFileSystem {
     type FileIter = TestFile;
 
     /// VFS::list_dir(p)  gets an iterator over the contents of p.
@@ -374,8 +374,7 @@ impl VFS for Rc<TestFileSystem> {
     }
 
     fn rm_file<P: AsRef<Path>>(&mut self, p: &P) -> io::Result<()> {
-        let fs = Rc::get_mut(self).unwrap();
-        match fs.files.remove(p.as_ref()) {
+        match self.files.remove(p.as_ref()) {
             Some(_) => Ok(()),
             None => Err(io::Error::new(io::ErrorKind::Other, "Couldn't delete file")),
         }
@@ -389,9 +388,7 @@ impl VFS for Rc<TestFileSystem> {
                 .inode
         };
         let name = src.to_str().expect("invalid unicode link name");
-        let fs = Rc::get_mut(self).unwrap();
-        fs.files
-            .insert(src.to_path_buf(), TestFile::new(name).with_inode(old_inode));
+        self.files.insert(src.to_path_buf(), TestFile::new(name).with_inode(old_inode));
         unimplemented!()
     }
 }

@@ -9,32 +9,32 @@ use std::marker::PhantomData;
 // include unit tests
 mod test;
 
-pub trait FileActor<V: VFS, S: Selector<V>> {
-    fn new(v: V, s: S) -> Self;
+pub trait FileActor<'a, V: VFS, S: Selector<'a, V>> {
+    fn new(v: &'a V, s: S) -> Self;
     fn act(&mut self, dups: Duplicates);
 }
 
 /// Actor that prints file names but doesn't modify the filesystem
-pub struct FilePrinter<V: VFS, S: Selector<V>> {
+pub struct FilePrinter<'a, V: VFS + 'a, S: Selector<'a, V>> {
     selector: S,
     //vfs: V,
-    vfs: PhantomData<V>,
+    vfs: PhantomData<&'a V>,
 }
 
 /// Actor that deletes all but the selected file
-pub struct FileDeleter<V: VFS, S: Selector<V>> {
+pub struct FileDeleter<'a, V: VFS + 'a, S: Selector<'a, V>> {
     selector: S,
-    vfs: V,
+    vfs: &'a V,
 }
 
 /// Actor that replaces all but the selected file with links to it
-pub struct FileLinker<V: VFS, S: Selector<V>> {
+pub struct FileLinker<'a, V: VFS + 'a, S: Selector<'a, V>> {
     selector: S,
-    vfs: V,
+    vfs: &'a V,
 }
 
-impl<V: VFS, S: Selector<V>> FileActor<V, S> for FilePrinter<V, S> {
-    fn new(_: V, s: S) -> Self {
+impl<'a, V: VFS, S: Selector<'a, V>> FileActor<'a, V, S> for FilePrinter<'a, V, S> {
+    fn new(_: &'a V, s: S) -> Self {
         FilePrinter { 
             selector: s,
             vfs: PhantomData,
@@ -52,6 +52,7 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FilePrinter<V, S> {
     }
 }
 
+/*
 impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileDeleter<V, S> {
     fn new(v: V, s: S) -> Self {
         FileDeleter {
@@ -93,3 +94,4 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileLinker<V, S> {
         }
     }
 }
+*/
