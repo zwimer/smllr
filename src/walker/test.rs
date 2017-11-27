@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod test {
 
-    use std::rc::Rc;
     use std::path::Path;
     use std::ffi::OsString;
 
@@ -28,11 +27,11 @@ mod test {
 
     #[test]
     fn walker_basic_fs() {
-        let mut fs = TestFileSystem::new();
+        let fs = TestFileSystem::new();
         {
-            let fs = Rc::get_mut(&mut fs).unwrap();
-            fs.create_dir("/");
-            fs.create_file("/alpha");
+            let mut fs_ = fs.borrow_mut();
+            fs_.create_dir("/");
+            fs_.create_file("/alpha");
         }
         let dw = DirWalker::new(fs, vec![Path::new("/")]);
         let files = dw.traverse_all();
@@ -41,21 +40,21 @@ mod test {
 
     #[test]
     fn walker_handle_symlinks() {
-        let mut fs = TestFileSystem::new();
+        let fs = TestFileSystem::new();
         {
-            let fs = Rc::get_mut(&mut fs).unwrap();
-            fs.create_dir("/");
-            fs.create_file("/alpha");
+            let mut fs_ = fs.borrow_mut();
+            fs_.create_dir("/");
+            fs_.create_file("/alpha");
             // only deal with a target once, omit symlinks
-            fs.create_symlink("/beta", "/alpha");
-            fs.create_symlink("/gamma", "/alpha");
+            fs_.create_symlink("/beta", "/alpha");
+            fs_.create_symlink("/gamma", "/alpha");
             // ignore bad symlinks
-            fs.create_symlink("/delta", "/_nonexistant");
+            fs_.create_symlink("/delta", "/_nonexistant");
             // ignore symlink loops
-            fs.create_symlink("/x", "/xx");
-            fs.create_symlink("/xx", "/x");
+            fs_.create_symlink("/x", "/xx");
+            fs_.create_symlink("/xx", "/x");
             // including a symlink that points to its parent folder
-            fs.create_symlink("/folder", "/");
+            fs_.create_symlink("/folder", "/");
         }
         let dw = DirWalker::new(fs, vec![Path::new("/")]);
         let files = dw.traverse_all();
@@ -65,16 +64,17 @@ mod test {
     #[test]
     fn walker_blacklist_regex() {
         // verify files can be blacklisted by a regular expression
-        let mut fs = TestFileSystem::new();
+        let fs = TestFileSystem::new();
         {
-            let fs = Rc::get_mut(&mut fs).unwrap();
-            fs.create_dir("/");
-            fs.create_file("/a.pdf");
-            fs.create_file("/b.txt");
-            fs.create_file("/c.htm");
-            fs.create_file("/d.cpp");
+            let mut fs_ = fs.borrow_mut();
+            fs_.create_dir("/");
+            fs_.create_file("/a.pdf");
+            fs_.create_file("/b.txt");
+            fs_.create_file("/c.htm");
+            fs_.create_file("/d.cpp");
         }
-        let dw = DirWalker::new(fs, vec![Path::new("/")]).blacklist_patterns(vec!["/b+", ".*.cpp"]);
+        let dw = DirWalker::new(fs, vec![Path::new("/")])
+            .blacklist_patterns(vec!["/b+", ".*.cpp"]);
         let files = dw.traverse_all();
         assert_eq!(2, files.len());
         assert!(files.contains(Path::new("/a.pdf")));
@@ -84,18 +84,19 @@ mod test {
     #[test]
     fn walker_blacklist_folder() {
         // verify files can be blacklisted by their folder
-        let mut fs = TestFileSystem::new();
+        let fs = TestFileSystem::new();
         {
-            let fs = Rc::get_mut(&mut fs).unwrap();
-            fs.create_dir("/");
-            fs.create_dir("/f1");
-            fs.create_dir("/f2");
-            fs.create_dir("/f3");
-            fs.create_dir("/f4");
-            fs.create_file("/f1/a.pdf");
-            fs.create_file("/f2/b.txt");
-            fs.create_file("/f3/c.htm");
-            fs.create_file("/f4/d.cpp");
+            //let fs = Rc::get_mut(&mut fs).unwrap();
+            let mut fs_ = fs.borrow_mut();
+            fs_.create_dir("/");
+            fs_.create_dir("/f1");
+            fs_.create_dir("/f2");
+            fs_.create_dir("/f3");
+            fs_.create_dir("/f4");
+            fs_.create_file("/f1/a.pdf");
+            fs_.create_file("/f2/b.txt");
+            fs_.create_file("/f3/c.htm");
+            fs_.create_file("/f4/d.cpp");
         }
         let dw = DirWalker::new(fs, vec![Path::new("/")])
             .blacklist_folders(vec![&OsString::from("/f1"), &OsString::from("/f2")]);
@@ -108,20 +109,15 @@ mod test {
     #[test]
     fn walker_ignore_irrelevant_folders() {
         // verify dirwalker only searches in directories it's told to
-        let mut fs = TestFileSystem::new();
+        let fs = TestFileSystem::new();
         {
-            let fs = Rc::get_mut(&mut fs).unwrap();
-            fs.create_dir("/");
-            fs.create_dir("/f1");
-            fs.create_dir("/f2");
-            //fs.create_dir("/f3");
-            //fs.create_dir("/f4");
-            fs.create_file("/f1/a.pdf");
-            fs.create_file("/f2/b.txt");
-            //fs.create_file("/f3/c.htm");
-            //fs.create_file("/f4/d.cpp");
+            let mut fs_ = fs.borrow_mut();
+            fs_.create_dir("/");
+            fs_.create_dir("/f1");
+            fs_.create_dir("/f2");
+            fs_.create_file("/f1/a.pdf");
+            fs_.create_file("/f2/b.txt");
         }
-        //println!("FS: {:?}", fs);
         let dw = DirWalker::new(fs, vec![Path::new("/f2")]);
         let files = dw.traverse_all();
         println!("FILES: {:?}", files);

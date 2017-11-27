@@ -2,9 +2,10 @@
 
 use std::io;
 use std::rc::Rc;
+use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::time::{self, SystemTime};
-use std::collections::HashMap;
+use std::collections::{HashSet, HashMap};
 //RUST NOTE: super is the rust equivelent of .. in the filesystem.
 use vfs::{DeviceId, File, FileType, Inode, MetaData, VFS};
 use super::{FirstBytes, Hash, FIRST_K_BYTES};
@@ -103,11 +104,11 @@ impl TestFile {
         self.kind = k;
         self
     }
-    pub fn with_inode(mut self, i: Inode) -> Self {
+    pub fn with_inode(mut self, i: u64) -> Self {
         if let Some(ref mut md) = self.metadata {
-            md.id.inode = i.0;
+            md.id.inode = i;
         }
-        self.inode = i;
+        self.inode = Inode(i);
         self
     }
     pub fn with_metadata(mut self, mut md: TestMD) -> Self {
@@ -218,15 +219,20 @@ impl TestFileSystem {
     }
 
     /// constructor: initializes self.
-    pub fn new() -> Rc<Self> {
-        Rc::new(TestFileSystem {
+    pub fn new() -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(TestFileSystem {
             files: HashMap::new(),
             symlinks: HashMap::new(),
-        })
+        }))
     }
     /// get size
     pub fn len(&self) -> usize {
         self.files.len() + self.symlinks.len()
+    }
+    /// get number of unique inodes
+    pub fn num_inodes(&self) -> usize {
+        let inodes: HashSet<_> = self.files.iter().map(|f| f.1.get_inode().unwrap()).collect();
+        inodes.len()
     }
     /// Creates a new file at path. Anologous to '$touch path'
     pub fn create_file<P: AsRef<Path>>(&mut self, path: P) {
@@ -283,7 +289,7 @@ impl TestFileSystem {
 }
 
 // Implementation of the VFS interface for the whole of the Mock File System.
-impl VFS for Rc<TestFileSystem> {
+impl VFS for Rc<RefCell<TestFileSystem>> {
     type FileIter = TestFile;
 
     /// VFS::list_dir(p)  gets an iterator over the contents of p.
@@ -292,9 +298,10 @@ impl VFS for Rc<TestFileSystem> {
         p: P,
     ) -> io::Result<Box<Iterator<Item = io::Result<TestFile>>>> {
         let mut v = vec![];
+        let fs = self.borrow();
         // collect all files which are children of p
         let is_root = p.as_ref().components().count() == 1;
-        for (path, file) in &self.files {
+        for (path, file) in &fs.files {
             if path.parent() == Some(p.as_ref()) || (is_root && path.components().count() == 2) {
                 // include a file if it's parent is in `p`
                 // or if `p` is the root and `path` is 1 level down
@@ -302,7 +309,7 @@ impl VFS for Rc<TestFileSystem> {
             }
         }
         // collect all symlinks which are children of p
-        for (src, &(ref file, ref _dst)) in &self.symlinks {
+        for (src, &(ref file, ref _dst)) in &fs.symlinks {
             if src.parent() == Some(p.as_ref()) || p.as_ref().parent().is_none() {
                 v.push(Ok(file.clone()));
             }
@@ -334,10 +341,11 @@ impl VFS for Rc<TestFileSystem> {
     /// FileType of path cannot be symlink; they are handled diffrently; use
     /// VFS::get_symlink_metadata for symlinks
     fn get_metadata<P: AsRef<Path>>(&self, path: P) -> io::Result<<Self::FileIter as File>::MD> {
-        match self.files.get(path.as_ref()) {
+        let fs = self.borrow();
+        match fs.files.get(path.as_ref()) {
             Some(f) => f.get_metadata(),
-            None => match self.symlinks.get(path.as_ref()) {
-                Some(&(_, ref p)) => self.lookup(p).and_then(|f| f.get_metadata()),
+            None => match fs.symlinks.get(path.as_ref()) {
+                Some(&(_, ref p)) => fs.lookup(p).and_then(|f| f.get_metadata()),
                 None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
             },
         }
@@ -348,9 +356,10 @@ impl VFS for Rc<TestFileSystem> {
         &self,
         path: P,
     ) -> io::Result<<Self::FileIter as File>::MD> {
-        match self.files.get(path.as_ref()) {
+        let fs = self.borrow();
+        match fs.files.get(path.as_ref()) {
             Some(f) => f.get_metadata(),
-            None => match self.symlinks.get(path.as_ref()) {
+            None => match fs.symlinks.get(path.as_ref()) {
                 Some(&(ref f, _)) => f.get_metadata(),
                 None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
             },
@@ -360,21 +369,22 @@ impl VFS for Rc<TestFileSystem> {
     /// VFS::read_link(p) resolves symlink at path p to the path its pointing to
     /// or gives an error if the link is broken.
     fn read_link<P: AsRef<Path>>(&self, path: P) -> io::Result<PathBuf> {
-        match self.symlinks.get(path.as_ref()) {
+        match self.borrow().symlinks.get(path.as_ref()) {
             Some(&(_, ref p)) => Ok(p.to_owned()),
             None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
         }
     }
 
     fn get_file(&self, p: &Path) -> io::Result<Self::FileIter> {
-        match self.files.get(p) {
+        match self.borrow().files.get(p) {
             Some(f) => Ok(f.to_owned()),
             None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
         }
     }
 
     fn rm_file<P: AsRef<Path>>(&mut self, p: &P) -> io::Result<()> {
-        let fs = Rc::get_mut(self).unwrap();
+        let mut fs = self.borrow_mut();
+        //let fs = Rc::get_mut(self).unwrap();
         match fs.files.remove(p.as_ref()) {
             Some(_) => Ok(()),
             None => Err(io::Error::new(io::ErrorKind::Other, "Couldn't delete file")),
@@ -382,16 +392,14 @@ impl VFS for Rc<TestFileSystem> {
     }
 
     fn make_link(&mut self, src: &Path, dst: &Path) -> io::Result<()> {
-        let old_inode = {
-            self.files
-                .get(dst)
-                .ok_or(io::Error::new(io::ErrorKind::NotFound, "No dst"))?
-                .inode
-        };
+        let mut fs = self.borrow_mut();
+        let old_inode = fs.files
+            .get(dst)
+            .ok_or(io::Error::new(io::ErrorKind::NotFound, "No dst"))?
+            .inode
+            .0;
         let name = src.to_str().expect("invalid unicode link name");
-        let fs = Rc::get_mut(self).unwrap();
-        fs.files
-            .insert(src.to_path_buf(), TestFile::new(name).with_inode(old_inode));
-        unimplemented!()
+        fs.files.insert(src.to_path_buf(), TestFile::new(name).with_inode(old_inode));
+        Ok(())
     }
 }
