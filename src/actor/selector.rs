@@ -19,7 +19,7 @@ pub trait Selector<V: VFS> {
 /// Choose between files based on their path
 pub struct PathSelect<V: VFS> {
     reverse: bool,
-    vfs: PhantomData<V>,
+    vfs: PhantomData<V>, // must be generic over VFS but don't need as field
 }
 
 /// Chose between files based on their creation date
@@ -28,6 +28,7 @@ pub struct DateSelect<V: VFS> {
     vfs: V,
 }
 
+// constructor for PathSelect
 impl<V: VFS> PathSelect<V> {
     pub fn new(_: V) -> Self {
         PathSelect {
@@ -37,6 +38,7 @@ impl<V: VFS> PathSelect<V> {
     }
 }
 
+// constructor for DateSelect
 impl<V: VFS> DateSelect<V> {
     pub fn new(v: V) -> Self {
         DateSelect {
@@ -46,6 +48,7 @@ impl<V: VFS> DateSelect<V> {
     }
 }
 
+// implement Selector for heap/trait objects
 impl<V: VFS> Selector<V> for Box<Selector<V>> {
     fn reverse(&mut self) {
         (**self).reverse();
@@ -61,6 +64,7 @@ impl<V: VFS> Selector<V> for Box<Selector<V>> {
     }
 }
 
+// implement Selector based on filepaths
 impl<V: VFS> Selector<V> for PathSelect<V> {
     fn reverse(&mut self) {
         self.reverse = true;
@@ -73,6 +77,7 @@ impl<V: VFS> Selector<V> for PathSelect<V> {
             self.min(dups)
         }
     }
+    // select the file closest to the root
     fn min<'b>(&self, dups: &'b Duplicates) -> &'b Path {
         dups.0
             .iter()
@@ -81,8 +86,9 @@ impl<V: VFS> Selector<V> for PathSelect<V> {
                 let b_score = b_path.components().count();
                 a_score.cmp(&b_score)
             })
-            .unwrap()
+            .unwrap() // is only None if `dups` is empty
     }
+    // select the file farthest from the root
     fn max<'b>(&self, dups: &'b Duplicates) -> &'b Path {
         dups.0
             .iter()
@@ -95,7 +101,8 @@ impl<V: VFS> Selector<V> for PathSelect<V> {
     }
 }
 
-fn cmp<'a, T: File>(a: &'a T, b: &'a T) -> Ordering {
+// helper function for comparing two Files based on their date
+fn date_cmp<'a, T: File>(a: &'a T, b: &'a T) -> Ordering {
     let md_a = a.get_metadata().unwrap();
     let md_b = b.get_metadata().unwrap();
     let date_a = md_a.get_creation_time().unwrap();
@@ -103,23 +110,26 @@ fn cmp<'a, T: File>(a: &'a T, b: &'a T) -> Ordering {
     date_a.cmp(&date_b)
 }
 
+// implement Selector based on modification date
 impl<V: VFS> Selector<V> for DateSelect<V> {
     fn reverse(&mut self) {
         self.reverse = true;
     }
+    // select the file modified most recently
     fn min<'b>(&self, dups: &'b Duplicates) -> &'b Path {
         dups.0
             .iter()
             .map(|path| (path, self.vfs.get_file(path).unwrap()))
-            .min_by(|&(_, ref a), &(_, ref b)| cmp(a, b))
+            .min_by(|&(_, ref a), &(_, ref b)| date_cmp(a, b))
             .unwrap()
             .0
     }
+    // select the file modified first
     fn max<'b>(&self, dups: &'b Duplicates) -> &'b Path {
         dups.0
             .iter()
             .map(|path| (path, self.vfs.get_file(path).unwrap()))
-            .max_by(|&(_, ref a), &(_, ref b)| cmp(a, b))
+            .max_by(|&(_, ref a), &(_, ref b)| date_cmp(a, b))
             .unwrap()
             .0
     }

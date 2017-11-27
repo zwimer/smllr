@@ -11,12 +11,14 @@ use catalog::FileCataloger;
 use vfs::VFS;
 use catalog::proxy::{Duplicates, FirstKBytesProxy, HashProxy};
 
+// print debug info for ID
 impl Debug for ID {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "{:X}:{:X}", self.dev, self.inode)
     }
 }
 
+// print debug info for Duplicates
 impl Debug for Duplicates {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "[")?;
@@ -34,6 +36,7 @@ impl Debug for Duplicates {
     }
 }
 
+// print debug info for FileCataloger
 impl<T: VFS> Debug for FileCataloger<T> {
     fn fmt(&self, f: &mut Formatter) -> Result {
         for (size, fkbp) in &self.catalog {
@@ -43,6 +46,7 @@ impl<T: VFS> Debug for FileCataloger<T> {
     }
 }
 
+// print debug info for FirstKBytesProxy
 impl Debug for FirstKBytesProxy {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "FKBProxy::")?;
@@ -70,6 +74,7 @@ impl Debug for FirstKBytesProxy {
     }
 }
 
+// print debug info for HashProxy
 impl Debug for HashProxy {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "HashProxy::")?;

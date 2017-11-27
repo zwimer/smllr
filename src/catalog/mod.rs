@@ -8,11 +8,14 @@ use vfs::{File, MetaData, VFS};
 pub mod proxy;
 use self::proxy::{Duplicates, FirstKBytesProxy};
 
-mod print;
+mod print; // include debug printing info
 
 mod test; // include unit tests
 
 
+/// Catalog files, determining lazily if files are identical
+///  by checking filesize, the first K bytes, and then the whole file hash
+///  but only when necessary to check
 pub struct FileCataloger<T: VFS> {
     catalog: HashMap<u64, FirstKBytesProxy>,
     vfs: T,
@@ -24,7 +27,7 @@ pub struct FileCataloger<T: VFS> {
 }
 
 impl<T: VFS> FileCataloger<T> {
-    ///Initilize the filecataloger
+    /// Initilize the filecataloger
     pub fn new(vfs: T) -> Self {
         FileCataloger {
             catalog: HashMap::new(),
@@ -34,8 +37,7 @@ impl<T: VFS> FileCataloger<T> {
 
     // each Vec<Duplicates> is a vector of all the Duplicates w/ the same content
     // Each Duplicate is a vector of links that point to one inode
-    /// get_repeats() returns a vector of vectors of lists of duplicates
-    /// such that all duplicates in the catalog are grouped together
+    /// Check all included Proxies for duplicates
     pub fn get_repeats(&self) -> Vec<Duplicates> {
         let mut all = vec![];
         // for each subgrouping (done by size), get all the list of duplicates and
@@ -46,7 +48,7 @@ impl<T: VFS> FileCataloger<T> {
         all
     }
 
-    /// inserts path into the catalog.
+    /// Inserts path into the catalog
     pub fn insert(&mut self, path: &Path) {
         // get the metadata (needed for preliminary comparision and storage)
         let file = self.vfs.get_file(path).expect("No such file");

@@ -46,6 +46,7 @@ impl Default for TestMD {
     }
 }
 
+// TestMD must be easy to make and also customize for unit testing
 impl TestMD {
     pub fn new() -> Self {
         TestMD {
@@ -137,6 +138,8 @@ impl TestFile {
         // fix inode discrepancy
         if self.inode.0 != 0 {
             md.id.inode = self.inode.0;
+        } else if md.id.inode != 0 {
+            self.inode.0 = md.id.inode;
         }
         self.metadata = Some(md);
         self
@@ -252,7 +255,7 @@ impl TestFileSystem {
         self.create_regular(path.as_ref(), FileType::Dir);
     }
     /// Creates a new symlink from path to target. analogous to
-    /// '$ln -s -t target path
+    /// 'ln -s -t target path
     pub fn create_symlink<P: AsRef<Path>>(&mut self, path: P, target: P) {
         // Create the symlink file.
         let tf = TestFile {
@@ -266,6 +269,7 @@ impl TestFileSystem {
         let val = (tf, target.as_ref().to_owned());
         self.symlinks.insert(path.as_ref().to_owned(), val);
     }
+    /// Register a new file
     pub fn add(&mut self, tf: TestFile) {
         self.files.insert(tf.path.to_owned(), tf);
     }
@@ -275,7 +279,7 @@ impl TestFileSystem {
     // unique to rust; essentially they are used to pass the parent
     // through so they are invalidated when the parent is.
 
-    ///Resolves the
+    /// Resolves the path into a TestFile
     fn lookup<'a>(&'a self, path: &Path) -> io::Result<&'a TestFile> {
         if let Some(tf) = self.files.get(path) {
             Ok(tf)
@@ -401,14 +405,33 @@ impl VFS for Rc<RefCell<TestFileSystem>> {
 
     fn make_link(&mut self, src: &Path, dst: &Path) -> io::Result<()> {
         let mut fs = self.borrow_mut();
-        let old_inode = fs.files
+        let old_md = fs.files
             .get(dst)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "No dst"))?
-            .inode
-            .0;
+            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "No dst file"))?
+            .get_metadata()?;
+        let old_inode = old_md.get_inode();
+        let old_device = old_md.get_device()?;
+
+        let new_dir = src.parent().unwrap(); // can't be root
+        let new_device = fs.files
+            .get(new_dir)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "No src md"))?
+            .get_metadata()?
+            .get_device()?;
+
+        if old_device != new_device {
+            // can't make a hard link across devices (on most filesystems)
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "Cannot make hard link across filesystems",
+            ));
+        }
+
         let name = src.to_str().expect("invalid unicode link name");
-        fs.files
-            .insert(src.to_path_buf(), TestFile::new(name).with_inode(old_inode));
+        fs.files.insert(
+            src.to_path_buf(),
+            TestFile::new(name).with_inode(old_inode.0),
+        );
         Ok(())
     }
 }

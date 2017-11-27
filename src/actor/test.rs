@@ -1,17 +1,10 @@
 #[cfg(test)]
 mod test {
 
-    // verify printing doesn't touch the fs
-
-    // verify deleting works
-
-    // verify linking works
-
-    // verify trying to act on a fs with broken files panics
-
+    use ID;
     use actor::{FileActor, FileDeleter, FileLinker, FilePrinter};
     use actor::selector::{DateSelect, PathSelect, Selector};
-    use vfs::{TestFile, TestFileSystem, TestMD};
+    use vfs::{FileType, TestFile, TestFileSystem, TestMD};
     use catalog::proxy::Duplicates;
 
     use std::path::{Path, PathBuf};
@@ -21,37 +14,39 @@ mod test {
 
     #[test]
     fn select_shortest() {
+        // select the file closest to the root
         let fs = TestFileSystem::new();
         {
-            let mut fs_ = fs.borrow_mut();
-            fs_.create_dir("/");
-            fs_.create_dir("/w");
-            fs_.create_dir("/w/x");
-            fs_.create_dir("/w/x/y");
-            fs_.create_dir("/w/x/y/z");
-            fs_.add(TestFile::new("/a"));
-            fs_.add(TestFile::new("/w/b"));
-            fs_.add(TestFile::new("/w/x/c"));
-            fs_.add(TestFile::new("/w/x/y/d"));
+            let mut fs = fs.borrow_mut();
+            fs.create_dir("/");
+            fs.create_dir("/x");
+            fs.create_dir("/x/y");
+            fs.create_dir("/x/y/z");
+            fs.add(TestFile::new("/a"));
+            fs.add(TestFile::new("/x/b"));
+            fs.add(TestFile::new("/x/y/c"));
+            fs.add(TestFile::new("/x/y/z/d"));
         }
-        let files = Duplicates(vec!["/a"].iter().map(PathBuf::from).collect());
+        let paths = vec!["/a", "/x/b", "/x/y/c", "/x/y/z/d"];
+        let files = Duplicates(paths.iter().map(PathBuf::from).collect());
         let shortest = PathSelect::new(fs).select(&files);
         assert_eq!(shortest, Path::new("/a"));
     }
 
     #[test]
     fn select_longest() {
+        // select the file farthest from to the root
         let fs = TestFileSystem::new();
         {
-            let mut fs_ = fs.borrow_mut();
-            fs_.create_dir("/");
-            fs_.create_dir("/x");
-            fs_.create_dir("/x/y");
-            fs_.create_dir("/x/y/z");
-            fs_.add(TestFile::new("/a"));
-            fs_.add(TestFile::new("/x/b"));
-            fs_.add(TestFile::new("/x/y/c"));
-            fs_.add(TestFile::new("/x/y/z/d"));
+            let mut fs = fs.borrow_mut();
+            fs.create_dir("/");
+            fs.create_dir("/x");
+            fs.create_dir("/x/y");
+            fs.create_dir("/x/y/z");
+            fs.add(TestFile::new("/a"));
+            fs.add(TestFile::new("/x/b"));
+            fs.add(TestFile::new("/x/y/c"));
+            fs.add(TestFile::new("/x/y/z/d"));
         }
         let paths = vec!["/a", "/x/b", "/x/y/c", "/x/y/z/d"];
         let files = Duplicates(paths.iter().map(PathBuf::from).collect());
@@ -63,6 +58,7 @@ mod test {
 
     #[test]
     fn select_newest() {
+        // select the file most recently modified
         let fs = TestFileSystem::new();
         let time_a = UNIX_EPOCH + Duration::new(1, 0); // + 1 second
         let time_b = UNIX_EPOCH + Duration::new(2, 0); // + 2 seconds
@@ -73,15 +69,15 @@ mod test {
         let md_c = TestMD::new().with_creation_time(time_c);
         let md_d = TestMD::new().with_creation_time(time_d);
         {
-            let mut fs_ = fs.borrow_mut();
-            fs_.create_dir("/");
-            fs_.create_dir("/x");
-            fs_.create_dir("/x/y");
-            fs_.create_dir("/x/y/z");
-            fs_.add(TestFile::new("/a").with_metadata(md_a));
-            fs_.add(TestFile::new("/x/b").with_metadata(md_b));
-            fs_.add(TestFile::new("/x/y/c").with_metadata(md_c));
-            fs_.add(TestFile::new("/x/y/z/d").with_metadata(md_d));
+            let mut fs = fs.borrow_mut();
+            fs.create_dir("/");
+            fs.create_dir("/x");
+            fs.create_dir("/x/y");
+            fs.create_dir("/x/y/z");
+            fs.add(TestFile::new("/a").with_metadata(md_a));
+            fs.add(TestFile::new("/x/b").with_metadata(md_b));
+            fs.add(TestFile::new("/x/y/c").with_metadata(md_c));
+            fs.add(TestFile::new("/x/y/z/d").with_metadata(md_d));
         }
         let paths = vec!["/a", "/x/b", "/x/y/c", "/x/y/z/d"];
         let files = Duplicates(paths.iter().map(PathBuf::from).collect());
@@ -91,6 +87,7 @@ mod test {
 
     #[test]
     fn select_oldest() {
+        // select the file least recently modified
         let fs = TestFileSystem::new();
         let time_a = UNIX_EPOCH + Duration::new(1, 0); // + 1 second
         let time_b = UNIX_EPOCH + Duration::new(2, 0); // + 2 seconds
@@ -101,15 +98,15 @@ mod test {
         let md_c = TestMD::new().with_creation_time(time_c);
         let md_d = TestMD::new().with_creation_time(time_d);
         {
-            let mut fs_ = fs.borrow_mut();
-            fs_.create_dir("/");
-            fs_.create_dir("/x");
-            fs_.create_dir("/x/y");
-            fs_.create_dir("/x/y/z");
-            fs_.add(TestFile::new("/a").with_metadata(md_a));
-            fs_.add(TestFile::new("/x/b").with_metadata(md_b));
-            fs_.add(TestFile::new("/x/y/c").with_metadata(md_c));
-            fs_.add(TestFile::new("/x/y/z/d").with_metadata(md_d));
+            let mut fs = fs.borrow_mut();
+            fs.create_dir("/");
+            fs.create_dir("/x");
+            fs.create_dir("/x/y");
+            fs.create_dir("/x/y/z");
+            fs.add(TestFile::new("/a").with_metadata(md_a));
+            fs.add(TestFile::new("/x/b").with_metadata(md_b));
+            fs.add(TestFile::new("/x/y/c").with_metadata(md_c));
+            fs.add(TestFile::new("/x/y/z/d").with_metadata(md_d));
         }
         let paths = vec!["/a", "/x/b", "/x/y/c", "/x/y/z/d"];
         let files = Duplicates(paths.iter().map(PathBuf::from).collect());
@@ -129,12 +126,12 @@ mod test {
 
         let fs = TestFileSystem::new();
         {
-            let mut fs_ = fs.borrow_mut();
-            fs_.create_dir("/");
-            fs_.add(TestFile::new("/a"));
-            fs_.create_dir("/x");
-            fs_.add(TestFile::new("/x/b"));
-            fs_.add(TestFile::new("/x/c"));
+            let mut fs = fs.borrow_mut();
+            fs.create_dir("/");
+            fs.add(TestFile::new("/a").with_metadata(TestMD::new()));
+            fs.create_dir("/x");
+            fs.add(TestFile::new("/x/b").with_metadata(TestMD::new()));
+            fs.add(TestFile::new("/x/c").with_metadata(TestMD::new()));
         };
         let paths = vec!["/a", "/x/b", "/x/c"];
         let files = Duplicates(paths.iter().map(PathBuf::from).collect());
@@ -152,12 +149,12 @@ mod test {
 
         let fs = TestFileSystem::new();
         {
-            let mut fs_ = fs.borrow_mut();
-            fs_.create_dir("/");
-            fs_.add(TestFile::new("/a").with_metadata(TestMD::new()));
-            fs_.create_dir("/x");
-            fs_.add(TestFile::new("/x/b").with_metadata(TestMD::new()));
-            fs_.add(TestFile::new("/x/c").with_metadata(TestMD::new()));
+            let mut fs = fs.borrow_mut();
+            fs.create_dir("/");
+            fs.add(TestFile::new("/a").with_metadata(TestMD::new()));
+            fs.create_dir("/x");
+            fs.add(TestFile::new("/x/b").with_metadata(TestMD::new()));
+            fs.add(TestFile::new("/x/c").with_metadata(TestMD::new()));
         };
         let paths = vec!["/a", "/x/b", "/x/c"];
         let files = Duplicates(paths.iter().map(PathBuf::from).collect());
@@ -175,19 +172,19 @@ mod test {
 
         let fs = TestFileSystem::new();
         {
-            let mut fs_ = fs.borrow_mut();
-            fs_.create_dir("/"); // inode #0
-            fs_.add(
+            let mut fs = fs.borrow_mut();
+            fs.create_dir("/"); // inode #0
+            fs.add(
                 TestFile::new("/a")
                     .with_inode(1)
                     .with_metadata(TestMD::new()),
             );
-            fs_.add(
+            fs.add(
                 TestFile::new("/b")
                     .with_inode(2)
                     .with_metadata(TestMD::new()),
             );
-            fs_.add(
+            fs.add(
                 TestFile::new("/c")
                     .with_inode(3)
                     .with_metadata(TestMD::new()),
@@ -208,5 +205,45 @@ mod test {
         // after acting, all files should have the same inode
         assert_eq!(4, fs.borrow().num_elements());
         assert_eq!(2, fs.borrow().num_inodes());
+    }
+
+    #[test]
+    fn actor_link_across_devices() {
+        // run `FileLinker::act()` on a set of duplicates spread across devices
+        // verify the filesystem doesn't fail and doesn't change anything
+
+        let fs = TestFileSystem::new();
+        {
+            let mut fs = fs.borrow_mut();
+            fs.add(
+                TestFile::new("/")
+                    .with_kind(FileType::Dir)
+                    .with_metadata(TestMD::new().with_id(ID { inode: 1, dev: 10 })),
+            );
+            fs.add(
+                TestFile::new("/a").with_metadata(TestMD::new().with_id(ID { inode: 2, dev: 20 })),
+            );
+            fs.add(
+                TestFile::new("/b").with_metadata(TestMD::new().with_id(ID { inode: 3, dev: 20 })),
+            );
+            fs.add(
+                TestFile::new("/c").with_metadata(TestMD::new().with_id(ID { inode: 4, dev: 20 })),
+            );
+        };
+        let paths = vec!["/a", "/b", "/c"];
+        let files = Duplicates(paths.iter().map(PathBuf::from).collect());
+
+        // currently all files are identical and distinct
+        // remember that the root dir counts and has an inode
+        assert_eq!(4, fs.borrow().num_elements(), "sanity check");
+        assert_eq!(4, fs.borrow().num_inodes(), "sanity check");
+
+        let selector = PathSelect::new(fs.clone());
+        let mut actor = FileLinker::new(fs.clone(), selector);
+        actor.act(files);
+
+        // after acting, nothing should have happened (except a warning message)
+        assert_eq!(4, fs.borrow().num_elements());
+        assert_eq!(4, fs.borrow().num_inodes());
     }
 }

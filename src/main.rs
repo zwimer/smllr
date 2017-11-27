@@ -10,36 +10,38 @@ use clap::{App, Arg};
 use std::path::Path;
 use std::ffi::OsStr;
 
-mod walker;
-pub use walker::DirWalker;
+pub mod walker;
+use walker::DirWalker;
 
 pub mod vfs;
 use vfs::RealFileSystem;
 
-mod catalog;
+pub mod catalog;
 use catalog::FileCataloger;
 
-mod actor;
-pub use actor::{FileActor, FileDeleter, FileLinker, FilePrinter};
+pub mod actor;
+use actor::{FileActor, FileDeleter, FileLinker, FilePrinter};
 use actor::selector::{DateSelect, PathSelect, Selector};
 
-// Helpers:
 
+/// Uniquely identify a file by its device id and inode
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub struct ID {
     dev: u64,
     inode: u64,
 }
 
+/// Represent the first K bytes of a file
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct FirstBytes(pub(crate) [u8; FIRST_K_BYTES]);
-
-pub type Hash = [u8; 16];
-
 const FIRST_K_BYTES: usize = 32;
+
+/// Represent the md5 hash of a complete file
+pub type Hash = [u8; 16];
 
 
 fn main() {
+    // build arg parser
     let matches = App::new("smllr")
         // paths without an argument after
         .arg(Arg::with_name("paths")
@@ -104,21 +106,26 @@ fn main() {
 
     // decide which files are fair game
     let dirs: Vec<&OsStr> = matches.values_of_os("paths").unwrap().collect();
+    // if the user supplied blacklisted paths, collect them
     let dirs_n: Vec<&OsStr> = if matches.is_present("bad_paths") {
         matches.values_of_os("bad_paths").unwrap().collect()
     } else {
         vec![]
     };
+    // if the user supplied blacklisted file regexes, collect them
     let pats_n: Vec<_> = if matches.is_present("bad_regex") {
         matches.values_of("bad_regex").unwrap().collect()
     } else {
         vec![]
     };
 
-    // print all log info
+    // print log info to stderr
+    // to alter granularity, set environmental variable RUST_LOG
+    // e.g. `RUST_LOG=debug ./smllr ... 2> /tmp/smllr_log`
     env_logger::init().unwrap();
 
     // create and customize a DirWalker over the real filesystem
+    // collect all relevant files
     let fs = RealFileSystem;
     let paths: Vec<&Path> = dirs.iter().map(Path::new).collect();
     let dw = DirWalker::new(fs, &paths)
@@ -126,29 +133,41 @@ fn main() {
         .blacklist_patterns(pats_n);
     let files = dw.traverse_all();
 
-    // catalog all files
+    // catalog all files from the DirWalker
+    // duplicates are identified as files are inserted one at a time
     let mut fc = FileCataloger::new(fs);
     for file in &files {
         fc.insert(file);
     }
-
-    // identify repeats
     let repeats = fc.get_repeats();
 
-    // select and act on them
+    // use a Box to put the Selector and Actor on the heap as trait objects
+    // different selectors or actors are different sizes (e.g. test_fs contains
+    //  lots of data but real_fs has none), and the stack size must be known
+    //  at compile time but the selector type is only known at runtime
+    //  all boxes are the same size (a pointer)
+    // this has the same small performance hit as C++ inheritance because it
+    //  is basically a vtable
+    // this works because we impl'd these traits for Box<T>
+
+    // select which of the duplicates are "true" and act on the others
     let mut selector: Box<Selector<RealFileSystem>> = {
+        // `--newest-file` or `--path-len` (default)
         if matches.is_present("newest-file") {
             Box::new(DateSelect::new(fs))
         } else {
             Box::new(PathSelect::new(fs))
         }
     };
+    // invert selector if necessary (e.g. use longest path instead of shortest)
     if matches.is_present("invert-selector") {
         selector.reverse();
     }
     let selector = selector; // remove mutability
 
+    // determine what action should be taken on non-selected files
     let mut actor: Box<FileActor<RealFileSystem, Box<Selector<RealFileSystem>>>> = {
+        // `--link`, `--delete`, or `--print` (default)
         if matches.is_present("link") {
             Box::new(FileLinker::new(fs, selector))
         } else if matches.is_present("delete") {
@@ -158,18 +177,7 @@ fn main() {
         }
     };
 
-    /*
-     * TODO
-     *  change firstkbytes to a hash instead of just the first 32 bytes
-     *      change the Debug impl probably too
-     *          maybe just change them all
-     *  consider consolidating FirstKBytesProxy and HashProxy somehow
-     *  register duplicates up? or maybe just fetch more efficiently
-     *      get ID not just a vec of duplicates?
-     */
-
-    // print the duplicates
-
+    // act on all sets of duplicates
     for dups in repeats {
         actor.act(dups);
     }
