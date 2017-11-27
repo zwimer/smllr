@@ -116,12 +116,7 @@ fn main() {
     };
 
     // print all log info
-    /*
-    env_logger::LogBuilder::new()
-        .filter(None, log::LogLevelFilter::max())
-        .init()
-        .unwrap();
-        */
+    env_logger::init().unwrap();
 
     // create and customize a DirWalker over the real filesystem
     let fs = RealFileSystem;

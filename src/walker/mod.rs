@@ -45,7 +45,7 @@ where
                 if dir.is_absolute() {
                     Ok(dir.to_path_buf())
                 } else {
-                    info!("Converting `{:?}` to absolute path", dir);
+                    debug!("Converting `{:?}` to absolute path", dir);
                     env::current_dir().map(|cwd| cwd.join(dir))
                 }
             })
@@ -131,7 +131,7 @@ where
     /// Perform operation on a file: in this case just add it to a hashset
     fn handle_file(&mut self, path: &Path) {
         // do your thing: here just add to a field of filepaths
-        info!("\tHANDLING FILE {:?}", path);
+        debug!("\tHANDLING FILE {:?}", path);
         let was_absent = self.files.insert(path.to_owned());
         assert!(was_absent);
     }
@@ -185,7 +185,7 @@ where
                 Ok(ref f) => self.dispatch_any_file(f, None),
                 Err(e) => warn!("Couldn't resolve symlink {:?}: {}", path, e),
             },
-            FileType::Other => info!("Ignoring unknown file {:?}", path),
+            FileType::Other => debug!("Ignoring unknown file {:?}", path),
         }
     }
 
