@@ -4,8 +4,6 @@ use catalog::proxy::Duplicates;
 pub mod selector;
 use self::selector::Selector;
 
-use std::marker::PhantomData;
-
 mod test; // include unit tests
 
 /// Trait for acting on duplicate files
@@ -23,7 +21,7 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for Box<FileActor<V, S>> {
 /// Actor that prints file names but doesn't modify the filesystem
 pub struct FilePrinter<V: VFS, S: Selector<V>> {
     selector: S,
-    vfs: PhantomData<V>, // must be generic over a VFS but don't need a vfs field
+    vfs: V,
 }
 
 /// Actor that deletes all but the selected file
@@ -40,10 +38,10 @@ pub struct FileLinker<V: VFS, S: Selector<V>> {
 
 // constructors for FilePrinter: dependency inject a Selector
 impl<V: VFS, S: Selector<V>> FilePrinter<V, S> {
-    pub fn new(s: S) -> Self {
+    pub fn new(v: V, s: S) -> Self {
         FilePrinter {
             selector: s,
-            vfs: PhantomData,
+            vfs: v,
         }
     }
 }
@@ -72,13 +70,29 @@ impl<V: VFS, S: Selector<V>> FileLinker<V, S> {
 impl<V: VFS, S: Selector<V>> FileActor<V, S> for FilePrinter<V, S> {
     fn act(&mut self, dups: Duplicates) {
         let real = self.selector.select(&dups); // identify true file
+        let size = self.vfs
+            .get_file(real)
+            .unwrap()
+            .get_metadata()
+            .unwrap()
+            .get_len();
+        let mut save_size = 0;
         info!("`{:?}` is the true file", real);
         println!("`{:?}` is the true file", real);
         // iterate over all other duplicates
         for f in dups.0.iter().filter(|&f| f.as_path() != real) {
             info!("\t`{:?}` is a duplicate", f);
             println!("\t`{:?}` is a duplicate", f);
+            save_size += size;
         }
+        info!(
+            "You can save {} bytes by deduplicating this file",
+            save_size
+        );
+        println!(
+            "You can save {} bytes by deduplicating this file",
+            save_size
+        );
     }
 }
 
@@ -86,6 +100,13 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FilePrinter<V, S> {
 impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileDeleter<V, S> {
     fn act(&mut self, dups: Duplicates) {
         let real = self.selector.select(&dups);
+        let size = self.vfs
+            .get_file(real)
+            .unwrap()
+            .get_metadata()
+            .unwrap()
+            .get_len();
+        let mut save_size = 0;
         info!("`{:?}` is the true file", real);
         println!("`{:?}` is the true file", real);
         // iterate over all other duplicates
@@ -93,7 +114,10 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileDeleter<V, S> {
             info!("\tDeleting `{:?}`...", f);
             println!("\tDeleting `{:?}`...", f);
             self.vfs.rm_file(f).expect("Couldn't delete file");
+            save_size += size;
         }
+        info!("You saved {} bytes by deduplicating this file", save_size);
+        println!("You saved {} bytes by deduplicating this file", save_size);
     }
 }
 
@@ -104,6 +128,8 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileLinker<V, S> {
         let real_file = self.vfs.get_file(real).expect("Couldn't find link dst");
         let real_md = real_file.get_metadata().expect("Couldn't get link dst md");
         let real_dev = real_md.get_device().expect("Couldn't get link dst device");
+        let size = real_md.get_len();
+        let mut save_size = 0;
         info!("`{:?}` is the true file", real);
         println!("`{:?}` is the true file", real);
         // iterate over all other duplicates
@@ -137,7 +163,10 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileLinker<V, S> {
                 info!("\t\tand replacing it with a link to `{:?}`...", real);
                 println!("\t\tand replacing it with a link to `{:?}`...", real);
                 self.vfs.make_link(f, real).expect("Couldn't create link");
+                save_size += size;
             }
         }
+        info!("You saved {} bytes by deduplicating this file", save_size);
+        println!("You saved {} bytes by deduplicating this file", save_size);
     }
 }

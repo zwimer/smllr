@@ -128,16 +128,16 @@ mod test {
         {
             let mut fs = fs.borrow_mut();
             fs.create_dir("/");
-            fs.add(TestFile::new("/a"));
+            fs.add(TestFile::new("/a").with_metadata(TestMD::new()));
             fs.create_dir("/x");
-            fs.add(TestFile::new("/x/b"));
-            fs.add(TestFile::new("/x/c"));
+            fs.add(TestFile::new("/x/b").with_metadata(TestMD::new()));
+            fs.add(TestFile::new("/x/c").with_metadata(TestMD::new()));
         };
         let paths = vec!["/a", "/x/b", "/x/c"];
         let files = Duplicates(paths.iter().map(PathBuf::from).collect());
 
         let selector = PathSelect::new(fs.clone());
-        let mut actor = FilePrinter::new(selector);
+        let mut actor = FilePrinter::new(fs.clone(), selector);
         actor.act(files);
         assert_eq!(5, fs.borrow().num_elements());
     }

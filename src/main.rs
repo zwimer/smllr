@@ -173,7 +173,7 @@ fn main() {
         } else if matches.is_present("delete") {
             Box::new(FileDeleter::new(fs, selector))
         } else {
-            Box::new(FilePrinter::new(selector))
+            Box::new(FilePrinter::new(fs, selector))
         }
     };
 
