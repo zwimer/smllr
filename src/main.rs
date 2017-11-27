@@ -6,8 +6,6 @@ extern crate md5;
 extern crate regex;
 
 use clap::{App, Arg};
-use env_logger::LogBuilder;
-use log::LogLevelFilter;
 
 use std::path::Path;
 use std::ffi::OsStr;
@@ -16,7 +14,7 @@ mod walker;
 pub use walker::DirWalker;
 
 pub mod vfs;
-use vfs::{VFS, RealFileSystem};
+use vfs::RealFileSystem;
 
 mod catalog;
 use catalog::FileCataloger;
@@ -40,16 +38,6 @@ pub type Hash = [u8; 16];
 
 const FIRST_K_BYTES: usize = 32;
 
-/*
-// helpers for main only
-struct FileSel<S: Selector<RealFileSystem>>(S);
-//struct FileAct<A: FileActor<RealFileSystem, Selector<RealFileSystem>>>(A);
-struct FileAct<V: VFS, S: Selector<V>, A: FileActor<V,S>> {
-    act: A,
-    vfs: PhantomData<V>,
-    sel: PhantomData<S>,
-}
-*/
 
 fn main() {
     let matches = App::new("smllr")
@@ -94,7 +82,7 @@ fn main() {
              )
         .arg(Arg::with_name("invert-selector")
              .long("invert-selector")
-             .help("Invert the selector criterion (e.g. preserve the file farthest from the root")
+             .help("Invert the selector criterion (e.g. preserve the deepest file)")
              )
         // determine actor
         .arg(Arg::with_name("print")
@@ -124,11 +112,13 @@ fn main() {
         false => vec![],
     };
 
-    // for now print all log info
-    LogBuilder::new()
-        .filter(None, LogLevelFilter::max())
+    // print all log info
+    /*
+    env_logger::LogBuilder::new()
+        .filter(None, log::LogLevelFilter::max())
         .init()
         .unwrap();
+        */
 
     // create and customize a DirWalker over the real filesystem
     let fs = RealFileSystem;
@@ -137,7 +127,6 @@ fn main() {
         .blacklist_folders(dirs_n)
         .blacklist_patterns(pats_n);
     let files = dw.traverse_all();
-    println!("{:?}", files.len());
 
     // catalog all files
     let mut fc = FileCataloger::new(fs);

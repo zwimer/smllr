@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::path::Path;
+use std::marker::PhantomData;
 
 use vfs::{File, MetaData, VFS};
 use catalog::proxy::Duplicates;
@@ -21,7 +22,7 @@ pub trait Selector<V: VFS> {
 /// Choose between files based on their path
 pub struct PathSelect<V: VFS> {
     reverse: bool,
-    vfs: V,
+    vfs: PhantomData<V>,
 }
 
 /// Chose between files based on their creation date
@@ -31,10 +32,10 @@ pub struct DateSelect<V: VFS> {
 }
 
 impl<V: VFS> PathSelect<V> {
-    pub fn new(v: V) -> Self {
+    pub fn new(_: V) -> Self {
         PathSelect {
             reverse: false,
-            vfs: v,
+            vfs: PhantomData,
         }
     }
 }

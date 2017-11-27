@@ -120,7 +120,6 @@ mod test {
         }
         let dw = DirWalker::new(fs, vec![Path::new("/f2")]);
         let files = dw.traverse_all();
-        println!("FILES: {:?}", files);
         assert_eq!(1, files.len());
         assert!(files.contains(Path::new("/f2/b.txt")));
     }
