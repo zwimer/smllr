@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 mod test;
 
 pub trait FileActor<V: VFS, S: Selector<V>> {
-    fn new(v: V, s: S) -> Self;
+    //fn new(v: V, s: S) -> Self;
     fn act(&mut self, dups: Duplicates);
 }
 
@@ -33,13 +33,34 @@ pub struct FileLinker<V: VFS, S: Selector<V>> {
     vfs: V,
 }
 
-impl<V: VFS, S: Selector<V>> FileActor<V, S> for FilePrinter<V, S> {
-    fn new(_: V, s: S) -> Self {
+impl<V: VFS, S: Selector<V>> FilePrinter<V, S> {
+    pub fn new(_: V, s: S) -> Self {
         FilePrinter { 
             selector: s,
             vfs: PhantomData,
         }
     }
+}
+
+impl<V: VFS, S: Selector<V>> FileDeleter<V, S> {
+    pub fn new(v: V, s: S) -> Self {
+        FileDeleter { 
+            selector: s,
+            vfs: v,
+        }
+    }
+}
+
+impl<V: VFS, S: Selector<V>> FileLinker<V, S> {
+    pub fn new(v: V, s: S) -> Self {
+        FileLinker { 
+            selector: s,
+            vfs: v,
+        }
+    }
+}
+
+impl<V: VFS, S: Selector<V>> FileActor<V, S> for FilePrinter<V, S> {
     fn act(&mut self, dups: Duplicates) {
         let real = self.selector.select(&dups);
         info!("`{:?}` is the true file", real);
@@ -53,12 +74,12 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FilePrinter<V, S> {
 }
 
 impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileDeleter<V, S> {
-    fn new(v: V, s: S) -> Self {
-        FileDeleter {
-            vfs: v,
-            selector: s,
-        }
-    }
+    //fn new(v: V, s: S) -> Self {
+    //    FileDeleter {
+    //        vfs: v,
+    //        selector: s,
+    //    }
+    //}
     fn act(&mut self, dups: Duplicates) {
         let real = self.selector.select(&dups);
         info!("`{:?}` is the true file", real);
@@ -73,12 +94,12 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileDeleter<V, S> {
 }
 
 impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileLinker<V, S> {
-    fn new(v: V, s: S) -> Self {
-        FileLinker {
-            vfs: v,
-            selector: s,
-        }
-    }
+    //fn new(v: V, s: S) -> Self {
+    //    FileLinker {
+    //        vfs: v,
+    //        selector: s,
+    //    }
+    //}
     fn act(&mut self, dups: Duplicates) {
         let real = self.selector.select(&dups);
         info!("`{:?}` is the true file", real);

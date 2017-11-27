@@ -16,7 +16,7 @@ mod walker;
 pub use walker::DirWalker;
 
 pub mod vfs;
-use vfs::RealFileSystem;
+use vfs::{VFS, RealFileSystem};
 
 mod catalog;
 use catalog::FileCataloger;
@@ -40,6 +40,16 @@ pub type Hash = [u8; 16];
 
 const FIRST_K_BYTES: usize = 32;
 
+/*
+// helpers for main only
+struct FileSel<S: Selector<RealFileSystem>>(S);
+//struct FileAct<A: FileActor<RealFileSystem, Selector<RealFileSystem>>>(A);
+struct FileAct<V: VFS, S: Selector<V>, A: FileActor<V,S>> {
+    act: A,
+    vfs: PhantomData<V>,
+    sel: PhantomData<S>,
+}
+*/
 
 fn main() {
     let matches = App::new("smllr")
@@ -71,6 +81,36 @@ fn main() {
              .short("p")
              .long("paranoid")
              .help("Use SHA-3 to hash files instead of MD5")
+             )
+        // determine selector
+        .arg(Arg::with_name("path-len")
+             .long("path-len")
+             .conflicts_with("newest-file")
+             .help("Preserve the file closest to the root (default)")
+             )
+        .arg(Arg::with_name("newest-file")
+             .long("newest-file")
+             .help("Preserve the file that was made most recently")
+             )
+        .arg(Arg::with_name("invert-selector")
+             .long("invert-selector")
+             .help("Invert the selector criterion (e.g. preserve the file farthest from the root")
+             )
+        // determine actor
+        .arg(Arg::with_name("print")
+             .long("print")
+             .conflicts_with("delete")
+             .conflicts_with("link")
+             .help("Print duplicate files (default)")
+             )
+        .arg(Arg::with_name("delete")
+             .conflicts_with("link")
+             .long("delete")
+             .help("Delete duplicate files")
+             )
+        .arg(Arg::with_name("link")
+             .long("link")
+             .help("Replace duplicate files with hard links")
              )
         .get_matches();
 
@@ -105,6 +145,12 @@ fn main() {
         fc.insert(file);
     }
 
+    //let selector: Box<Selector<RealFileSystem>> = Box::new(PathSelect::new(fs));
+    //let a: Box<FileActor<RealFileSystem, Box<Selector<RealFileSystem>>>> = Box::new(FilePrinter::new(fs, selector));
+    //let selector: Box<Selector<RealFileSystem>> = Box::new(PathSelect::new(fs));
+    //let s = PathSelect::new(fs);
+    //let a: Box<FileActor<RealFileSystem, Selector<RealFileSystem>>> = Box::new(FilePrinter::new(fs, s));
+    //let a: Box<FileActor<RealFileSystem, Selector<RealFileSystem>>> = Box::new(FilePrinter::new(fs, s));
     /*
      * TODO
      *  change firstkbytes to a hash instead of just the first 32 bytes
@@ -117,6 +163,7 @@ fn main() {
 
     // print the duplicates
     let repeats = fc.get_repeats();
+
 
     let selector = PathSelect::new(fs);
     let mut actor = FilePrinter::new(fs, selector);
