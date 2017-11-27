@@ -8,10 +8,7 @@ use catalog::proxy::Duplicates;
 /// Interface for choosing between files
 pub trait Selector<V: VFS> {
     // indicate that you want the max instead of the min or vice versa
-    //fn reverse(self) -> Self;
     fn reverse(&mut self);
-    // ctor
-    //fn new(v: V) -> Self;
     // choose which of the Paths in Duplicates is the "true" (unchanged) one
     fn select<'b>(&self, dups: &'b Duplicates) -> &'b Path;
     // helpers to be called by select
@@ -65,12 +62,6 @@ impl<V: VFS> Selector<V> for Box<Selector<V>> {
 }
 
 impl<V: VFS> Selector<V> for PathSelect<V> {
-    //fn new(v: V) -> Self {
-    //    PathSelect { 
-    //        reverse: false,
-    //        vfs: v,
-    //    }
-    //}
     fn reverse(&mut self) {
         self.reverse = true;
     }
@@ -113,12 +104,6 @@ fn cmp<'a, T: File>(a: &'a T, b: &'a T) -> Ordering {
 }
 
 impl<V: VFS> Selector<V> for DateSelect<V> {
-    //fn new(v: V) -> Self {
-    //    DateSelect { 
-    //        reverse: false,
-    //        vfs: v,
-    //    }
-    //}
     fn reverse(&mut self) {
         self.reverse = true;
     }

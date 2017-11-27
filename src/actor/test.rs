@@ -9,13 +9,13 @@ mod test {
 
     // verify trying to act on a fs with broken files panics
 
-    use actor::{FileActor, FilePrinter, FileDeleter, FileLinker, Selector};
-    use actor::selector::{PathSelect, DateSelect};
-    use vfs::{TestFileSystem, TestFile, TestMD};
+    use actor::{FileActor, FileDeleter, FileLinker, FilePrinter};
+    use actor::selector::{DateSelect, PathSelect, Selector};
+    use vfs::{TestFile, TestFileSystem, TestMD};
     use catalog::proxy::Duplicates;
 
     use std::path::{Path, PathBuf};
-    use std::time::{UNIX_EPOCH, Duration};
+    use std::time::{Duration, UNIX_EPOCH};
 
     // selector tests
 
@@ -55,17 +55,19 @@ mod test {
         }
         let paths = vec!["/a", "/x/b", "/x/y/c", "/x/y/z/d"];
         let files = Duplicates(paths.iter().map(PathBuf::from).collect());
-        let longest = PathSelect::new(fs).reverse().select(&files);
+        let mut selector = PathSelect::new(fs);
+        selector.reverse();
+        let longest = selector.select(&files);
         assert_eq!(longest, Path::new("/x/y/z/d"));
     }
 
     #[test]
     fn select_newest() {
         let fs = TestFileSystem::new();
-        let time_a = UNIX_EPOCH + Duration::new(1, 0);  // + 1 second
-        let time_b = UNIX_EPOCH + Duration::new(2, 0);  // + 2 seconds
-        let time_c = UNIX_EPOCH + Duration::new(3, 0);  // + 3 seconds
-        let time_d = UNIX_EPOCH + Duration::new(4, 0);  // + 4 seconds
+        let time_a = UNIX_EPOCH + Duration::new(1, 0); // + 1 second
+        let time_b = UNIX_EPOCH + Duration::new(2, 0); // + 2 seconds
+        let time_c = UNIX_EPOCH + Duration::new(3, 0); // + 3 seconds
+        let time_d = UNIX_EPOCH + Duration::new(4, 0); // + 4 seconds
         let md_a = TestMD::new().with_creation_time(time_a);
         let md_b = TestMD::new().with_creation_time(time_b);
         let md_c = TestMD::new().with_creation_time(time_c);
@@ -90,10 +92,10 @@ mod test {
     #[test]
     fn select_oldest() {
         let fs = TestFileSystem::new();
-        let time_a = UNIX_EPOCH + Duration::new(1, 0);  // + 1 second
-        let time_b = UNIX_EPOCH + Duration::new(2, 0);  // + 2 seconds
-        let time_c = UNIX_EPOCH + Duration::new(3, 0);  // + 3 seconds
-        let time_d = UNIX_EPOCH + Duration::new(4, 0);  // + 4 seconds
+        let time_a = UNIX_EPOCH + Duration::new(1, 0); // + 1 second
+        let time_b = UNIX_EPOCH + Duration::new(2, 0); // + 2 seconds
+        let time_c = UNIX_EPOCH + Duration::new(3, 0); // + 3 seconds
+        let time_d = UNIX_EPOCH + Duration::new(4, 0); // + 4 seconds
         let md_a = TestMD::new().with_creation_time(time_a);
         let md_b = TestMD::new().with_creation_time(time_b);
         let md_c = TestMD::new().with_creation_time(time_c);
@@ -111,7 +113,10 @@ mod test {
         }
         let paths = vec!["/a", "/x/b", "/x/y/c", "/x/y/z/d"];
         let files = Duplicates(paths.iter().map(PathBuf::from).collect());
-        let oldest = DateSelect::new(fs).reverse().select(&files);
+
+        let mut selector = DateSelect::new(fs.clone());
+        selector.reverse();
+        let oldest = selector.select(&files);
         assert_eq!(oldest, Path::new("/a"));
     }
 
@@ -137,7 +142,7 @@ mod test {
         let selector = PathSelect::new(fs.clone());
         let mut actor = FilePrinter::new(fs.clone(), selector);
         actor.act(files);
-        assert_eq!(5, fs.borrow().len());
+        assert_eq!(5, fs.borrow().num_elements());
     }
 
     #[test]
@@ -160,7 +165,7 @@ mod test {
         let selector = PathSelect::new(fs.clone());
         let mut actor = FileDeleter::new(fs.clone(), selector);
         actor.act(files);
-        assert_eq!(3, fs.borrow().len());
+        assert_eq!(3, fs.borrow().num_elements());
     }
 
     #[test]
@@ -171,17 +176,29 @@ mod test {
         let fs = TestFileSystem::new();
         {
             let mut fs_ = fs.borrow_mut();
-            fs_.create_dir("/");     // inode #0
-            fs_.add(TestFile::new("/a").with_inode(1).with_metadata(TestMD::new()));
-            fs_.add(TestFile::new("/b").with_inode(2).with_metadata(TestMD::new()));
-            fs_.add(TestFile::new("/c").with_inode(3).with_metadata(TestMD::new()));
+            fs_.create_dir("/"); // inode #0
+            fs_.add(
+                TestFile::new("/a")
+                    .with_inode(1)
+                    .with_metadata(TestMD::new()),
+            );
+            fs_.add(
+                TestFile::new("/b")
+                    .with_inode(2)
+                    .with_metadata(TestMD::new()),
+            );
+            fs_.add(
+                TestFile::new("/c")
+                    .with_inode(3)
+                    .with_metadata(TestMD::new()),
+            );
         };
         let paths = vec!["/a", "/b", "/c"];
         let files = Duplicates(paths.iter().map(PathBuf::from).collect());
 
         // currently all files are identical and distinct
         // remember that the root dir counts and has an inode
-        assert_eq!(4, fs.borrow().len(), "sanity check");
+        assert_eq!(4, fs.borrow().num_elements(), "sanity check");
         assert_eq!(4, fs.borrow().num_inodes(), "sanity check");
 
         let selector = PathSelect::new(fs.clone());
@@ -189,8 +206,7 @@ mod test {
         actor.act(files);
 
         // after acting, all files should have the same inode
-        assert_eq!(4, fs.borrow().len());
+        assert_eq!(4, fs.borrow().num_elements());
         assert_eq!(2, fs.borrow().num_inodes());
     }
 }
-

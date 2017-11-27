@@ -37,7 +37,7 @@ where
 {
     /// Helper function to convert relative paths to absolute paths if necessary
     /// Can panic if any paths are relative and if the current directory is unknown
-    fn get_abs_paths(dirs: &Vec<&Path>) -> Vec<PathBuf> {
+    fn get_abs_paths(dirs: &[&Path]) -> Vec<PathBuf> {
         // if any paths are relative, append them to the current working dir
         // if getting the cwd fails, the whole process should abort
         let abs_paths: io::Result<Vec<PathBuf>> = dirs.into_iter()
@@ -61,7 +61,7 @@ where
     }
 
     /// Create a new DirWalker from a list of directories
-    pub fn new<P: AsRef<Path>>(vfs: V, dirs: Vec<P>) -> DirWalker<V> {
+    pub fn new<P: AsRef<Path>>(vfs: V, dirs: &[P]) -> DirWalker<V> {
         let dirs: Vec<&Path> = dirs.iter().map(|p| p.as_ref()).collect();
         let abs_paths = Self::get_abs_paths(&dirs);
 
@@ -77,7 +77,7 @@ where
 
     /// Build up a DirWalker with a list of blacklisted folders
     pub fn blacklist_folders(mut self, bl: Vec<&OsStr>) -> Self {
-        let paths = bl.into_iter().map(|s| Path::new(s)).collect();
+        let paths: Vec<_> = bl.into_iter().map(|s| Path::new(s)).collect();
         let abs_paths = Self::get_abs_paths(&paths);
         self.blacklist_dirs = abs_paths;
         self
@@ -98,7 +98,7 @@ where
         //  1) haven't been seen before and
         //  2) don't match a blacklist regex pattern
         //      NOTE: if a path is invalid unicode it will never match a pattern
-        self.files.contains(path) == false && {
+        !self.files.contains(path) && {
             if let Some(path_str) = path.to_str() {
                 self.blacklist_patterns
                     .iter()
@@ -116,16 +116,16 @@ where
         //  2) don't match a folder blacklist, and
         //  3) don't match a regex pattern blacklist
         //      NOTE: again, bad unicode paths will not match any regex
-        self.folders.contains(path) == false
-            && self.blacklist_dirs.iter().all(|dir| !path.starts_with(dir)) && {
-            if let Some(path_str) = path.to_str() {
-                self.blacklist_patterns
-                    .iter()
-                    .all(|re| !re.is_match(path_str))
-            } else {
-                true
+        !self.folders.contains(path) && self.blacklist_dirs.iter().all(|dir| !path.starts_with(dir))
+            && {
+                if let Some(path_str) = path.to_str() {
+                    self.blacklist_patterns
+                        .iter()
+                        .all(|re| !re.is_match(path_str))
+                } else {
+                    true
+                }
             }
-        }
     }
 
     /// Perform operation on a file: in this case just add it to a hashset

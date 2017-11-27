@@ -21,7 +21,7 @@ mod test {
     fn walker_empty_fs() {
         let fs = TestFileSystem::new();
         let paths = vec![Path::new("/")];
-        let files = DirWalker::new(fs, paths).traverse_all();
+        let files = DirWalker::new(fs, &paths).traverse_all();
         assert_eq!(files.len(), 0);
     }
 
@@ -33,7 +33,7 @@ mod test {
             fs_.create_dir("/");
             fs_.create_file("/alpha");
         }
-        let dw = DirWalker::new(fs, vec![Path::new("/")]);
+        let dw = DirWalker::new(fs, &vec![Path::new("/")]);
         let files = dw.traverse_all();
         assert_eq!(files.len(), 1);
     }
@@ -56,7 +56,7 @@ mod test {
             // including a symlink that points to its parent folder
             fs_.create_symlink("/folder", "/");
         }
-        let dw = DirWalker::new(fs, vec![Path::new("/")]);
+        let dw = DirWalker::new(fs, &vec![Path::new("/")]);
         let files = dw.traverse_all();
         assert_eq!(files.len(), 1);
     }
@@ -73,8 +73,8 @@ mod test {
             fs_.create_file("/c.htm");
             fs_.create_file("/d.cpp");
         }
-        let dw = DirWalker::new(fs, vec![Path::new("/")])
-            .blacklist_patterns(vec!["/b+", ".*.cpp"]);
+        let dw =
+            DirWalker::new(fs, &vec![Path::new("/")]).blacklist_patterns(vec!["/b+", ".*.cpp"]);
         let files = dw.traverse_all();
         assert_eq!(2, files.len());
         assert!(files.contains(Path::new("/a.pdf")));
@@ -86,7 +86,6 @@ mod test {
         // verify files can be blacklisted by their folder
         let fs = TestFileSystem::new();
         {
-            //let fs = Rc::get_mut(&mut fs).unwrap();
             let mut fs_ = fs.borrow_mut();
             fs_.create_dir("/");
             fs_.create_dir("/f1");
@@ -98,7 +97,7 @@ mod test {
             fs_.create_file("/f3/c.htm");
             fs_.create_file("/f4/d.cpp");
         }
-        let dw = DirWalker::new(fs, vec![Path::new("/")])
+        let dw = DirWalker::new(fs, &vec![Path::new("/")])
             .blacklist_folders(vec![&OsString::from("/f1"), &OsString::from("/f2")]);
         let files = dw.traverse_all();
         assert_eq!(2, files.len());
@@ -118,7 +117,7 @@ mod test {
             fs_.create_file("/f1/a.pdf");
             fs_.create_file("/f2/b.txt");
         }
-        let dw = DirWalker::new(fs, vec![Path::new("/f2")]);
+        let dw = DirWalker::new(fs, &vec![Path::new("/f2")]);
         let files = dw.traverse_all();
         assert_eq!(1, files.len());
         assert!(files.contains(Path::new("/f2/b.txt")));

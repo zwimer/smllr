@@ -62,13 +62,13 @@ impl FirstKBytesProxy {
     }
 
     pub(super) fn get_repeats(&self) -> Vec<Duplicates> {
-        match self {
-            &FirstKBytesProxy::Delay { ref dups, .. } => if dups.0.len() >= 2 {
+        match *self {
+            FirstKBytesProxy::Delay { ref dups, .. } => if dups.0.len() >= 2 {
                 vec![dups.clone()]
             } else {
                 vec![]
             },
-            &FirstKBytesProxy::Thunk { ref thunk, .. } => {
+            FirstKBytesProxy::Thunk { ref thunk, .. } => {
                 thunk.iter().fold(vec![], |mut acc, (_fb, hp)| {
                     acc.append(&mut hp.get_repeats());
                     acc
@@ -129,10 +129,10 @@ impl FirstKBytesProxy {
 
     /// Add a new path to the proxy
     pub fn insert<T: VFS>(&mut self, vfs: &T, id: ID, path: &Path) {
-        match self {
+        match *self {
             // If a hard link and self is a Delay, insert a hard link to what's
             // already stored in Delay
-            &mut FirstKBytesProxy::Delay {
+            FirstKBytesProxy::Delay {
                 id: id2,
                 ref mut dups,
             } if id == id2 =>
@@ -142,7 +142,7 @@ impl FirstKBytesProxy {
             // If self is a thunk get first bytes and add to shortcut.
             // If a match for a proxy, add
             // to the proxy; otherwise create a new hashproxy.
-            &mut FirstKBytesProxy::Thunk {
+            FirstKBytesProxy::Thunk {
                 ref mut thunk,
                 ref mut shortcut,
             } => {
@@ -164,7 +164,7 @@ impl FirstKBytesProxy {
             }
             // If we are a delay and need to insert a path that is not a hardlink,
             // transition to a thunk
-            &mut FirstKBytesProxy::Delay { .. } => self.transition(vfs, id, path),
+            FirstKBytesProxy::Delay { .. } => self.transition(vfs, id, path),
         }
     }
 }
@@ -194,13 +194,13 @@ impl HashProxy {
 
     // get all repeats under this node and return as a set of sets of duplicates.
     fn get_repeats(&self) -> Vec<Duplicates> {
-        match self {
-            &HashProxy::Delay { ref dups, .. } => if dups.0.len() >= 2 {
+        match *self {
+            HashProxy::Delay { ref dups, .. } => if dups.0.len() >= 2 {
                 vec![dups.clone()]
             } else {
                 vec![]
             },
-            &HashProxy::Thunk { ref thunk, .. } => {
+            HashProxy::Thunk { ref thunk, .. } => {
                 thunk
                     .iter()
                     .filter_map(|(_hash, repeats)| {
@@ -238,14 +238,14 @@ impl HashProxy {
         let old_hash = old_file.get_hash().unwrap();
 
         // insert into shortcut
-        shortcut.insert(new_id, new_hash.clone());
-        shortcut.insert(del_id, old_hash.clone());
+        shortcut.insert(new_id, new_hash);
+        shortcut.insert(del_id, old_hash);
 
         // thunk: HashMap < Hash, Duplicates >
         thunk.insert(new_hash, new_dups);
         thunk
             .entry(old_hash)
-            .or_insert(Duplicates(vec![]))
+            .or_insert_with(|| Duplicates(vec![]))
             .append(del_dups);
 
         // set our pointer to the new thunk state.
@@ -254,9 +254,9 @@ impl HashProxy {
 
     // insert Duplicate into the data structure
     fn insert<T: VFS>(&mut self, vfs: &T, id: ID, dups: Duplicates) {
-        match self {
+        match *self {
             // if its just a hard link and we are in Delay: just append it
-            &mut HashProxy::Delay {
+            HashProxy::Delay {
                 id: id2,
                 dups: ref mut dups2,
             } if id == id2 =>
@@ -264,13 +264,13 @@ impl HashProxy {
                 dups2.append(dups);
             }
             // If we are in a thunk state, just add file and its hash
-            &mut HashProxy::Thunk {
+            HashProxy::Thunk {
                 ref mut thunk,
                 ref mut shortcut,
             } => {
                 let file = vfs.get_file(dups.get_path()).unwrap();
                 let hash = file.get_hash().unwrap();
-                shortcut.insert(id, hash.clone());
+                shortcut.insert(id, hash);
                 match thunk.entry(hash) {
                     Entry::Occupied(mut occ_entry) => {
                         // if files are completely identical
@@ -285,7 +285,7 @@ impl HashProxy {
                 }
             }
             // if a new non-link file is added while self is a delay stage: transition to Thunk
-            &mut HashProxy::Delay { .. } => {
+            HashProxy::Delay { .. } => {
                 self.transition(vfs, id, dups);
             }
         }

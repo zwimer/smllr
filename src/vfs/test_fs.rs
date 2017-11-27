@@ -5,14 +5,14 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::time::{self, SystemTime};
-use std::collections::{HashSet, HashMap};
-//RUST NOTE: super is the rust equivelent of .. in the filesystem.
+use std::collections::{HashMap, HashSet};
+//RUST NOTE: `super` means up a module (often up a directory)
 use vfs::{DeviceId, File, FileType, Inode, MetaData, VFS};
 use super::{FirstBytes, Hash, FIRST_K_BYTES};
 use super::super::ID;
 use md5;
 
-/// TestMD is the mock metadata struct.
+/// `TestMD` is the mock metadata struct.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TestMD {
     len: u64,
@@ -20,6 +20,7 @@ pub struct TestMD {
     kind: FileType,
     id: ID,
 }
+
 //implementation of the MetaData trait for testMD.
 impl MetaData for TestMD {
     fn get_len(&self) -> u64 {
@@ -36,6 +37,12 @@ impl MetaData for TestMD {
     }
     fn get_device(&self) -> io::Result<DeviceId> {
         Ok(DeviceId(self.id.dev))
+    }
+}
+
+impl Default for TestMD {
+    fn default() -> Self {
+        TestMD::new()
     }
 }
 
@@ -66,7 +73,7 @@ impl TestMD {
     }
 }
 
-/// TestFile denotes a mockfile.
+/// `TestFile` denotes a mockfile.
 /// Note that we are mocking the linux-style filesystem
 /// where many things are 'files', including directories,
 /// links, devices (/dev/sda might be familair).
@@ -136,7 +143,7 @@ impl TestFile {
     }
 }
 
-/// implementation of the File trait for TestFile.
+/// Implementation of the File trait for `TestFile`
 impl File for TestFile {
     type MD = TestMD;
 
@@ -151,7 +158,7 @@ impl File for TestFile {
     }
     fn get_metadata(&self) -> io::Result<TestMD> {
         self.metadata
-            .ok_or(io::Error::new(io::ErrorKind::Other, "No MD"))
+            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "No MD"))
     }
     fn get_first_bytes(&self) -> io::Result<FirstBytes> {
         if let Some(ref cont) = self.contents {
@@ -173,8 +180,8 @@ impl File for TestFile {
     }
 }
 
-/// TestFileSystem denotes a Mock Filesystem we use instead of risking
-/// our own data.
+/// `TestFileSystem` denotes a Mock Filesystem we use instead of risking
+/// our own data or dealing with the actual filesystem
 #[derive(Debug)]
 pub struct TestFileSystem {
     files: HashMap<PathBuf, TestFile>,
@@ -198,7 +205,6 @@ impl TestFileSystem {
         // Create the metadata for the file
         let md = TestMD {
             len: 0,
-            //creation: SystemTime::now(),
             creation: time::UNIX_EPOCH,
             kind,
             id: ID {
@@ -226,12 +232,15 @@ impl TestFileSystem {
         }))
     }
     /// get size
-    pub fn len(&self) -> usize {
+    pub fn num_elements(&self) -> usize {
         self.files.len() + self.symlinks.len()
     }
     /// get number of unique inodes
     pub fn num_inodes(&self) -> usize {
-        let inodes: HashSet<_> = self.files.iter().map(|f| f.1.get_inode().unwrap()).collect();
+        let inodes: HashSet<_> = self.files
+            .iter()
+            .map(|f| f.1.get_inode().unwrap())
+            .collect();
         inodes.len()
     }
     /// Creates a new file at path. Anologous to '$touch path'
@@ -384,7 +393,6 @@ impl VFS for Rc<RefCell<TestFileSystem>> {
 
     fn rm_file<P: AsRef<Path>>(&mut self, p: &P) -> io::Result<()> {
         let mut fs = self.borrow_mut();
-        //let fs = Rc::get_mut(self).unwrap();
         match fs.files.remove(p.as_ref()) {
             Some(_) => Ok(()),
             None => Err(io::Error::new(io::ErrorKind::Other, "Couldn't delete file")),
@@ -395,11 +403,12 @@ impl VFS for Rc<RefCell<TestFileSystem>> {
         let mut fs = self.borrow_mut();
         let old_inode = fs.files
             .get(dst)
-            .ok_or(io::Error::new(io::ErrorKind::NotFound, "No dst"))?
+            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "No dst"))?
             .inode
             .0;
         let name = src.to_str().expect("invalid unicode link name");
-        fs.files.insert(src.to_path_buf(), TestFile::new(name).with_inode(old_inode));
+        fs.files
+            .insert(src.to_path_buf(), TestFile::new(name).with_inode(old_inode));
         Ok(())
     }
 }

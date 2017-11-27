@@ -102,14 +102,17 @@ fn main() {
              )
         .get_matches();
 
+    // decide which files are fair game
     let dirs: Vec<&OsStr> = matches.values_of_os("paths").unwrap().collect();
-    let dirs_n: Vec<&OsStr> = match matches.is_present("bad_paths") {
-        true => matches.values_of_os("bad_paths").unwrap().collect(),
-        false => vec![],
+    let dirs_n: Vec<&OsStr> = if matches.is_present("bad_paths") {
+        matches.values_of_os("bad_paths").unwrap().collect()
+    } else {
+        vec![]
     };
-    let pats_n: Vec<_> = match matches.is_present("bad_regex") {
-        true => matches.values_of("bad_regex").unwrap().collect(),
-        false => vec![],
+    let pats_n: Vec<_> = if matches.is_present("bad_regex") {
+        matches.values_of("bad_regex").unwrap().collect()
+    } else {
+        vec![]
     };
 
     // print all log info
@@ -123,7 +126,7 @@ fn main() {
     // create and customize a DirWalker over the real filesystem
     let fs = RealFileSystem;
     let paths: Vec<&Path> = dirs.iter().map(Path::new).collect();
-    let dw = DirWalker::new(fs, paths)
+    let dw = DirWalker::new(fs, &paths)
         .blacklist_folders(dirs_n)
         .blacklist_patterns(pats_n);
     let files = dw.traverse_all();
@@ -134,6 +137,10 @@ fn main() {
         fc.insert(file);
     }
 
+    // identify repeats
+    let repeats = fc.get_repeats();
+
+    // select and act on them
     let mut selector: Box<Selector<RealFileSystem>> = {
         if matches.is_present("newest-file") {
             Box::new(DateSelect::new(fs))
@@ -144,7 +151,7 @@ fn main() {
     if matches.is_present("invert-selector") {
         selector.reverse();
     }
-    let selector = selector;    // remove mutability
+    let selector = selector; // remove mutability
 
     let mut actor: Box<FileActor<RealFileSystem, Box<Selector<RealFileSystem>>>> = {
         if matches.is_present("link") {
@@ -167,10 +174,8 @@ fn main() {
      */
 
     // print the duplicates
-    let repeats = fc.get_repeats();
 
     for dups in repeats {
         actor.act(dups);
     }
 }
-

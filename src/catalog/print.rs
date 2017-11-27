@@ -23,8 +23,9 @@ impl Debug for Duplicates {
         if let Some(i) = self.0.get(0) {
             write!(f, "{:?}", i)?;
         } else {
-            write!(f, "~EMPTY~")?; //something's probably wrong as ATM this object only
-                                   //should be created if 2+ entries are to be added
+            // something's probably wrong as ATM this object only
+            // should be created if 2+ entries are to be added
+            write!(f, "~EMPTY~")?;
         }
         for i in self.0.iter().skip(1) {
             write!(f, ", {:?}", i)?;
@@ -45,11 +46,11 @@ impl<T: VFS> Debug for FileCataloger<T> {
 impl Debug for FirstKBytesProxy {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "FKBProxy::")?;
-        match self {
-            &FirstKBytesProxy::Delay { ref id, ref dups } => {
+        match *self {
+            FirstKBytesProxy::Delay { ref id, ref dups } => {
                 write!(f, "Delay: ({:?})  {:?}", id, dups)?;
             }
-            &FirstKBytesProxy::Thunk { ref thunk, .. } => {
+            FirstKBytesProxy::Thunk { ref thunk, .. } => {
                 write!(f, "Thunk: ")?;
                 for (bytes, hp) in thunk {
                     let s = String::from_utf8_lossy(&bytes.0);
@@ -72,11 +73,11 @@ impl Debug for FirstKBytesProxy {
 impl Debug for HashProxy {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "HashProxy::")?;
-        match self {
-            &HashProxy::Delay { ref id, ref dups } => {
+        match *self {
+            HashProxy::Delay { ref id, ref dups } => {
                 write!(f, "Delay: ({:?})  {:?}", id, dups)?;
             }
-            &HashProxy::Thunk { ref thunk, .. } => {
+            HashProxy::Thunk { ref thunk, .. } => {
                 write!(f, "Thunk: ")?;
                 for (hash, repeats) in thunk {
                     write!(

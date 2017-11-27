@@ -39,7 +39,7 @@ pub struct FileLinker<V: VFS, S: Selector<V>> {
 
 impl<V: VFS, S: Selector<V>> FilePrinter<V, S> {
     pub fn new(_: V, s: S) -> Self {
-        FilePrinter { 
+        FilePrinter {
             selector: s,
             vfs: PhantomData,
         }
@@ -48,7 +48,7 @@ impl<V: VFS, S: Selector<V>> FilePrinter<V, S> {
 
 impl<V: VFS, S: Selector<V>> FileDeleter<V, S> {
     pub fn new(v: V, s: S) -> Self {
-        FileDeleter { 
+        FileDeleter {
             selector: s,
             vfs: v,
         }
@@ -57,7 +57,7 @@ impl<V: VFS, S: Selector<V>> FileDeleter<V, S> {
 
 impl<V: VFS, S: Selector<V>> FileLinker<V, S> {
     pub fn new(v: V, s: S) -> Self {
-        FileLinker { 
+        FileLinker {
             selector: s,
             vfs: v,
         }
@@ -109,7 +109,7 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileLinker<V, S> {
             self.vfs.rm_file(f).expect("Couldn't delete file");
             info!("\t\tand replacing it with a link to `{:?}`...", real);
             println!("\t\tand replacing it with a link to `{:?}`...", real);
-            self.vfs.make_link(real, f).expect("Couldn't create link");
+            self.vfs.make_link(f, real).expect("Couldn't create link");
         }
     }
 }

@@ -119,6 +119,6 @@ impl VFS for RealFileSystem {
     }
 
     fn make_link(&mut self, src: &Path, dst: &Path) -> io::Result<()> {
-        ::std::fs::hard_link(src, dst)
+        ::std::fs::hard_link(dst, src)
     }
 }
