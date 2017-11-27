@@ -27,8 +27,14 @@ mod test {
                     .with_metadata(TestMD::new())
                     .with_inode(2),
             );
+            fs.add(
+                TestFile::new("/c")
+                    .with_contents(String::from("CCCC"))
+                    .with_metadata(TestMD::new())
+                    .with_inode(3),
+            );
         }
-        let files: HashSet<_> = vec!["/a", "/b"].iter().map(PathBuf::from).collect();
+        let files: HashSet<_> = vec!["/a", "/b", "/c"].iter().map(PathBuf::from).collect();
 
         let mut fc = FileCataloger::new(fs);
         for file in &files {
@@ -60,8 +66,14 @@ mod test {
                     .with_metadata(TestMD::new())
                     .with_inode(2),
             );
+            fs.add(
+                TestFile::new("/c")
+                    .with_contents(format!("{}_c", start))
+                    .with_metadata(TestMD::new())
+                    .with_inode(3),
+            );
         }
-        let files: HashSet<_> = vec!["/a", "/b"].iter().map(PathBuf::from).collect();
+        let files: HashSet<_> = vec!["/a", "/b", "/c"].iter().map(PathBuf::from).collect();
 
         let mut fc = FileCataloger::new(fs);
         for file in &files {
@@ -88,12 +100,18 @@ mod test {
             );
             fs.add(
                 TestFile::new("/b")
-                    .with_contents(contents)
+                    .with_contents(contents.clone())
                     .with_metadata(TestMD::new())
                     .with_inode(2),
             );
+            fs.add(
+                TestFile::new("/c")
+                    .with_contents(contents)
+                    .with_metadata(TestMD::new())
+                    .with_inode(3),
+            );
         }
-        let files: HashSet<_> = vec!["/a", "/b"].iter().map(PathBuf::from).collect();
+        let files: HashSet<_> = vec!["/a", "/b", "/c"].iter().map(PathBuf::from).collect();
 
         let mut fc = FileCataloger::new(fs);
         for file in &files {
@@ -103,7 +121,7 @@ mod test {
         let repeats = fc.get_repeats();
         assert_eq!(1, repeats.len());
         let dups = &repeats[0].0;
-        assert_eq!(2, dups.len());
+        assert_eq!(3, dups.len());
         assert!(dups.contains(&PathBuf::from("/a")));
         assert!(dups.contains(&PathBuf::from("/b")));
     }
