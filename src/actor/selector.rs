@@ -7,9 +7,10 @@ use catalog::proxy::Duplicates;
 /// Interface for choosing between files
 pub trait Selector<V: VFS> {
     // indicate that you want the max instead of the min or vice versa
-    fn reverse(self) -> Self;
+    //fn reverse(self) -> Self;
+    fn reverse(&mut self);
     // ctor
-    fn new(v: V) -> Self;
+    //fn new(v: V) -> Self;
     // choose which of the Paths in Duplicates is the "true" (unchanged) one
     fn select<'b>(&self, dups: &'b Duplicates) -> &'b Path;
     // helpers to be called by select
@@ -29,18 +30,48 @@ pub struct DateSelect<V: VFS> {
     vfs: V,
 }
 
-impl<V: VFS> Selector<V> for PathSelect<V> {
-    fn new(v: V) -> Self {
-        PathSelect { 
+impl<V: VFS> PathSelect<V> {
+    pub fn new(v: V) -> Self {
+        PathSelect {
             reverse: false,
             vfs: v,
         }
     }
-    fn reverse(self) -> Self {
-        PathSelect { 
-            reverse: true,
-            vfs: self.vfs,
+}
+
+impl<V: VFS> DateSelect<V> {
+    pub fn new(v: V) -> Self {
+        DateSelect {
+            reverse: false,
+            vfs: v,
         }
+    }
+}
+
+impl<V: VFS> Selector<V> for Box<Selector<V>> {
+    fn reverse(&mut self) {
+        (**self).reverse();
+    }
+    fn select<'b>(&self, dups: &'b Duplicates) -> &'b Path {
+        (**self).select(dups)
+    }
+    fn min<'b>(&self, dups: &'b Duplicates) -> &'b Path {
+        (**self).min(dups)
+    }
+    fn max<'b>(&self, dups: &'b Duplicates) -> &'b Path {
+        (**self).max(dups)
+    }
+}
+
+impl<V: VFS> Selector<V> for PathSelect<V> {
+    //fn new(v: V) -> Self {
+    //    PathSelect { 
+    //        reverse: false,
+    //        vfs: v,
+    //    }
+    //}
+    fn reverse(&mut self) {
+        self.reverse = true;
     }
     fn select<'b>(&self, dups: &'b Duplicates) -> &'b Path {
         // select the shallowest element (the path is the shortest)
@@ -81,17 +112,14 @@ fn cmp<'a, T: File>(a: &'a T, b: &'a T) -> Ordering {
 }
 
 impl<V: VFS> Selector<V> for DateSelect<V> {
-    fn new(v: V) -> Self {
-        DateSelect { 
-            reverse: false,
-            vfs: v,
-        }
-    }
-    fn reverse(self) -> Self {
-        DateSelect { 
-            reverse: true,
-            vfs: self.vfs,
-        }
+    //fn new(v: V) -> Self {
+    //    DateSelect { 
+    //        reverse: false,
+    //        vfs: v,
+    //    }
+    //}
+    fn reverse(&mut self) {
+        self.reverse = true;
     }
     fn min<'b>(&self, dups: &'b Duplicates) -> &'b Path {
         dups.0

@@ -145,12 +145,28 @@ fn main() {
         fc.insert(file);
     }
 
-    //let selector: Box<Selector<RealFileSystem>> = Box::new(PathSelect::new(fs));
-    //let a: Box<FileActor<RealFileSystem, Box<Selector<RealFileSystem>>>> = Box::new(FilePrinter::new(fs, selector));
-    //let selector: Box<Selector<RealFileSystem>> = Box::new(PathSelect::new(fs));
-    //let s = PathSelect::new(fs);
-    //let a: Box<FileActor<RealFileSystem, Selector<RealFileSystem>>> = Box::new(FilePrinter::new(fs, s));
-    //let a: Box<FileActor<RealFileSystem, Selector<RealFileSystem>>> = Box::new(FilePrinter::new(fs, s));
+    let mut selector: Box<Selector<RealFileSystem>> = {
+        if matches.is_present("newest-file") {
+            Box::new(DateSelect::new(fs))
+        } else {
+            Box::new(PathSelect::new(fs))
+        }
+    };
+    if matches.is_present("invert-selector") {
+        selector.reverse();
+    }
+    let selector = selector;    // remove mutability
+
+    let mut actor: Box<FileActor<RealFileSystem, Box<Selector<RealFileSystem>>>> = {
+        if matches.is_present("link") {
+            Box::new(FileLinker::new(fs, selector))
+        } else if matches.is_present("delete") {
+            Box::new(FileDeleter::new(fs, selector))
+        } else {
+            Box::new(FilePrinter::new(fs, selector))
+        }
+    };
+
     /*
      * TODO
      *  change firstkbytes to a hash instead of just the first 32 bytes
@@ -163,10 +179,6 @@ fn main() {
 
     // print the duplicates
     let repeats = fc.get_repeats();
-
-
-    let selector = PathSelect::new(fs);
-    let mut actor = FilePrinter::new(fs, selector);
 
     for dups in repeats {
         actor.act(dups);

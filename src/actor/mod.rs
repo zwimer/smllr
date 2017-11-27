@@ -14,6 +14,12 @@ pub trait FileActor<V: VFS, S: Selector<V>> {
     fn act(&mut self, dups: Duplicates);
 }
 
+impl<V: VFS, S: Selector<V>> FileActor<V, S> for Box<FileActor<V, S>> {
+    fn act(&mut self, dups: Duplicates) {
+        (**self).act(dups)
+    }
+}
+
 /// Actor that prints file names but doesn't modify the filesystem
 pub struct FilePrinter<V: VFS, S: Selector<V>> {
     selector: S,
