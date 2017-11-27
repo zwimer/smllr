@@ -5,32 +5,32 @@ use vfs::{File, MetaData, VFS};
 use catalog::proxy::Duplicates;
 
 /// Interface for choosing between files
-pub trait Selector<'a, V: VFS> {
+pub trait Selector<V: VFS> {
     // indicate that you want the max instead of the min or vice versa
     fn reverse(self) -> Self;
     // ctor
-    fn new(v: &'a V) -> Self;
+    fn new(v: V) -> Self;
     // choose which of the Paths in Duplicates is the "true" (unchanged) one
-    fn select<'b>(&'a self, dups: &'b Duplicates) -> &'b Path;
+    fn select<'b>(&self, dups: &'b Duplicates) -> &'b Path;
     // helpers to be called by select
-    fn min<'b>(&'a self, dups: &'b Duplicates) -> &'b Path;
-    fn max<'b>(&'a self, dups: &'b Duplicates) -> &'b Path;
+    fn min<'b>(&self, dups: &'b Duplicates) -> &'b Path;
+    fn max<'b>(&self, dups: &'b Duplicates) -> &'b Path;
 }
 
 /// Choose between files based on their path
-pub struct PathSelect<'a, V: VFS + 'a> {
+pub struct PathSelect<V: VFS> {
     reverse: bool,
-    vfs: &'a V,
+    vfs: V,
 }
 
 /// Chose between files based on their creation date
-pub struct DateSelect<'a, V: VFS + 'a> {
+pub struct DateSelect<V: VFS> {
     reverse: bool,
-    vfs: &'a V,
+    vfs: V,
 }
 
-impl<'a, V: VFS> Selector<'a, V> for PathSelect<'a, V> {
-    fn new(v: &V) -> Self {
+impl<V: VFS> Selector<V> for PathSelect<V> {
+    fn new(v: V) -> Self {
         PathSelect { 
             reverse: false,
             vfs: v,
@@ -72,7 +72,6 @@ impl<'a, V: VFS> Selector<'a, V> for PathSelect<'a, V> {
     }
 }
 
-/*
 fn cmp<'a, T: File>(a: &'a T, b: &'a T) -> Ordering {
     let md_a = a.get_metadata().unwrap();
     let md_b = b.get_metadata().unwrap();
@@ -119,4 +118,3 @@ impl<V: VFS> Selector<V> for DateSelect<V> {
         }
     }
 }
-*/

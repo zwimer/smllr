@@ -14,6 +14,7 @@ mod test {
     use vfs::{TestFileSystem, TestFile, TestMD};
     use catalog::proxy::Duplicates;
 
+    use std::rc::Rc;
     use std::path::{Path, PathBuf};
     use std::time::{UNIX_EPOCH, Duration};
 
@@ -22,15 +23,18 @@ mod test {
     #[test]
     fn select_shortest() {
         let mut fs = TestFileSystem::new();
-        fs.create_dir("/");
-        fs.create_dir("/w");
-        fs.create_dir("/w/x");
-        fs.create_dir("/w/x/y");
-        fs.create_dir("/w/x/y/z");
-        fs.add(TestFile::new("/a"));
-        fs.add(TestFile::new("/w/b"));
-        fs.add(TestFile::new("/w/x/c"));
-        fs.add(TestFile::new("/w/x/y/d"));
+        {
+            let fs = Rc::get_mut(&mut fs).unwrap();
+            fs.create_dir("/");
+            fs.create_dir("/w");
+            fs.create_dir("/w/x");
+            fs.create_dir("/w/x/y");
+            fs.create_dir("/w/x/y/z");
+            fs.add(TestFile::new("/a"));
+            fs.add(TestFile::new("/w/b"));
+            fs.add(TestFile::new("/w/x/c"));
+            fs.add(TestFile::new("/w/x/y/d"));
+        }
         let files = Duplicates(vec!["/a"].iter().map(PathBuf::from).collect());
         let shortest = PathSelect::new(fs).select(&files);
         assert_eq!(shortest, Path::new("/a"));
@@ -39,21 +43,23 @@ mod test {
     #[test]
     fn select_longest() {
         let mut fs = TestFileSystem::new();
-        fs.create_dir("/");
-        fs.create_dir("/x");
-        fs.create_dir("/x/y");
-        fs.create_dir("/x/y/z");
-        fs.add(TestFile::new("/a"));
-        fs.add(TestFile::new("/x/b"));
-        fs.add(TestFile::new("/x/y/c"));
-        fs.add(TestFile::new("/x/y/z/d"));
+        {
+            let fs = Rc::get_mut(&mut fs).unwrap();
+            fs.create_dir("/");
+            fs.create_dir("/x");
+            fs.create_dir("/x/y");
+            fs.create_dir("/x/y/z");
+            fs.add(TestFile::new("/a"));
+            fs.add(TestFile::new("/x/b"));
+            fs.add(TestFile::new("/x/y/c"));
+            fs.add(TestFile::new("/x/y/z/d"));
+        }
         let paths = vec!["/a", "/x/b", "/x/y/c", "/x/y/z/d"];
         let files = Duplicates(paths.iter().map(PathBuf::from).collect());
         let longest = PathSelect::new(fs).reverse().select(&files);
         assert_eq!(longest, Path::new("/x/y/z/d"));
     }
 
-    /*
     #[test]
     fn select_newest() {
         let mut fs = TestFileSystem::new();
@@ -65,14 +71,17 @@ mod test {
         let md_b = TestMD::new().with_creation_time(time_b);
         let md_c = TestMD::new().with_creation_time(time_c);
         let md_d = TestMD::new().with_creation_time(time_d);
-        fs.create_dir("/");
-        fs.create_dir("/x");
-        fs.create_dir("/x/y");
-        fs.create_dir("/x/y/z");
-        fs.add(TestFile::new("/a").with_metadata(md_a));
-        fs.add(TestFile::new("/x/b").with_metadata(md_b));
-        fs.add(TestFile::new("/x/y/c").with_metadata(md_c));
-        fs.add(TestFile::new("/x/y/z/d").with_metadata(md_d));
+        {
+            let fs = Rc::get_mut(&mut fs).unwrap();
+            fs.create_dir("/");
+            fs.create_dir("/x");
+            fs.create_dir("/x/y");
+            fs.create_dir("/x/y/z");
+            fs.add(TestFile::new("/a").with_metadata(md_a));
+            fs.add(TestFile::new("/x/b").with_metadata(md_b));
+            fs.add(TestFile::new("/x/y/c").with_metadata(md_c));
+            fs.add(TestFile::new("/x/y/z/d").with_metadata(md_d));
+        }
         let paths = vec!["/a", "/x/b", "/x/y/c", "/x/y/z/d"];
         let files = Duplicates(paths.iter().map(PathBuf::from).collect());
         let newest = DateSelect::new(fs).select(&files);
@@ -90,20 +99,22 @@ mod test {
         let md_b = TestMD::new().with_creation_time(time_b);
         let md_c = TestMD::new().with_creation_time(time_c);
         let md_d = TestMD::new().with_creation_time(time_d);
-        fs.create_dir("/");
-        fs.create_dir("/x");
-        fs.create_dir("/x/y");
-        fs.create_dir("/x/y/z");
-        fs.add(TestFile::new("/a").with_metadata(md_a));
-        fs.add(TestFile::new("/x/b").with_metadata(md_b));
-        fs.add(TestFile::new("/x/y/c").with_metadata(md_c));
-        fs.add(TestFile::new("/x/y/z/d").with_metadata(md_d));
+        {
+            let fs = Rc::get_mut(&mut fs).unwrap();
+            fs.create_dir("/");
+            fs.create_dir("/x");
+            fs.create_dir("/x/y");
+            fs.create_dir("/x/y/z");
+            fs.add(TestFile::new("/a").with_metadata(md_a));
+            fs.add(TestFile::new("/x/b").with_metadata(md_b));
+            fs.add(TestFile::new("/x/y/c").with_metadata(md_c));
+            fs.add(TestFile::new("/x/y/z/d").with_metadata(md_d));
+        }
         let paths = vec!["/a", "/x/b", "/x/y/c", "/x/y/z/d"];
         let files = Duplicates(paths.iter().map(PathBuf::from).collect());
         let oldest = DateSelect::new(fs).reverse().select(&files);
         assert_eq!(oldest, Path::new("/a"));
     }
-    */
 
     // actor tests
 
@@ -113,11 +124,14 @@ mod test {
         // verify the filesystem doesn't change
 
         let mut fs = TestFileSystem::new();
-        fs.create_dir("/");
-        fs.add(TestFile::new("/a"));
-        fs.create_dir("/x");
-        fs.add(TestFile::new("/x/b"));
-        fs.add(TestFile::new("/x/c"));
+        {
+            let fs = Rc::get_mut(&mut fs).unwrap();
+            fs.create_dir("/");
+            fs.add(TestFile::new("/a"));
+            fs.create_dir("/x");
+            fs.add(TestFile::new("/x/b"));
+            fs.add(TestFile::new("/x/c"));
+        };
         let paths = vec!["/a", "/x/b", "/x/c"];
         let files = Duplicates(paths.iter().map(PathBuf::from).collect());
 
@@ -133,11 +147,14 @@ mod test {
         // verify the filesystem doesn't change
 
         let mut fs = TestFileSystem::new();
-        fs.create_dir("/");
-        fs.add(TestFile::new("/a").with_metadata(TestMD::new()));
-        fs.create_dir("/x");
-        fs.add(TestFile::new("/x/b").with_metadata(TestMD::new()));
-        fs.add(TestFile::new("/x/c").with_metadata(TestMD::new()));
+        {
+            let fs = Rc::get_mut(&mut fs).unwrap();
+            fs.create_dir("/");
+            fs.add(TestFile::new("/a").with_metadata(TestMD::new()));
+            fs.create_dir("/x");
+            fs.add(TestFile::new("/x/b").with_metadata(TestMD::new()));
+            fs.add(TestFile::new("/x/c").with_metadata(TestMD::new()));
+        };
         let paths = vec!["/a", "/x/b", "/x/c"];
         let files = Duplicates(paths.iter().map(PathBuf::from).collect());
 
