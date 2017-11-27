@@ -8,6 +8,45 @@ mod test {
     use std::collections::HashSet;
 
     #[test]
+    fn dup_all_unique() {
+        // completely distinct files should not be flagged as duplicates
+        // they share no criteria in common (inode/size/hash/beginning)
+
+        let fs = TestFileSystem::new();
+        {
+            let mut fs = fs.borrow_mut();
+            fs.create_dir("/");
+            fs.add(
+                TestFile::new("/a")
+                    .with_contents(String::from("A"))
+                    .with_metadata(TestMD::new())
+                    .with_inode(1),
+            );
+            fs.add(
+                TestFile::new("/b")
+                    .with_contents(String::from("BB"))
+                    .with_metadata(TestMD::new())
+                    .with_inode(2),
+            );
+            fs.add(
+                TestFile::new("/c")
+                    .with_contents(String::from("CCC"))
+                    .with_metadata(TestMD::new())
+                    .with_inode(3),
+            );
+        }
+        let files: HashSet<_> = vec!["/a", "/b", "/c"].iter().map(PathBuf::from).collect();
+
+        let mut fc = FileCataloger::new(fs);
+        for file in &files {
+            fc.insert(file);
+        }
+
+        let repeats = fc.get_repeats();
+        assert!(repeats.is_empty());
+    }
+
+    #[test]
     fn dup_test_same_size() {
         // files with the same length but different contents
         // files should not be flagged as duplicates

@@ -1,9 +1,10 @@
 #[cfg(test)]
 mod test {
 
+    use ID;
     use actor::{FileActor, FileDeleter, FileLinker, FilePrinter};
     use actor::selector::{DateSelect, PathSelect, Selector};
-    use vfs::{TestFile, TestFileSystem, TestMD};
+    use vfs::{TestFile, TestFileSystem, TestMD, FileType};
     use catalog::proxy::Duplicates;
 
     use std::path::{Path, PathBuf};
@@ -204,5 +205,48 @@ mod test {
         // after acting, all files should have the same inode
         assert_eq!(4, fs.borrow().num_elements());
         assert_eq!(2, fs.borrow().num_inodes());
+    }
+
+    #[test]
+    fn actor_link_across_devices() {
+        // run `FileLinker::act()` on a set of duplicates spread across devices
+        // verify the filesystem doesn't fail and doesn't change anything
+
+        let fs = TestFileSystem::new();
+        {
+            let mut fs = fs.borrow_mut();
+            fs.add(
+                TestFile::new("/")
+                    .with_kind(FileType::Dir)
+                    .with_metadata(TestMD::new().with_id(ID { inode: 1, dev: 10 }))
+            );
+            fs.add(
+                TestFile::new("/a")
+                    .with_metadata(TestMD::new().with_id(ID { inode: 2, dev: 20 }))
+            );
+            fs.add(
+                TestFile::new("/b")
+                    .with_metadata(TestMD::new().with_id(ID { inode: 3, dev: 20 }))
+            );
+            fs.add(
+                TestFile::new("/c")
+                    .with_metadata(TestMD::new().with_id(ID { inode: 4, dev: 20 }))
+            );
+        };
+        let paths = vec!["/a", "/b", "/c"];
+        let files = Duplicates(paths.iter().map(PathBuf::from).collect());
+
+        // currently all files are identical and distinct
+        // remember that the root dir counts and has an inode
+        assert_eq!(4, fs.borrow().num_elements(), "sanity check");
+        assert_eq!(4, fs.borrow().num_inodes(), "sanity check");
+
+        let selector = PathSelect::new(fs.clone());
+        let mut actor = FileLinker::new(fs.clone(), selector);
+        actor.act(files);
+
+        // after acting, nothing should have happened (except a warning message)
+        assert_eq!(4, fs.borrow().num_elements());
+        assert_eq!(4, fs.borrow().num_inodes());
     }
 }

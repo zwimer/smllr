@@ -138,6 +138,8 @@ impl TestFile {
         // fix inode discrepancy
         if self.inode.0 != 0 {
             md.id.inode = self.inode.0;
+        } else if md.id.inode != 0 {
+            self.inode.0 = md.id.inode;
         }
         self.metadata = Some(md);
         self
@@ -403,14 +405,31 @@ impl VFS for Rc<RefCell<TestFileSystem>> {
 
     fn make_link(&mut self, src: &Path, dst: &Path) -> io::Result<()> {
         let mut fs = self.borrow_mut();
-        let old_inode = fs.files
+        let old_md = fs
+            .files
             .get(dst)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "No dst"))?
-            .inode
-            .0;
+            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "No dst file"))?
+            .get_metadata()?;
+        let old_inode = old_md.get_inode();
+        let old_device = old_md.get_device()?;
+
+        let new_dir = src.parent().unwrap(); // can't be root
+        let new_device = fs
+            .files
+            .get(new_dir)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "No src md"))?
+            .get_metadata()?
+            .get_device()?;
+
+        if old_device != new_device {
+            // can't make a hard link across devices (on most filesystems)
+            return Err(io::Error::new(io::ErrorKind::Other, 
+                                      "Cannot make hard link across filesystems"));
+        }
+
         let name = src.to_str().expect("invalid unicode link name");
         fs.files
-            .insert(src.to_path_buf(), TestFile::new(name).with_inode(old_inode));
+            .insert(src.to_path_buf(), TestFile::new(name).with_inode(old_inode.0));
         Ok(())
     }
 }

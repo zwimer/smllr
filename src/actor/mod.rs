@@ -1,4 +1,4 @@
-use vfs::VFS;
+use vfs::{VFS, File, MetaData};
 use catalog::proxy::Duplicates;
 
 pub mod selector;
@@ -101,16 +101,31 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileDeleter<V, S> {
 impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileLinker<V, S> {
     fn act(&mut self, dups: Duplicates) {
         let real = self.selector.select(&dups);
+        let real_file = self.vfs.get_file(real).expect("Couldn't find link dst");
+        let real_md = real_file.get_metadata().expect("Couldn't get link dst md");
+        let real_dev = real_md.get_device().expect("Couldn't get link dst device");
         info!("`{:?}` is the true file", real);
         println!("`{:?}` is the true file", real);
         // iterate over all other duplicates
         for f in dups.0.iter().filter(|&f| f.as_path() != real) {
-            info!("\tDeleting `{:?}`...", f);
-            println!("\tDeleting `{:?}`...", f);
-            self.vfs.rm_file(f).expect("Couldn't delete file");
-            info!("\t\tand replacing it with a link to `{:?}`...", real);
-            println!("\t\tand replacing it with a link to `{:?}`...", real);
-            self.vfs.make_link(f, real).expect("Couldn't create link");
+            let f_dir = f.parent().unwrap(); // can't be a dir so can't be "/"
+            let f_dir_file = self.vfs.get_file(f_dir).expect("Couldn't find link src parent");
+            let f_dir_md = f_dir_file.get_metadata().expect("Couldn't get link src parent md");
+            let f_dir_dev = f_dir_md.get_device().expect("Couldn't get link src parent device");
+
+            if real_dev != f_dir_dev {
+                warn!("You tried to create a link from directory `{:?}` on device {:?} \
+                to the file `{:?}` on device {:?}.\n\
+                Hard-linking across devices is generally an error. \
+                Skipping...", f_dir, f_dir_dev, real, real_dev);
+            } else {
+                info!("\tDeleting `{:?}`...", f);
+                println!("\tDeleting `{:?}`...", f);
+                self.vfs.rm_file(f).expect("Couldn't delete file");
+                info!("\t\tand replacing it with a link to `{:?}`...", real);
+                println!("\t\tand replacing it with a link to `{:?}`...", real);
+                self.vfs.make_link(f, real).expect("Couldn't create link");
+            }
         }
     }
 }
