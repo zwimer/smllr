@@ -1,21 +1,21 @@
-use std::collections::HashMap;
 use std::path::Path;
+use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 
-use super::ID;
+pub use super::ID;
+use vfs::{File, MetaData, VFS};
 
-mod proxy;
+pub mod proxy;
 use self::proxy::{Duplicates, FirstKBytesProxy};
 
 mod print;
 
-use super::vfs::{File, MetaData, VFS};
+mod test; // include unit tests
 
 
 pub struct FileCataloger<T: VFS> {
     catalog: HashMap<u64, FirstKBytesProxy>,
     vfs: T,
-    //shortcut: HashMap<ID, u64>,
     // For now, omit the shortcut. We're just using the real fs right now, so
     // a file is just a Path, which has no associated metadata.
     // In the future we could get the ID from the DirWalker for free*, but
@@ -29,7 +29,6 @@ impl<T: VFS> FileCataloger<T> {
         FileCataloger {
             catalog: HashMap::new(),
             vfs: vfs,
-            //shortcut: HashMap::new(),
         }
     }
 
@@ -41,7 +40,7 @@ impl<T: VFS> FileCataloger<T> {
         let mut all = vec![];
         // for each subgrouping (done by size), get all the list of duplicates and
         // add them to are return variable.
-        for (_size, ref fkbp) in &self.catalog {
+        for fkbp in self.catalog.values() {
             all.append(&mut fkbp.get_repeats());
         }
         all

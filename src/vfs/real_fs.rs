@@ -113,4 +113,12 @@ impl VFS for RealFileSystem {
             None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
         }
     }
+
+    fn rm_file<P: AsRef<Path>>(&mut self, p: &P) -> io::Result<()> {
+        ::std::fs::remove_file(p)
+    }
+
+    fn make_link(&mut self, src: &Path, dst: &Path) -> io::Result<()> {
+        ::std::fs::hard_link(dst, src)
+    }
 }

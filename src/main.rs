@@ -6,8 +6,6 @@ extern crate md5;
 extern crate regex;
 
 use clap::{App, Arg};
-use env_logger::LogBuilder;
-use log::LogLevelFilter;
 
 use std::path::Path;
 use std::ffi::OsStr;
@@ -18,29 +16,28 @@ pub use walker::DirWalker;
 pub mod vfs;
 use vfs::RealFileSystem;
 
-mod test;
-
 mod catalog;
 use catalog::FileCataloger;
 
+mod actor;
+pub use actor::{FileActor, FileDeleter, FileLinker, FilePrinter};
+use actor::selector::{DateSelect, PathSelect, Selector};
+
 // Helpers:
 
-// Temporary struct: should move once we know where
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub struct ID {
     dev: u64,
     inode: u64,
 }
+
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct FirstBytes(pub(crate) [u8; FIRST_K_BYTES]);
 
 pub type Hash = [u8; 16];
 
-
-
-//const FILE_READ_BUFFER_SIZE: usize = 4096;
 const FIRST_K_BYTES: usize = 32;
-//const FIRST_K_BYTES: usize = 4096;
+
 
 fn main() {
     let matches = App::new("smllr")
@@ -73,39 +70,93 @@ fn main() {
              .long("paranoid")
              .help("Use SHA-3 to hash files instead of MD5")
              )
+        // determine selector
+        .arg(Arg::with_name("path-len")
+             .long("path-len")
+             .conflicts_with("newest-file")
+             .help("Preserve the file closest to the root (default)")
+             )
+        .arg(Arg::with_name("newest-file")
+             .long("newest-file")
+             .help("Preserve the file that was made most recently")
+             )
+        .arg(Arg::with_name("invert-selector")
+             .long("invert-selector")
+             .help("Invert the selector criterion (e.g. preserve the deepest file)")
+             )
+        // determine actor
+        .arg(Arg::with_name("print")
+             .long("print")
+             .conflicts_with("delete")
+             .conflicts_with("link")
+             .help("Print duplicate files (default)")
+             )
+        .arg(Arg::with_name("delete")
+             .conflicts_with("link")
+             .long("delete")
+             .help("Delete duplicate files")
+             )
+        .arg(Arg::with_name("link")
+             .long("link")
+             .help("Replace duplicate files with hard links")
+             )
         .get_matches();
 
+    // decide which files are fair game
     let dirs: Vec<&OsStr> = matches.values_of_os("paths").unwrap().collect();
-    //matches.contains("bad_paths");
-    let dirs_n: Vec<&OsStr> = match matches.is_present("bad_paths") {
-        true => matches.values_of_os("bad_paths").unwrap().collect(),
-        false => vec![],
+    let dirs_n: Vec<&OsStr> = if matches.is_present("bad_paths") {
+        matches.values_of_os("bad_paths").unwrap().collect()
+    } else {
+        vec![]
     };
-    let pats_n: Vec<_> = match matches.is_present("bad_regex") {
-        true => matches.values_of("bad_regex").unwrap().collect(),
-        false => vec![],
+    let pats_n: Vec<_> = if matches.is_present("bad_regex") {
+        matches.values_of("bad_regex").unwrap().collect()
+    } else {
+        vec![]
     };
 
-    // for now print all log info
-    LogBuilder::new()
-        .filter(None, LogLevelFilter::max())
-        .init()
-        .unwrap();
+    // print all log info
+    env_logger::init().unwrap();
 
     // create and customize a DirWalker over the real filesystem
     let fs = RealFileSystem;
     let paths: Vec<&Path> = dirs.iter().map(Path::new).collect();
-    let dw = DirWalker::new(fs, paths)
+    let dw = DirWalker::new(fs, &paths)
         .blacklist_folders(dirs_n)
         .blacklist_patterns(pats_n);
     let files = dw.traverse_all();
-    println!("{:?}", files.len());
 
     // catalog all files
     let mut fc = FileCataloger::new(fs);
     for file in &files {
         fc.insert(file);
     }
+
+    // identify repeats
+    let repeats = fc.get_repeats();
+
+    // select and act on them
+    let mut selector: Box<Selector<RealFileSystem>> = {
+        if matches.is_present("newest-file") {
+            Box::new(DateSelect::new(fs))
+        } else {
+            Box::new(PathSelect::new(fs))
+        }
+    };
+    if matches.is_present("invert-selector") {
+        selector.reverse();
+    }
+    let selector = selector; // remove mutability
+
+    let mut actor: Box<FileActor<RealFileSystem, Box<Selector<RealFileSystem>>>> = {
+        if matches.is_present("link") {
+            Box::new(FileLinker::new(fs, selector))
+        } else if matches.is_present("delete") {
+            Box::new(FileDeleter::new(fs, selector))
+        } else {
+            Box::new(FilePrinter::new(fs, selector))
+        }
+    };
 
     /*
      * TODO
@@ -115,27 +166,11 @@ fn main() {
      *  consider consolidating FirstKBytesProxy and HashProxy somehow
      *  register duplicates up? or maybe just fetch more efficiently
      *      get ID not just a vec of duplicates?
-     *  rename `Duplicates` to `Links` or something (NAH)
-     *      HashProxy's `Duplicates` should just be one bucket for all dups+links
-     *  revisit `thunk` value type of HashProxy::Thunk
-     *  was FileCatalog supposed to be FileCataloger?
-     *
-     *
      */
 
-    /*
-    let mut fc = FileCatalog::new();
-    fc.insert(Path::new("/home/owen/shared/rpi4/sdd/smllr/my_tests/alphaaa"));
-    //println!("alphaaa\n{:?}\n", fc);
-    fc.insert(Path::new("/home/owen/shared/rpi4/sdd/smllr/my_tests/_alpha_"));
-    //println!("_alpha_\n{:?}\n", fc);
-    fc.insert(Path::new("/home/owen/shared/rpi4/sdd/smllr/my_tests/betaaaa"));
-    //println!("betaaaa\n{:?}", fc);
-    */
-
     // print the duplicates
-    let repeats = fc.get_repeats();
+
     for dups in repeats {
-        println!("{:?}", dups);
+        actor.act(dups);
     }
 }
