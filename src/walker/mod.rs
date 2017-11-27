@@ -4,7 +4,7 @@ use std::ffi::OsStr;
 use std::collections::HashSet;
 use regex::{self, Regex};
 
-use vfs::{VFS, File, FileType, MetaData};
+use vfs::{File, FileType, MetaData, VFS};
 
 mod test; //include unit tests
 

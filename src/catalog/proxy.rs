@@ -34,7 +34,7 @@ impl Duplicates {
 
 // // // // // // // // // // // // // // // // // // // // //
 
-/// Proxy of firstbytes: until two elements have been added, there is no 
+/// Proxy of firstbytes: until two elements have been added, there is no
 /// chance of a collision so put off constructing the hashmap and shortcut
 pub enum FirstKBytesProxy {
     // in the first state there is one file
@@ -176,7 +176,7 @@ impl FirstKBytesProxy {
 
 // // // // // // // // // // // // // // // // // // // // //
 
-/// Proxy of hashes: until two elements have been added, there is no 
+/// Proxy of hashes: until two elements have been added, there is no
 /// chance of a collision so put off constructing the hashmap and shortcut
 pub enum HashProxy {
     // only one unique element has been added

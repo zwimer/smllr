@@ -1,9 +1,9 @@
+extern crate clap;
+extern crate env_logger;
 #[macro_use]
 extern crate log;
 extern crate md5;
-extern crate clap;
 extern crate regex;
-extern crate env_logger;
 
 use clap::{App, Arg};
 
