@@ -2,19 +2,10 @@
 mod test {
 
     use vfs::{TestFile, TestFileSystem, TestMD};
-
     use catalog::FileCataloger;
 
     use std::path::PathBuf;
     use std::collections::HashSet;
-
-    // verify files w/ the same size but different values aren't the same
-
-    // verify files w/ the same size and first k bytes aren't the same
-
-    // verify identical files are matched
-
-    // hard links / across drives ?
 
     #[test]
     fn dup_test_same_size() {
@@ -22,15 +13,15 @@ mod test {
         // files should not be flagged as duplicates
         let fs = TestFileSystem::new();
         {
-            let mut fs_ = fs.borrow_mut();
-            fs_.create_dir("/");
-            fs_.add(
+            let mut fs = fs.borrow_mut();
+            fs.create_dir("/");
+            fs.add(
                 TestFile::new("/a")
                     .with_contents(String::from("AAAA"))
                     .with_metadata(TestMD::new())
                     .with_inode(1),
             );
-            fs_.add(
+            fs.add(
                 TestFile::new("/b")
                     .with_contents(String::from("BBBB"))
                     .with_metadata(TestMD::new())
@@ -54,16 +45,16 @@ mod test {
         // files should not be flagged as duplicates
         let fs = TestFileSystem::new();
         {
-            let mut fs_ = fs.borrow_mut();
-            fs_.create_dir("/");
+            let mut fs = fs.borrow_mut();
+            fs.create_dir("/");
             let start: String = ::std::iter::repeat('A').take(4096).collect();
-            fs_.add(
+            fs.add(
                 TestFile::new("/a")
                     .with_contents(format!("{}_a", start))
                     .with_metadata(TestMD::new())
                     .with_inode(1),
             );
-            fs_.add(
+            fs.add(
                 TestFile::new("/b")
                     .with_contents(format!("{}_b", start))
                     .with_metadata(TestMD::new())
@@ -86,16 +77,16 @@ mod test {
         // unlinked files with the same contents should be flagged as duplicates
         let fs = TestFileSystem::new();
         {
-            let mut fs_ = fs.borrow_mut();
-            fs_.create_dir("/");
+            let mut fs = fs.borrow_mut();
+            fs.create_dir("/");
             let contents: String = ::std::iter::repeat('A').take(4096).collect();
-            fs_.add(
+            fs.add(
                 TestFile::new("/a")
                     .with_contents(contents.clone())
                     .with_metadata(TestMD::new())
                     .with_inode(1),
             );
-            fs_.add(
+            fs.add(
                 TestFile::new("/b")
                     .with_contents(contents)
                     .with_metadata(TestMD::new())
@@ -123,16 +114,16 @@ mod test {
         // even if they (somehow) have different contents
         let fs = TestFileSystem::new();
         {
-            let mut fs_ = fs.borrow_mut();
-            fs_.create_dir("/");
+            let mut fs = fs.borrow_mut();
+            fs.create_dir("/");
             // note that all test files passed to FileCataloger must have metadata
-            fs_.add(
+            fs.add(
                 TestFile::new("/a")
                     .with_inode(1)
                     .with_contents(String::from("AAAA"))
                     .with_metadata(TestMD::new()),
             );
-            fs_.add(
+            fs.add(
                 TestFile::new("/b")
                     .with_inode(1)
                     .with_contents(String::from("BBBB"))

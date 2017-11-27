@@ -4,7 +4,7 @@ use std::ffi::OsStr;
 use std::collections::HashSet;
 use regex::{self, Regex};
 
-use vfs::VFS;
+use vfs::{VFS, File, FileType, MetaData};
 
 mod test; //include unit tests
 
@@ -24,10 +24,6 @@ pub struct DirWalker<T: VFS> {
     // file system being traversed
     vfs: T,
 }
-
-
-use vfs::{File, FileType, MetaData};
-
 
 impl<M, F, V> DirWalker<V>
 where

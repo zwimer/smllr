@@ -46,6 +46,7 @@ impl Default for TestMD {
     }
 }
 
+// TestMD must be easy to make and also customize for unit testing
 impl TestMD {
     pub fn new() -> Self {
         TestMD {
@@ -252,7 +253,7 @@ impl TestFileSystem {
         self.create_regular(path.as_ref(), FileType::Dir);
     }
     /// Creates a new symlink from path to target. analogous to
-    /// '$ln -s -t target path
+    /// 'ln -s -t target path
     pub fn create_symlink<P: AsRef<Path>>(&mut self, path: P, target: P) {
         // Create the symlink file.
         let tf = TestFile {
@@ -266,6 +267,7 @@ impl TestFileSystem {
         let val = (tf, target.as_ref().to_owned());
         self.symlinks.insert(path.as_ref().to_owned(), val);
     }
+    /// Register a new file
     pub fn add(&mut self, tf: TestFile) {
         self.files.insert(tf.path.to_owned(), tf);
     }
@@ -275,7 +277,7 @@ impl TestFileSystem {
     // unique to rust; essentially they are used to pass the parent
     // through so they are invalidated when the parent is.
 
-    ///Resolves the
+    /// Resolves the path into a TestFile
     fn lookup<'a>(&'a self, path: &Path) -> io::Result<&'a TestFile> {
         if let Some(tf) = self.files.get(path) {
             Ok(tf)

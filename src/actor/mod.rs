@@ -6,13 +6,14 @@ use self::selector::Selector;
 
 use std::marker::PhantomData;
 
-// include unit tests
-mod test;
+mod test; // include unit tests
 
+/// Trait for acting on duplicate files
 pub trait FileActor<V: VFS, S: Selector<V>> {
     fn act(&mut self, dups: Duplicates);
 }
 
+// call FileActor methods on objects on the heap that support it
 impl<V: VFS, S: Selector<V>> FileActor<V, S> for Box<FileActor<V, S>> {
     fn act(&mut self, dups: Duplicates) {
         (**self).act(dups)
@@ -22,7 +23,7 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for Box<FileActor<V, S>> {
 /// Actor that prints file names but doesn't modify the filesystem
 pub struct FilePrinter<V: VFS, S: Selector<V>> {
     selector: S,
-    vfs: PhantomData<V>,
+    vfs: PhantomData<V>, // must be generic over a VFS but don't need a vfs field
 }
 
 /// Actor that deletes all but the selected file
@@ -37,8 +38,9 @@ pub struct FileLinker<V: VFS, S: Selector<V>> {
     vfs: V,
 }
 
+// constructors for FilePrinter: dependency inject a Selector
 impl<V: VFS, S: Selector<V>> FilePrinter<V, S> {
-    pub fn new(_: V, s: S) -> Self {
+    pub fn new(s: S) -> Self {
         FilePrinter {
             selector: s,
             vfs: PhantomData,
@@ -46,6 +48,7 @@ impl<V: VFS, S: Selector<V>> FilePrinter<V, S> {
     }
 }
 
+// constructors for FileDeleter: dependency inject a Selector
 impl<V: VFS, S: Selector<V>> FileDeleter<V, S> {
     pub fn new(v: V, s: S) -> Self {
         FileDeleter {
@@ -55,6 +58,7 @@ impl<V: VFS, S: Selector<V>> FileDeleter<V, S> {
     }
 }
 
+// constructors for FileLinker: dependency inject a Selector
 impl<V: VFS, S: Selector<V>> FileLinker<V, S> {
     pub fn new(v: V, s: S) -> Self {
         FileLinker {
@@ -64,30 +68,28 @@ impl<V: VFS, S: Selector<V>> FileLinker<V, S> {
     }
 }
 
+// implement `act()` for a FilePrinter
 impl<V: VFS, S: Selector<V>> FileActor<V, S> for FilePrinter<V, S> {
     fn act(&mut self, dups: Duplicates) {
-        let real = self.selector.select(&dups);
+        let real = self.selector.select(&dups); // identify true file
         info!("`{:?}` is the true file", real);
         println!("`{:?}` is the true file", real);
-        for f in &dups.0 {
-            if f == real {
-                continue;
-            }
+        // iterate over all other duplicates
+        for f in dups.0.iter().filter(|&f| f.as_path() != real) {
             info!("\t`{:?}` is a duplicate", f);
             println!("\t`{:?}` is a duplicate", f);
         }
     }
 }
 
+// implement `act()` for a FileDeleter
 impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileDeleter<V, S> {
     fn act(&mut self, dups: Duplicates) {
         let real = self.selector.select(&dups);
         info!("`{:?}` is the true file", real);
         println!("`{:?}` is the true file", real);
-        for f in &dups.0 {
-            if f == real {
-                continue;
-            }
+        // iterate over all other duplicates
+        for f in dups.0.iter().filter(|&f| f.as_path() != real) {
             info!("\tDeleting `{:?}`...", f);
             println!("\tDeleting `{:?}`...", f);
             self.vfs.rm_file(f).expect("Couldn't delete file");
@@ -95,15 +97,14 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileDeleter<V, S> {
     }
 }
 
+// implement `act()` for a FileLinker
 impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileLinker<V, S> {
     fn act(&mut self, dups: Duplicates) {
         let real = self.selector.select(&dups);
         info!("`{:?}` is the true file", real);
         println!("`{:?}` is the true file", real);
-        for f in &dups.0 {
-            if f == real {
-                continue;
-            }
+        // iterate over all other duplicates
+        for f in dups.0.iter().filter(|&f| f.as_path() != real) {
             info!("\tDeleting `{:?}`...", f);
             println!("\tDeleting `{:?}`...", f);
             self.vfs.rm_file(f).expect("Couldn't delete file");

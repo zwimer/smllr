@@ -7,18 +7,9 @@ mod test {
     use walker::DirWalker;
     use vfs::TestFileSystem;
 
-    // verify regex blacklist works
-
-    // verify path blacklist works
-
-    // symlink to a parent directory doesn't repeat files
-
-    // symlink targets aren't repeated
-
-    // only a specific directory is included and others are properly omitted
-
     #[test]
     fn walker_empty_fs() {
+        // verify basic walker/TFS functionality: empty FS is empty
         let fs = TestFileSystem::new();
         let paths = vec![Path::new("/")];
         let files = DirWalker::new(fs, &paths).traverse_all();
@@ -27,11 +18,12 @@ mod test {
 
     #[test]
     fn walker_basic_fs() {
+        // verify Walker will find a single file on the filesystem
         let fs = TestFileSystem::new();
         {
-            let mut fs_ = fs.borrow_mut();
-            fs_.create_dir("/");
-            fs_.create_file("/alpha");
+            let mut fs = fs.borrow_mut();
+            fs.create_dir("/");
+            fs.create_file("/alpha");
         }
         let dw = DirWalker::new(fs, &vec![Path::new("/")]);
         let files = dw.traverse_all();
@@ -40,21 +32,22 @@ mod test {
 
     #[test]
     fn walker_handle_symlinks() {
+        // test edge cases for symlinks: test data integrity and reselience
         let fs = TestFileSystem::new();
         {
-            let mut fs_ = fs.borrow_mut();
-            fs_.create_dir("/");
-            fs_.create_file("/alpha");
+            let mut fs = fs.borrow_mut();
+            fs.create_dir("/");
+            fs.create_file("/alpha");
             // only deal with a target once, omit symlinks
-            fs_.create_symlink("/beta", "/alpha");
-            fs_.create_symlink("/gamma", "/alpha");
+            fs.create_symlink("/beta", "/alpha");
+            fs.create_symlink("/gamma", "/alpha");
             // ignore bad symlinks
-            fs_.create_symlink("/delta", "/_nonexistant");
+            fs.create_symlink("/delta", "/_nonexistant");
             // ignore symlink loops
-            fs_.create_symlink("/x", "/xx");
-            fs_.create_symlink("/xx", "/x");
+            fs.create_symlink("/x", "/xx");
+            fs.create_symlink("/xx", "/x");
             // including a symlink that points to its parent folder
-            fs_.create_symlink("/folder", "/");
+            fs.create_symlink("/folder", "/");
         }
         let dw = DirWalker::new(fs, &vec![Path::new("/")]);
         let files = dw.traverse_all();
@@ -66,12 +59,12 @@ mod test {
         // verify files can be blacklisted by a regular expression
         let fs = TestFileSystem::new();
         {
-            let mut fs_ = fs.borrow_mut();
-            fs_.create_dir("/");
-            fs_.create_file("/a.pdf");
-            fs_.create_file("/b.txt");
-            fs_.create_file("/c.htm");
-            fs_.create_file("/d.cpp");
+            let mut fs = fs.borrow_mut();
+            fs.create_dir("/");
+            fs.create_file("/a.pdf");
+            fs.create_file("/b.txt");
+            fs.create_file("/c.htm");
+            fs.create_file("/d.cpp");
         }
         let dw =
             DirWalker::new(fs, &vec![Path::new("/")]).blacklist_patterns(vec!["/b+", ".*.cpp"]);
@@ -86,16 +79,16 @@ mod test {
         // verify files can be blacklisted by their folder
         let fs = TestFileSystem::new();
         {
-            let mut fs_ = fs.borrow_mut();
-            fs_.create_dir("/");
-            fs_.create_dir("/f1");
-            fs_.create_dir("/f2");
-            fs_.create_dir("/f3");
-            fs_.create_dir("/f4");
-            fs_.create_file("/f1/a.pdf");
-            fs_.create_file("/f2/b.txt");
-            fs_.create_file("/f3/c.htm");
-            fs_.create_file("/f4/d.cpp");
+            let mut fs = fs.borrow_mut();
+            fs.create_dir("/");
+            fs.create_dir("/f1");
+            fs.create_dir("/f2");
+            fs.create_dir("/f3");
+            fs.create_dir("/f4");
+            fs.create_file("/f1/a.pdf");
+            fs.create_file("/f2/b.txt");
+            fs.create_file("/f3/c.htm");
+            fs.create_file("/f4/d.cpp");
         }
         let dw = DirWalker::new(fs, &vec![Path::new("/")])
             .blacklist_folders(vec![&OsString::from("/f1"), &OsString::from("/f2")]);
@@ -110,12 +103,12 @@ mod test {
         // verify dirwalker only searches in directories it's told to
         let fs = TestFileSystem::new();
         {
-            let mut fs_ = fs.borrow_mut();
-            fs_.create_dir("/");
-            fs_.create_dir("/f1");
-            fs_.create_dir("/f2");
-            fs_.create_file("/f1/a.pdf");
-            fs_.create_file("/f2/b.txt");
+            let mut fs = fs.borrow_mut();
+            fs.create_dir("/");
+            fs.create_dir("/f1");
+            fs.create_dir("/f2");
+            fs.create_file("/f1/a.pdf");
+            fs.create_file("/f2/b.txt");
         }
         let dw = DirWalker::new(fs, &vec![Path::new("/f2")]);
         let files = dw.traverse_all();

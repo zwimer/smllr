@@ -10,6 +10,7 @@ use super::super::{FirstBytes, Hash};
 // a set of files. In code, it is an invariant that any 2 files in a
 // duplicates are identicle.
 #[derive(Clone)]
+/// Collection of `PathBuf`s that point to identical files
 pub struct Duplicates(pub(crate) Vec<PathBuf>);
 
 impl Duplicates {
@@ -31,10 +32,10 @@ impl Duplicates {
     }
 }
 
-
 // // // // // // // // // // // // // // // // // // // // //
-/// proxy of firstbytes; untill 2 elements have been added, no chance of a collision
-/// so don't make the hashmap and shortcut.
+
+/// Proxy of firstbytes: until two elements have been added, there is no 
+/// chance of a collision so put off constructing the hashmap and shortcut
 pub enum FirstKBytesProxy {
     // in the first state there is one file
     // don't look up its first k bytes unless it has the same size as another
@@ -61,13 +62,17 @@ impl FirstKBytesProxy {
         }
     }
 
+    /// Traverse contained `HashProxy`s and identify contents with more than one
+    /// path associated with it
     pub(super) fn get_repeats(&self) -> Vec<Duplicates> {
         match *self {
+            // in the Delay state, return `dups` if it contains multiple paths
             FirstKBytesProxy::Delay { ref dups, .. } => if dups.0.len() >= 2 {
                 vec![dups.clone()]
             } else {
                 vec![]
             },
+            // in the Thunk state, traverse all `HashProx`s
             FirstKBytesProxy::Thunk { ref thunk, .. } => {
                 thunk.iter().fold(vec![], |mut acc, (_fb, hp)| {
                     acc.append(&mut hp.get_repeats());
@@ -170,29 +175,34 @@ impl FirstKBytesProxy {
 }
 
 // // // // // // // // // // // // // // // // // // // // //
-/// Proxy of Hashmap thunk; untill 2 elements have been added, no chance of a collision
-/// so don't make the hashmap and shortcut.
+
+/// Proxy of hashes: until two elements have been added, there is no 
+/// chance of a collision so put off constructing the hashmap and shortcut
 pub enum HashProxy {
+    // only one unique element has been added
     Delay {
         id: ID,
         dups: Duplicates,
     },
+    // need to map `Hash`es to a set of `Duplicates`
     Thunk {
         thunk: HashMap<Hash, Duplicates>,
         shortcut: HashMap<ID, Hash>,
     },
+    // see `FirstKBytesProxy` for more documentation
+    // major difference is that `Duplicates` can contain non-hardlinks
 }
 
 
-
+// closely parallels FirstKBytesProxy's documentation
 impl HashProxy {
     //Construct a new hashprxy. As only 1 object, will be of the Delay type.
     fn new(id: ID, dups: Duplicates) -> Self {
         HashProxy::Delay { id, dups }
     }
-    // helper fn to hash a file
 
     // get all repeats under this node and return as a set of sets of duplicates.
+    /// Check all Duplicates for files associated with multiple Paths
     fn get_repeats(&self) -> Vec<Duplicates> {
         match *self {
             HashProxy::Delay { ref dups, .. } => if dups.0.len() >= 2 {
