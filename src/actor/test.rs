@@ -18,16 +18,16 @@ mod test {
         {
             let mut fs = fs.borrow_mut();
             fs.create_dir("/");
-            fs.create_dir("/w");
-            fs.create_dir("/w/x");
-            fs.create_dir("/w/x/y");
-            fs.create_dir("/w/x/y/z");
+            fs.create_dir("/x");
+            fs.create_dir("/x/y");
+            fs.create_dir("/x/y/z");
             fs.add(TestFile::new("/a"));
-            fs.add(TestFile::new("/w/b"));
-            fs.add(TestFile::new("/w/x/c"));
-            fs.add(TestFile::new("/w/x/y/d"));
+            fs.add(TestFile::new("/x/b"));
+            fs.add(TestFile::new("/x/y/c"));
+            fs.add(TestFile::new("/x/y/z/d"));
         }
-        let files = Duplicates(vec!["/a"].iter().map(PathBuf::from).collect());
+        let paths = vec!["/a", "/x/b", "/x/y/c", "/x/y/z/d"];
+        let files = Duplicates(paths.iter().map(PathBuf::from).collect());
         let shortest = PathSelect::new(fs).select(&files);
         assert_eq!(shortest, Path::new("/a"));
     }
