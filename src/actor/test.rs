@@ -4,7 +4,7 @@ mod test {
     use ID;
     use actor::{FileActor, FileDeleter, FileLinker, FilePrinter};
     use actor::selector::{DateSelect, PathSelect, Selector};
-    use vfs::{TestFile, TestFileSystem, TestMD, FileType};
+    use vfs::{FileType, TestFile, TestFileSystem, TestMD};
     use catalog::proxy::Duplicates;
 
     use std::path::{Path, PathBuf};
@@ -218,19 +218,16 @@ mod test {
             fs.add(
                 TestFile::new("/")
                     .with_kind(FileType::Dir)
-                    .with_metadata(TestMD::new().with_id(ID { inode: 1, dev: 10 }))
+                    .with_metadata(TestMD::new().with_id(ID { inode: 1, dev: 10 })),
             );
             fs.add(
-                TestFile::new("/a")
-                    .with_metadata(TestMD::new().with_id(ID { inode: 2, dev: 20 }))
+                TestFile::new("/a").with_metadata(TestMD::new().with_id(ID { inode: 2, dev: 20 })),
             );
             fs.add(
-                TestFile::new("/b")
-                    .with_metadata(TestMD::new().with_id(ID { inode: 3, dev: 20 }))
+                TestFile::new("/b").with_metadata(TestMD::new().with_id(ID { inode: 3, dev: 20 })),
             );
             fs.add(
-                TestFile::new("/c")
-                    .with_metadata(TestMD::new().with_id(ID { inode: 4, dev: 20 }))
+                TestFile::new("/c").with_metadata(TestMD::new().with_id(ID { inode: 4, dev: 20 })),
             );
         };
         let paths = vec!["/a", "/b", "/c"];

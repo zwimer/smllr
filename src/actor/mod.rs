@@ -1,4 +1,4 @@
-use vfs::{VFS, File, MetaData};
+use vfs::{File, MetaData, VFS};
 use catalog::proxy::Duplicates;
 
 pub mod selector;
@@ -109,15 +109,27 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileLinker<V, S> {
         // iterate over all other duplicates
         for f in dups.0.iter().filter(|&f| f.as_path() != real) {
             let f_dir = f.parent().unwrap(); // can't be a dir so can't be "/"
-            let f_dir_file = self.vfs.get_file(f_dir).expect("Couldn't find link src parent");
-            let f_dir_md = f_dir_file.get_metadata().expect("Couldn't get link src parent md");
-            let f_dir_dev = f_dir_md.get_device().expect("Couldn't get link src parent device");
+            let f_dir_file = self.vfs
+                .get_file(f_dir)
+                .expect("Couldn't find link src parent");
+            let f_dir_md = f_dir_file
+                .get_metadata()
+                .expect("Couldn't get link src parent md");
+            let f_dir_dev = f_dir_md
+                .get_device()
+                .expect("Couldn't get link src parent device");
 
             if real_dev != f_dir_dev {
-                warn!("You tried to create a link from directory `{:?}` on device {:?} \
-                to the file `{:?}` on device {:?}.\n\
-                Hard-linking across devices is generally an error. \
-                Skipping...", f_dir, f_dir_dev, real, real_dev);
+                warn!(
+                    "You tried to create a link from directory `{:?}` on device {:?} \
+                     to the file `{:?}` on device {:?}.\n\
+                     Hard-linking across devices is generally an error. \
+                     Skipping...",
+                    f_dir,
+                    f_dir_dev,
+                    real,
+                    real_dev
+                );
             } else {
                 info!("\tDeleting `{:?}`...", f);
                 println!("\tDeleting `{:?}`...", f);
