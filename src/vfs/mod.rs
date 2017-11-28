@@ -20,31 +20,37 @@ use super::{FirstBytes, Hash, FIRST_K_BYTES};
 // employ the methods of baz
 
 /// The VFS [virtual file system] trait is the interface we require
-///for the injection into the directectory walker.
+/// for the injection into the directectory walker.
 pub trait VFS: Clone + Debug {
     type FileIter: File;
-    // lists all the subobjects of a directory; essentially ls.
+    /// Recursively enumerate all files beneath a given path
     fn list_dir<P: AsRef<Path>>(
         &self,
         p: P,
     ) -> io::Result<Box<Iterator<Item = io::Result<Self::FileIter>>>>;
 
-    // follow symlink
+    /// Get the metadata of a file (follows symlinks)
     fn get_metadata<P: AsRef<Path>>(&self, p: P) -> io::Result<<Self::FileIter as File>::MD>;
-    // information on symlink
+
+    /// Get the metadata of a file (doesn't follow symlinks)
     fn get_symlink_metadata<P: AsRef<Path>>(
         &self,
         p: P,
     ) -> io::Result<<Self::FileIter as File>::MD>;
 
+    /// Resolve a link path to the path of its target
     fn read_link<P: AsRef<Path>>(&self, p: P) -> io::Result<PathBuf>;
 
     // must be of type "File" (not a dir/link/other)
+    /// Get a File handle from a path
     fn get_file(&self, p: &Path) -> io::Result<Self::FileIter>;
 
     // must be of type "File" (not a dir/link/other)
+    /// Delete a file
     fn rm_file<P: AsRef<Path>>(&mut self, p: &P) -> io::Result<()>;
 
+    // create
+    /// Create a haard link at `src` pointing to what's at `dst`
     fn make_link(&mut self, src: &Path, dst: &Path) -> io::Result<()>;
 }
 
@@ -55,7 +61,9 @@ pub trait File: Debug {
     fn get_path(&self) -> PathBuf;
     fn get_type(&self) -> io::Result<FileType>;
     fn get_metadata(&self) -> io::Result<Self::MD>;
+    /// Read first K bytes of the file
     fn get_first_bytes(&self) -> io::Result<FirstBytes>;
+    /// Hash the contents of the file
     fn get_hash(&self) -> io::Result<Hash>;
 }
 // the MetaData trait defines the interface for metadata

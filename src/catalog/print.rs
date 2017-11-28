@@ -2,6 +2,7 @@
 // Debug is a comon trait used to print the entire state of an object
 // In the intrest of not boring you with repitition, for all functions in this file
 // Debug() returns a string which details the contents of the container.
+// NOTE: these are for testing purposes, the user won't see this
 
 use std::fmt::{Debug, Formatter, Result};
 

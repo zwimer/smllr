@@ -185,7 +185,7 @@ where
         }
     }
 
-    /// Collect all specified files into a set; this kills the DirWalker
+    /// Collect all specified files into a set; this consumes the DirWalker
     pub fn traverse_all(mut self) -> HashSet<PathBuf> {
         // steal directories (performance hack, ask owen)
         let directories = ::std::mem::replace(&mut self.directories, vec![]);

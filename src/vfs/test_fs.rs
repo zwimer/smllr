@@ -40,13 +40,9 @@ impl MetaData for TestMD {
     }
 }
 
-impl Default for TestMD {
-    fn default() -> Self {
-        TestMD::new()
-    }
-}
-
 // TestMD must be easy to make and also customize for unit testing
+// We provide a series of chainable setters to easily construct test objects
+// e.g. `TestMD::new().with_len(4096).with_id(42)`
 impl TestMD {
     pub fn new() -> Self {
         TestMD {
@@ -88,6 +84,8 @@ pub struct TestFile {
 }
 
 // build up a File object for mock testing
+// Chainable setters to easily construct test objects
+// e.g. `TestFile::new().with_kind(FileType::Dir).with_inode(42)`
 impl TestFile {
     pub fn new(s: &str) -> Self {
         TestFile {
@@ -164,6 +162,8 @@ impl File for TestFile {
             .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "No MD"))
     }
     fn get_first_bytes(&self) -> io::Result<FirstBytes> {
+        // read the first K bytes of the file
+        // if the file is less than K bytes, the remaining bytes are treated as zeros
         if let Some(ref cont) = self.contents {
             let mut bytes = [0u8; FIRST_K_BYTES];
             for (c, b) in cont.bytes().zip(bytes.iter_mut()) {
@@ -175,6 +175,7 @@ impl File for TestFile {
         }
     }
     fn get_hash(&self) -> io::Result<Hash> {
+        // hash the contents of the file
         if let Some(ref cont) = self.contents {
             Ok(*md5::compute(cont))
         } else {
@@ -255,7 +256,7 @@ impl TestFileSystem {
         self.create_regular(path.as_ref(), FileType::Dir);
     }
     /// Creates a new symlink from path to target. analogous to
-    /// 'ln -s -t target path
+    /// `ln -s -t target path`
     pub fn create_symlink<P: AsRef<Path>>(&mut self, path: P, target: P) {
         // Create the symlink file.
         let tf = TestFile {
@@ -286,7 +287,8 @@ impl TestFileSystem {
         } else {
             // traverse the symlink chain
             let mut cur = self.symlinks.get(path);
-            let mut seen: Vec<&Path> = vec![]; // SystemTime isn't Hash
+            // `seen` can't be a Hash table because SystemTime isn't Hash
+            let mut seen: Vec<&Path> = vec![];
             while let Some(c) = cur {
                 if seen.contains(&c.1.as_path()) {
                     // infinite symlink loop
@@ -403,15 +405,18 @@ impl VFS for Rc<RefCell<TestFileSystem>> {
         }
     }
 
+    // create a hard link
     fn make_link(&mut self, src: &Path, dst: &Path) -> io::Result<()> {
         let mut fs = self.borrow_mut();
         let old_md = fs.files
             .get(dst)
             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "No dst file"))?
             .get_metadata()?;
+        // need to know the old inode so the new can have the same
         let old_inode = old_md.get_inode();
         let old_device = old_md.get_device()?;
 
+        // verify new file is going to be
         let new_dir = src.parent().unwrap(); // can't be root
         let new_device = fs.files
             .get(new_dir)

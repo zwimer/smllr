@@ -32,7 +32,7 @@ impl Duplicates {
     }
 }
 
-// // // // // // // // // // // // // // // // // // // // //
+// Begin FirstKBytesProxy
 
 /// Proxy of firstbytes: until two elements have been added, there is no
 /// chance of a collision so put off constructing the hashmap and shortcut
@@ -91,15 +91,15 @@ impl FirstKBytesProxy {
         // NOTE this involves EITHER a clone of dups OR a promise-violating hack
         let (del_id, del_dups) = match *self {
             FirstKBytesProxy::Delay { id, ref mut dups } => {
-                // this is a hack
+                // this a somewhat hacky potential future speedup
                 // if there are problems with Duplicates being empty, look here
                 // "steal" `dups` so we don't have to clone it
                 // but we can't just take it because we can't consume self
-                // OPTION A: the safer but more expensive version:
-                (id, dups.clone())
-                // OPTION B: the possibly dangerous but more efficient one:
+                // OPTION A: the possibly dangerous but more efficient one:
                 //let stolen_dups = ::std::mem::replace(dups, Duplicates(vec![]));
                 //(id, stolen_dups)
+                // OPTION B: the safer but more expensive version:
+                (id, dups.clone())
             }
             _ => unreachable!(),
         };
@@ -174,7 +174,7 @@ impl FirstKBytesProxy {
     }
 }
 
-// // // // // // // // // // // // // // // // // // // // //
+// Begin HashProxy
 
 /// Proxy of hashes: until two elements have been added, there is no
 /// chance of a collision so put off constructing the hashmap and shortcut
