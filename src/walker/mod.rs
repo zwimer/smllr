@@ -37,11 +37,13 @@ where
         // if any paths are relative, append them to the current working dir
         // if getting the cwd fails, the whole process should abort
         let abs_paths: io::Result<Vec<PathBuf>> = dirs.into_iter()
-            .map(|dir| if dir.is_absolute() {
-                Ok(dir.to_path_buf())
-            } else {
-                debug!("Converting `{:?}` to absolute path", dir);
-                env::current_dir().map(|cwd| cwd.join(dir))
+            .map(|dir| {
+                if dir.is_absolute() {
+                    Ok(dir.to_path_buf())
+                } else {
+                    debug!("Converting `{:?}` to absolute path", dir);
+                    env::current_dir().map(|cwd| cwd.join(dir))
+                }
             })
             .collect();
         abs_paths.unwrap_or_else(|e| {
@@ -92,16 +94,15 @@ where
         //  1) haven't been seen before and
         //  2) don't match a blacklist regex pattern
         //      NOTE: if a path is invalid unicode it will never match a pattern
-        !self.files.contains(path) &&
-            {
-                if let Some(path_str) = path.to_str() {
-                    self.blacklist_patterns.iter().all(
-                        |re| !re.is_match(path_str),
-                    )
-                } else {
-                    true
-                }
+        !self.files.contains(path) && {
+            if let Some(path_str) = path.to_str() {
+                self.blacklist_patterns
+                    .iter()
+                    .all(|re| !re.is_match(path_str))
+            } else {
+                true
             }
+        }
     }
 
     /// Determine whether a folder is in scope(i.e. not seen already or blacklisted)
@@ -111,13 +112,12 @@ where
         //  2) don't match a folder blacklist, and
         //  3) don't match a regex pattern blacklist
         //      NOTE: again, bad unicode paths will not match any regex
-        !self.folders.contains(path) &&
-            self.blacklist_dirs.iter().all(|dir| !path.starts_with(dir)) &&
-            {
+        !self.folders.contains(path) && self.blacklist_dirs.iter().all(|dir| !path.starts_with(dir))
+            && {
                 if let Some(path_str) = path.to_str() {
-                    self.blacklist_patterns.iter().all(
-                        |re| !re.is_match(path_str),
-                    )
+                    self.blacklist_patterns
+                        .iter()
+                        .all(|re| !re.is_match(path_str))
                 } else {
                     true
                 }
@@ -162,33 +162,25 @@ where
         // handle a file, traverse a directory, or follow a symlink
         let filetype = match filetype {
             Some(ft) => ft,
-            None => {
-                match self.vfs.get_metadata(path) {
-                    Ok(md) => md.get_type(),
-                    Err(e) => {
-                        warn!("Couldn't get metadata for {:?}: {}", path, e);
-                        return;
-                    }
+            None => match self.vfs.get_metadata(path) {
+                Ok(md) => md.get_type(),
+                Err(e) => {
+                    warn!("Couldn't get metadata for {:?}: {}", path, e);
+                    return;
                 }
-            }
+            },
         };
         match filetype {
-            FileType::File => {
-                if self.should_handle_file(path) {
-                    self.handle_file(path)
-                }
-            }
-            FileType::Dir => {
-                if self.should_traverse_folder(path) {
-                    self.traverse_folder(path)
-                }
-            }
-            FileType::Symlink => {
-                match self.vfs.read_link(path) {
-                    Ok(ref f) => self.dispatch_any_file(f, None),
-                    Err(e) => warn!("Couldn't resolve symlink {:?}: {}", path, e),
-                }
-            }
+            FileType::File => if self.should_handle_file(path) {
+                self.handle_file(path)
+            },
+            FileType::Dir => if self.should_traverse_folder(path) {
+                self.traverse_folder(path)
+            },
+            FileType::Symlink => match self.vfs.read_link(path) {
+                Ok(ref f) => self.dispatch_any_file(f, None),
+                Err(e) => warn!("Couldn't resolve symlink {:?}: {}", path, e),
+            },
             FileType::Other => debug!("Ignoring unknown file {:?}", path),
         }
     }
