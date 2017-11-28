@@ -240,10 +240,6 @@
 <span id="195">195</span>
 <span id="196">196</span>
 <span id="197">197</span>
-<span id="198">198</span>
-<span id="199">199</span>
-<span id="200">200</span>
-<span id="201">201</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">path</span>::{<span class="ident">Path</span>, <span class="ident">PathBuf</span>};
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">env</span>, <span class="ident">io</span>};
@@ -251,7 +247,7 @@
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">HashSet</span>;
 <span class="kw">use</span> <span class="ident">regex</span>::{<span class="self">self</span>, <span class="ident">Regex</span>};
 
-<span class="kw">use</span> <span class="ident">vfs</span>::<span class="ident">VFS</span>;
+<span class="kw">use</span> <span class="ident">vfs</span>::{<span class="ident">File</span>, <span class="ident">FileType</span>, <span class="ident">MetaData</span>, <span class="ident">VFS</span>};
 
 <span class="kw">mod</span> <span class="ident">test</span>; <span class="comment">//include unit tests</span>
 
@@ -271,10 +267,6 @@
     <span class="comment">// file system being traversed</span>
     <span class="ident">vfs</span>: <span class="ident">T</span>,
 }
-
-
-<span class="kw">use</span> <span class="ident">vfs</span>::{<span class="ident">File</span>, <span class="ident">FileType</span>, <span class="ident">MetaData</span>};
-
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">M</span>, <span class="ident">F</span>, <span class="ident">V</span><span class="op">&gt;</span> <span class="ident">DirWalker</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>
 <span class="kw">where</span>
@@ -436,7 +428,7 @@
         }
     }
 
-    <span class="doccomment">/// Collect all specified files into a set; this kills the DirWalker</span>
+    <span class="doccomment">/// Collect all specified files into a set; this consumes the DirWalker</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">traverse_all</span>(<span class="kw-2">mut</span> <span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">HashSet</span><span class="op">&lt;</span><span class="ident">PathBuf</span><span class="op">&gt;</span> {
         <span class="comment">// steal directories (performance hack, ask owen)</span>
         <span class="kw">let</span> <span class="ident">directories</span> <span class="op">=</span> ::<span class="ident">std</span>::<span class="ident">mem</span>::<span class="ident">replace</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>.<span class="ident">directories</span>, <span class="macro">vec</span><span class="macro">!</span>[]);

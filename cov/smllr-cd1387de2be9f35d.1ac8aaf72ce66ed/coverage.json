@@ -1,0 +1,22 @@
+{
+  "files": [
+    {"file": "/home/owen/sdd/smllr/src/main.rs", "percent_covered": "100.00", "covered_lines": "6", "total_lines": "6"},
+    {"file": "/home/owen/sdd/smllr/src/vfs/mod.rs", "percent_covered": "100.00", "covered_lines": "5", "total_lines": "5"},
+    {"file": "/home/owen/sdd/smllr/src/actor/mod.rs", "percent_covered": "97.33", "covered_lines": "73", "total_lines": "75"},
+    {"file": "/home/owen/sdd/smllr/src/actor/selector.rs", "percent_covered": "100.00", "covered_lines": "56", "total_lines": "56"},
+    {"file": "/home/owen/sdd/smllr/src/walker/mod.rs", "percent_covered": "86.32", "covered_lines": "82", "total_lines": "95"},
+    {"file": "/home/owen/sdd/smllr/src/vfs/test_fs.rs", "percent_covered": "92.11", "covered_lines": "210", "total_lines": "228"},
+    {"file": "/home/owen/sdd/smllr/src/walker/test.rs", "percent_covered": "94.25", "covered_lines": "82", "total_lines": "87"},
+    {"file": "/home/owen/sdd/smllr/src/actor/test.rs", "percent_covered": "91.57", "covered_lines": "163", "total_lines": "178"},
+    {"file": "/home/owen/sdd/smllr/src/catalog/mod.rs", "percent_covered": "100.00", "covered_lines": "23", "total_lines": "23"},
+    {"file": "/home/owen/sdd/smllr/src/catalog/test.rs", "percent_covered": "96.24", "covered_lines": "128", "total_lines": "133"},
+    {"file": "/home/owen/sdd/smllr/src/catalog/proxy.rs", "percent_covered": "96.30", "covered_lines": "130", "total_lines": "135"}
+  ],
+  "percent_covered": "93.83",
+  "covered_lines": 958,
+  "total_lines": 1021,
+  "percent_low": 25,
+  "percent_high": 75,
+  "command": "smllr-cd1387de2be9f35d",
+  "date": "2017-11-27 19:54:30"
+}

@@ -336,6 +336,16 @@
 <span id="291">291</span>
 <span id="292">292</span>
 <span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">HashMap</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">path</span>::{<span class="ident">Path</span>, <span class="ident">PathBuf</span>};
@@ -349,6 +359,7 @@
 <span class="comment">// a set of files. In code, it is an invariant that any 2 files in a</span>
 <span class="comment">// duplicates are identicle.</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
+<span class="doccomment">/// Collection of `PathBuf`s that point to identical files</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Duplicates</span>(<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">PathBuf</span><span class="op">&gt;</span>);
 
 <span class="kw">impl</span> <span class="ident">Duplicates</span> {
@@ -370,10 +381,10 @@
     }
 }
 
+<span class="comment">// Begin FirstKBytesProxy</span>
 
-<span class="comment">// // // // // // // // // // // // // // // // // // // // //</span>
-<span class="doccomment">/// proxy of firstbytes; untill 2 elements have been added, no chance of a collision</span>
-<span class="doccomment">/// so don&#39;t make the hashmap and shortcut.</span>
+<span class="doccomment">/// Proxy of firstbytes: until two elements have been added, there is no</span>
+<span class="doccomment">/// chance of a collision so put off constructing the hashmap and shortcut</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">FirstKBytesProxy</span> {
     <span class="comment">// in the first state there is one file</span>
     <span class="comment">// don&#39;t look up its first k bytes unless it has the same size as another</span>
@@ -400,13 +411,17 @@
         }
     }
 
+    <span class="doccomment">/// Traverse contained `HashProxy`s and identify contents with more than one</span>
+    <span class="doccomment">/// path associated with it</span>
     <span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn</span> <span class="ident">get_repeats</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Duplicates</span><span class="op">&gt;</span> {
         <span class="kw">match</span> <span class="kw-2">*</span><span class="self">self</span> {
+            <span class="comment">// in the Delay state, return `dups` if it contains multiple paths</span>
             <span class="ident">FirstKBytesProxy</span>::<span class="ident">Delay</span> { <span class="kw-2">ref</span> <span class="ident">dups</span>, .. } <span class="op">=&gt;</span> <span class="kw">if</span> <span class="ident">dups</span>.<span class="number">0</span>.<span class="ident">len</span>() <span class="op">&gt;=</span> <span class="number">2</span> {
                 <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">dups</span>.<span class="ident">clone</span>()]
             } <span class="kw">else</span> {
                 <span class="macro">vec</span><span class="macro">!</span>[]
             },
+            <span class="comment">// in the Thunk state, traverse all `HashProx`s</span>
             <span class="ident">FirstKBytesProxy</span>::<span class="ident">Thunk</span> { <span class="kw-2">ref</span> <span class="ident">thunk</span>, .. } <span class="op">=&gt;</span> {
                 <span class="ident">thunk</span>.<span class="ident">iter</span>().<span class="ident">fold</span>(<span class="macro">vec</span><span class="macro">!</span>[], <span class="op">|</span><span class="kw-2">mut</span> <span class="ident">acc</span>, (<span class="ident">_fb</span>, <span class="ident">hp</span>)<span class="op">|</span> {
                     <span class="ident">acc</span>.<span class="ident">append</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">hp</span>.<span class="ident">get_repeats</span>());
@@ -425,15 +440,15 @@
         <span class="comment">// NOTE this involves EITHER a clone of dups OR a promise-violating hack</span>
         <span class="kw">let</span> (<span class="ident">del_id</span>, <span class="ident">del_dups</span>) <span class="op">=</span> <span class="kw">match</span> <span class="kw-2">*</span><span class="self">self</span> {
             <span class="ident">FirstKBytesProxy</span>::<span class="ident">Delay</span> { <span class="ident">id</span>, <span class="kw-2">ref</span> <span class="kw-2">mut</span> <span class="ident">dups</span> } <span class="op">=&gt;</span> {
-                <span class="comment">// this is a hack</span>
+                <span class="comment">// this a somewhat hacky potential future speedup</span>
                 <span class="comment">// if there are problems with Duplicates being empty, look here</span>
                 <span class="comment">// &quot;steal&quot; `dups` so we don&#39;t have to clone it</span>
                 <span class="comment">// but we can&#39;t just take it because we can&#39;t consume self</span>
-                <span class="comment">// OPTION A: the safer but more expensive version:</span>
-                (<span class="ident">id</span>, <span class="ident">dups</span>.<span class="ident">clone</span>())
-                <span class="comment">// OPTION B: the possibly dangerous but more efficient one:</span>
+                <span class="comment">// OPTION A: the possibly dangerous but more efficient one:</span>
                 <span class="comment">//let stolen_dups = ::std::mem::replace(dups, Duplicates(vec![]));</span>
                 <span class="comment">//(id, stolen_dups)</span>
+                <span class="comment">// OPTION B: the safer but more expensive version:</span>
+                (<span class="ident">id</span>, <span class="ident">dups</span>.<span class="ident">clone</span>())
             }
             _ <span class="op">=&gt;</span> <span class="macro">unreachable</span><span class="macro">!</span>(),
         };
@@ -508,30 +523,35 @@
     }
 }
 
-<span class="comment">// // // // // // // // // // // // // // // // // // // // //</span>
-<span class="doccomment">/// Proxy of Hashmap thunk; untill 2 elements have been added, no chance of a collision</span>
-<span class="doccomment">/// so don&#39;t make the hashmap and shortcut.</span>
+<span class="comment">// Begin HashProxy</span>
+
+<span class="doccomment">/// Proxy of hashes: until two elements have been added, there is no</span>
+<span class="doccomment">/// chance of a collision so put off constructing the hashmap and shortcut</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">HashProxy</span> {
+    <span class="comment">// only one unique element has been added</span>
     <span class="ident">Delay</span> {
         <span class="ident">id</span>: <span class="ident">ID</span>,
         <span class="ident">dups</span>: <span class="ident">Duplicates</span>,
     },
+    <span class="comment">// need to map `Hash`es to a set of `Duplicates`</span>
     <span class="ident">Thunk</span> {
         <span class="ident">thunk</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">Hash</span>, <span class="ident">Duplicates</span><span class="op">&gt;</span>,
         <span class="ident">shortcut</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">ID</span>, <span class="ident">Hash</span><span class="op">&gt;</span>,
     },
+    <span class="comment">// see `FirstKBytesProxy` for more documentation</span>
+    <span class="comment">// major difference is that `Duplicates` can contain non-hardlinks</span>
 }
 
 
-
+<span class="comment">// closely parallels FirstKBytesProxy&#39;s documentation</span>
 <span class="kw">impl</span> <span class="ident">HashProxy</span> {
     <span class="comment">//Construct a new hashprxy. As only 1 object, will be of the Delay type.</span>
     <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">id</span>: <span class="ident">ID</span>, <span class="ident">dups</span>: <span class="ident">Duplicates</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
         <span class="ident">HashProxy</span>::<span class="ident">Delay</span> { <span class="ident">id</span>, <span class="ident">dups</span> }
     }
-    <span class="comment">// helper fn to hash a file</span>
 
     <span class="comment">// get all repeats under this node and return as a set of sets of duplicates.</span>
+    <span class="doccomment">/// Check all Duplicates for files associated with multiple Paths</span>
     <span class="kw">fn</span> <span class="ident">get_repeats</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Duplicates</span><span class="op">&gt;</span> {
         <span class="kw">match</span> <span class="kw-2">*</span><span class="self">self</span> {
             <span class="ident">HashProxy</span>::<span class="ident">Delay</span> { <span class="kw-2">ref</span> <span class="ident">dups</span>, .. } <span class="op">=&gt;</span> <span class="kw">if</span> <span class="ident">dups</span>.<span class="number">0</span>.<span class="ident">len</span>() <span class="op">&gt;=</span> <span class="number">2</span> {
@@ -556,7 +576,7 @@
             }
         }
     }
-
+    <span class="comment">// private helper fuction which handles the conversion from Delay to HashProxy::Thunk</span>
     <span class="kw">fn</span> <span class="ident">transition</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">VFS</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">vfs</span>: <span class="kw-2">&amp;</span><span class="ident">T</span>, <span class="ident">new_id</span>: <span class="ident">ID</span>, <span class="ident">new_dups</span>: <span class="ident">Duplicates</span>) {
         <span class="comment">// convert Delay to Thunk</span>
         <span class="kw">let</span> (<span class="ident">del_id</span>, <span class="ident">del_dups</span>) <span class="op">=</span> <span class="kw">match</span> <span class="kw-2">*</span><span class="self">self</span> {

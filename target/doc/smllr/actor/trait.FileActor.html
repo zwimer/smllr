@@ -1,10 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta http-equiv="refresh" content="0;URL=../../smllr/trait.FileActor.html">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `FileActor` trait in crate `smllr`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, FileActor">
+
+    <title>smllr::actor::FileActor - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../main.css">
+    
+
+    
+    
 </head>
-<body>
-    <p>Redirecting to <a href="../../smllr/trait.FileActor.html">../../smllr/trait.FileActor.html</a>...</p>
-    <script>location.replace("../../smllr/trait.FileActor.html" + location.search + location.hash);</script>
+<body class="rustdoc trait">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'>Trait FileActor</p><div class="block items"><ul><li><a href="#required-methods">Required Methods</a></li><li><a href="#foreign-impls">Implementations on Foreign Types</a></li><li><a href="#implementors">Implementors</a></li></ul></div><p class='location'><a href='../index.html'>smllr</a>::<wbr><a href='index.html'>actor</a></p><script>window.sidebarCurrent = {name: 'FileActor', ty: 'trait', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content">
+<h1 class='fqn'><span class='in-band'>Trait <a href='../index.html'>smllr</a>::<wbr><a href='index.html'>actor</a>::<wbr><a class="trait" href=''>FileActor</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../../src/smllr/actor/mod.rs.html#10-15' title='goto source code'>[src]</a></span></h1>
+<pre class='rust trait'>pub trait FileActor&lt;V:&nbsp;<a class="trait" href="../../smllr/vfs/trait.VFS.html" title="trait smllr::vfs::VFS">VFS</a>, S:&nbsp;<a class="trait" href="../../smllr/actor/selector/trait.Selector.html" title="trait smllr::actor::selector::Selector">Selector</a>&lt;V&gt;&gt; {
+    fn <a href='#tymethod.act' class='fnname'>act</a>(&amp;mut self, dups: <a class="struct" href="../../smllr/catalog/proxy/struct.Duplicates.html" title="struct smllr::catalog::proxy::Duplicates">Duplicates</a>);
+}</pre><div class='docblock'><p>Trait for acting on duplicate files</p>
+</div>
+            <h2 id='required-methods' class='small-section-header'>
+              Required Methods<a href='#required-methods' class='anchor'></a>
+            </h2>
+            <div class='methods'>
+        <h3 id='tymethod.act' class='method'><span id='act.v' class='invisible'><code>fn <a href='#tymethod.act' class='fnname'>act</a>(&amp;mut self, dups: <a class="struct" href="../../smllr/catalog/proxy/struct.Duplicates.html" title="struct smllr::catalog::proxy::Duplicates">Duplicates</a>)</code></span></h3><div class='docblock'><p>FileActor<V, S>.act(Duplicates) lets selector S select the file
+in duplicates which is considered the &#39;true&#39; file and then
+&#39;acts&#39; in a manner apropriate to the fileactor.</p>
+</div></div>
+                <h2 id='foreign-impls' class='section-header'>
+                  Implementations on Foreign Types<a href='#foreign-impls' class='anchor'></a>
+                </h2>
+            <h3 id='impl-FileActor&lt;V, S&gt;' class='impl'><span class='in-band'><code>impl&lt;V:&nbsp;<a class="trait" href="../../smllr/vfs/trait.VFS.html" title="trait smllr::vfs::VFS">VFS</a>, S:&nbsp;<a class="trait" href="../../smllr/actor/selector/trait.Selector.html" title="trait smllr::actor::selector::Selector">Selector</a>&lt;V&gt;&gt; <a class="trait" href="../../smllr/actor/trait.FileActor.html" title="trait smllr::actor::FileActor">FileActor</a>&lt;V, S&gt; for <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;<a class="trait" href="../../smllr/actor/trait.FileActor.html" title="trait smllr::actor::FileActor">FileActor</a>&lt;V, S&gt;&gt;</code><a href='#impl-FileActor&lt;V, S&gt;' class='anchor'></a></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/actor/mod.rs.html#18-22' title='goto source code'>[src]</a></span></h3>
+<span class='docblock autohide'><div class='impl-items'><h4 id='method.act' class="method"><span id='act.v-1' class='invisible'><code>fn <a href='#method.act' class='fnname'>act</a>(&amp;mut self, dups: <a class="struct" href="../../smllr/catalog/proxy/struct.Duplicates.html" title="struct smllr::catalog::proxy::Duplicates">Duplicates</a>)</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/actor/mod.rs.html#19-21' title='goto source code'>[src]</a></span></h4>
+</div></span>
+        <h2 id='implementors' class='small-section-header'>
+          Implementors<a href='#implementors' class='anchor'></a>
+        </h2>
+        <ul class='item-list' id='implementors-list'>
+    <li><div class='out-of-band'><a class='srclink' href='../../src/smllr/actor/mod.rs.html#73-106' title='goto source code'>[src]</a></div><code>impl&lt;V:&nbsp;<a class="trait" href="../../smllr/vfs/trait.VFS.html" title="trait smllr::vfs::VFS">VFS</a>, S:&nbsp;<a class="trait" href="../../smllr/actor/selector/trait.Selector.html" title="trait smllr::actor::selector::Selector">Selector</a>&lt;V&gt;&gt; FileActor&lt;V, S&gt; for <a class="struct" href="../../smllr/actor/struct.FilePrinter.html" title="struct smllr::actor::FilePrinter">FilePrinter</a>&lt;V, S&gt;</code></li>
+<li><div class='out-of-band'><a class='srclink' href='../../src/smllr/actor/mod.rs.html#109-137' title='goto source code'>[src]</a></div><code>impl&lt;V:&nbsp;<a class="trait" href="../../smllr/vfs/trait.VFS.html" title="trait smllr::vfs::VFS">VFS</a>, S:&nbsp;<a class="trait" href="../../smllr/actor/selector/trait.Selector.html" title="trait smllr::actor::selector::Selector">Selector</a>&lt;V&gt;&gt; FileActor&lt;V, S&gt; for <a class="struct" href="../../smllr/actor/struct.FileDeleter.html" title="struct smllr::actor::FileDeleter">FileDeleter</a>&lt;V, S&gt;</code></li>
+<li><div class='out-of-band'><a class='srclink' href='../../src/smllr/actor/mod.rs.html#140-200' title='goto source code'>[src]</a></div><code>impl&lt;V:&nbsp;<a class="trait" href="../../smllr/vfs/trait.VFS.html" title="trait smllr::vfs::VFS">VFS</a>, S:&nbsp;<a class="trait" href="../../smllr/actor/selector/trait.Selector.html" title="trait smllr::actor::selector::Selector">Selector</a>&lt;V&gt;&gt; FileActor&lt;V, S&gt; for <a class="struct" href="../../smllr/actor/struct.FileLinker.html" title="struct smllr::actor::FileLinker">FileLinker</a>&lt;V, S&gt;</code></li>
+</ul><script type="text/javascript" async
+                         src="../../implementors/smllr/actor/trait.FileActor.js">
+                 </script></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../";
+        window.currentCrate = "smllr";
+    </script>
+    <script src="../../main.js"></script>
+    <script defer src="../../search-index.js"></script>
 </body>
 </html>

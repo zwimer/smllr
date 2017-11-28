@@ -162,13 +162,6 @@
 <span id="117">117</span>
 <span id="118">118</span>
 <span id="119">119</span>
-<span id="120">120</span>
-<span id="121">121</span>
-<span id="122">122</span>
-<span id="123">123</span>
-<span id="124">124</span>
-<span id="125">125</span>
-<span id="126">126</span>
 </pre><pre class="rust ">
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">test</span> {
@@ -179,18 +172,9 @@
     <span class="kw">use</span> <span class="ident">walker</span>::<span class="ident">DirWalker</span>;
     <span class="kw">use</span> <span class="ident">vfs</span>::<span class="ident">TestFileSystem</span>;
 
-    <span class="comment">// verify regex blacklist works</span>
-
-    <span class="comment">// verify path blacklist works</span>
-
-    <span class="comment">// symlink to a parent directory doesn&#39;t repeat files</span>
-
-    <span class="comment">// symlink targets aren&#39;t repeated</span>
-
-    <span class="comment">// only a specific directory is included and others are properly omitted</span>
-
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">walker_empty_fs</span>() {
+        <span class="comment">// verify basic walker/TFS functionality: empty FS is empty</span>
         <span class="kw">let</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">TestFileSystem</span>::<span class="ident">new</span>();
         <span class="kw">let</span> <span class="ident">paths</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="ident">Path</span>::<span class="ident">new</span>(<span class="string">&quot;/&quot;</span>)];
         <span class="kw">let</span> <span class="ident">files</span> <span class="op">=</span> <span class="ident">DirWalker</span>::<span class="ident">new</span>(<span class="ident">fs</span>, <span class="kw-2">&amp;</span><span class="ident">paths</span>).<span class="ident">traverse_all</span>();
@@ -199,11 +183,12 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">walker_basic_fs</span>() {
+        <span class="comment">// verify Walker will find a single file on the filesystem</span>
         <span class="kw">let</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">TestFileSystem</span>::<span class="ident">new</span>();
         {
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs_</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
-            <span class="ident">fs_</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_file</span>(<span class="string">&quot;/alpha&quot;</span>);
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
+            <span class="ident">fs</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_file</span>(<span class="string">&quot;/alpha&quot;</span>);
         }
         <span class="kw">let</span> <span class="ident">dw</span> <span class="op">=</span> <span class="ident">DirWalker</span>::<span class="ident">new</span>(<span class="ident">fs</span>, <span class="kw-2">&amp;</span><span class="macro">vec</span><span class="macro">!</span>[<span class="ident">Path</span>::<span class="ident">new</span>(<span class="string">&quot;/&quot;</span>)]);
         <span class="kw">let</span> <span class="ident">files</span> <span class="op">=</span> <span class="ident">dw</span>.<span class="ident">traverse_all</span>();
@@ -212,21 +197,22 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">walker_handle_symlinks</span>() {
+        <span class="comment">// test edge cases for symlinks: test data integrity and reselience</span>
         <span class="kw">let</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">TestFileSystem</span>::<span class="ident">new</span>();
         {
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs_</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
-            <span class="ident">fs_</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_file</span>(<span class="string">&quot;/alpha&quot;</span>);
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
+            <span class="ident">fs</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_file</span>(<span class="string">&quot;/alpha&quot;</span>);
             <span class="comment">// only deal with a target once, omit symlinks</span>
-            <span class="ident">fs_</span>.<span class="ident">create_symlink</span>(<span class="string">&quot;/beta&quot;</span>, <span class="string">&quot;/alpha&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_symlink</span>(<span class="string">&quot;/gamma&quot;</span>, <span class="string">&quot;/alpha&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_symlink</span>(<span class="string">&quot;/beta&quot;</span>, <span class="string">&quot;/alpha&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_symlink</span>(<span class="string">&quot;/gamma&quot;</span>, <span class="string">&quot;/alpha&quot;</span>);
             <span class="comment">// ignore bad symlinks</span>
-            <span class="ident">fs_</span>.<span class="ident">create_symlink</span>(<span class="string">&quot;/delta&quot;</span>, <span class="string">&quot;/_nonexistant&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_symlink</span>(<span class="string">&quot;/delta&quot;</span>, <span class="string">&quot;/_nonexistant&quot;</span>);
             <span class="comment">// ignore symlink loops</span>
-            <span class="ident">fs_</span>.<span class="ident">create_symlink</span>(<span class="string">&quot;/x&quot;</span>, <span class="string">&quot;/xx&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_symlink</span>(<span class="string">&quot;/xx&quot;</span>, <span class="string">&quot;/x&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_symlink</span>(<span class="string">&quot;/x&quot;</span>, <span class="string">&quot;/xx&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_symlink</span>(<span class="string">&quot;/xx&quot;</span>, <span class="string">&quot;/x&quot;</span>);
             <span class="comment">// including a symlink that points to its parent folder</span>
-            <span class="ident">fs_</span>.<span class="ident">create_symlink</span>(<span class="string">&quot;/folder&quot;</span>, <span class="string">&quot;/&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_symlink</span>(<span class="string">&quot;/folder&quot;</span>, <span class="string">&quot;/&quot;</span>);
         }
         <span class="kw">let</span> <span class="ident">dw</span> <span class="op">=</span> <span class="ident">DirWalker</span>::<span class="ident">new</span>(<span class="ident">fs</span>, <span class="kw-2">&amp;</span><span class="macro">vec</span><span class="macro">!</span>[<span class="ident">Path</span>::<span class="ident">new</span>(<span class="string">&quot;/&quot;</span>)]);
         <span class="kw">let</span> <span class="ident">files</span> <span class="op">=</span> <span class="ident">dw</span>.<span class="ident">traverse_all</span>();
@@ -238,12 +224,12 @@
         <span class="comment">// verify files can be blacklisted by a regular expression</span>
         <span class="kw">let</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">TestFileSystem</span>::<span class="ident">new</span>();
         {
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs_</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
-            <span class="ident">fs_</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_file</span>(<span class="string">&quot;/a.pdf&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_file</span>(<span class="string">&quot;/b.txt&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_file</span>(<span class="string">&quot;/c.htm&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_file</span>(<span class="string">&quot;/d.cpp&quot;</span>);
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
+            <span class="ident">fs</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_file</span>(<span class="string">&quot;/a.pdf&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_file</span>(<span class="string">&quot;/b.txt&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_file</span>(<span class="string">&quot;/c.htm&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_file</span>(<span class="string">&quot;/d.cpp&quot;</span>);
         }
         <span class="kw">let</span> <span class="ident">dw</span> <span class="op">=</span>
             <span class="ident">DirWalker</span>::<span class="ident">new</span>(<span class="ident">fs</span>, <span class="kw-2">&amp;</span><span class="macro">vec</span><span class="macro">!</span>[<span class="ident">Path</span>::<span class="ident">new</span>(<span class="string">&quot;/&quot;</span>)]).<span class="ident">blacklist_patterns</span>(<span class="macro">vec</span><span class="macro">!</span>[<span class="string">&quot;/b+&quot;</span>, <span class="string">&quot;.*.cpp&quot;</span>]);
@@ -258,16 +244,16 @@
         <span class="comment">// verify files can be blacklisted by their folder</span>
         <span class="kw">let</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">TestFileSystem</span>::<span class="ident">new</span>();
         {
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs_</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
-            <span class="ident">fs_</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/f1&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/f2&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/f3&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/f4&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_file</span>(<span class="string">&quot;/f1/a.pdf&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_file</span>(<span class="string">&quot;/f2/b.txt&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_file</span>(<span class="string">&quot;/f3/c.htm&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_file</span>(<span class="string">&quot;/f4/d.cpp&quot;</span>);
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
+            <span class="ident">fs</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/f1&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/f2&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/f3&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/f4&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_file</span>(<span class="string">&quot;/f1/a.pdf&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_file</span>(<span class="string">&quot;/f2/b.txt&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_file</span>(<span class="string">&quot;/f3/c.htm&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_file</span>(<span class="string">&quot;/f4/d.cpp&quot;</span>);
         }
         <span class="kw">let</span> <span class="ident">dw</span> <span class="op">=</span> <span class="ident">DirWalker</span>::<span class="ident">new</span>(<span class="ident">fs</span>, <span class="kw-2">&amp;</span><span class="macro">vec</span><span class="macro">!</span>[<span class="ident">Path</span>::<span class="ident">new</span>(<span class="string">&quot;/&quot;</span>)])
             .<span class="ident">blacklist_folders</span>(<span class="macro">vec</span><span class="macro">!</span>[<span class="kw-2">&amp;</span><span class="ident">OsString</span>::<span class="ident">from</span>(<span class="string">&quot;/f1&quot;</span>), <span class="kw-2">&amp;</span><span class="ident">OsString</span>::<span class="ident">from</span>(<span class="string">&quot;/f2&quot;</span>)]);
@@ -282,12 +268,12 @@
         <span class="comment">// verify dirwalker only searches in directories it&#39;s told to</span>
         <span class="kw">let</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">TestFileSystem</span>::<span class="ident">new</span>();
         {
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs_</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
-            <span class="ident">fs_</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/f1&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/f2&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_file</span>(<span class="string">&quot;/f1/a.pdf&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">create_file</span>(<span class="string">&quot;/f2/b.txt&quot;</span>);
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
+            <span class="ident">fs</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/f1&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/f2&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_file</span>(<span class="string">&quot;/f1/a.pdf&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">create_file</span>(<span class="string">&quot;/f2/b.txt&quot;</span>);
         }
         <span class="kw">let</span> <span class="ident">dw</span> <span class="op">=</span> <span class="ident">DirWalker</span>::<span class="ident">new</span>(<span class="ident">fs</span>, <span class="kw-2">&amp;</span><span class="macro">vec</span><span class="macro">!</span>[<span class="ident">Path</span>::<span class="ident">new</span>(<span class="string">&quot;/f2&quot;</span>)]);
         <span class="kw">let</span> <span class="ident">files</span> <span class="op">=</span> <span class="ident">dw</span>.<span class="ident">traverse_all</span>();

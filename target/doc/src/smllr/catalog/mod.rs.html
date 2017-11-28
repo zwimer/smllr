@@ -112,6 +112,8 @@
 <span id="67">67</span>
 <span id="68">68</span>
 <span id="69">69</span>
+<span id="70">70</span>
+<span id="71">71</span>
 </pre><pre class="rust ">
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">path</span>::<span class="ident">Path</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">HashMap</span>;
@@ -123,11 +125,14 @@
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">proxy</span>;
 <span class="kw">use</span> <span class="self">self</span>::<span class="ident">proxy</span>::{<span class="ident">Duplicates</span>, <span class="ident">FirstKBytesProxy</span>};
 
-<span class="kw">mod</span> <span class="ident">print</span>;
+<span class="kw">mod</span> <span class="ident">print</span>; <span class="comment">// include debug printing info</span>
 
 <span class="kw">mod</span> <span class="ident">test</span>; <span class="comment">// include unit tests</span>
 
 
+<span class="doccomment">/// Catalog files, determining lazily if files are identical</span>
+<span class="doccomment">///  by checking filesize, the first K bytes, and then the whole file hash</span>
+<span class="doccomment">///  but only when necessary to check</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">FileCataloger</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">VFS</span><span class="op">&gt;</span> {
     <span class="ident">catalog</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">u64</span>, <span class="ident">FirstKBytesProxy</span><span class="op">&gt;</span>,
     <span class="ident">vfs</span>: <span class="ident">T</span>,
@@ -139,7 +144,7 @@
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">VFS</span><span class="op">&gt;</span> <span class="ident">FileCataloger</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
-    <span class="doccomment">///Initilize the filecataloger</span>
+    <span class="doccomment">/// Initilize the filecataloger</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">vfs</span>: <span class="ident">T</span>) <span class="op">-&gt;</span> <span class="self">Self</span> {
         <span class="ident">FileCataloger</span> {
             <span class="ident">catalog</span>: <span class="ident">HashMap</span>::<span class="ident">new</span>(),
@@ -149,19 +154,18 @@
 
     <span class="comment">// each Vec&lt;Duplicates&gt; is a vector of all the Duplicates w/ the same content</span>
     <span class="comment">// Each Duplicate is a vector of links that point to one inode</span>
-    <span class="doccomment">/// get_repeats() returns a vector of vectors of lists of duplicates</span>
-    <span class="doccomment">/// such that all duplicates in the catalog are grouped together</span>
+    <span class="doccomment">/// Check all included Proxies for duplicates</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_repeats</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Duplicates</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">all</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[];
         <span class="comment">// for each subgrouping (done by size), get all the list of duplicates and</span>
         <span class="comment">// add them to are return variable.</span>
-        <span class="kw">for</span> <span class="ident">fkbp</span> <span class="kw">in</span> <span class="self">self</span>.<span class="ident">catalog</span>.<span class="ident">values</span>() {
+        <span class="kw">for</span> (<span class="ident">_size</span>, <span class="kw-2">ref</span> <span class="ident">fkbp</span>) <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">catalog</span> {
             <span class="ident">all</span>.<span class="ident">append</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">fkbp</span>.<span class="ident">get_repeats</span>());
         }
         <span class="ident">all</span>
     }
 
-    <span class="doccomment">/// inserts path into the catalog.</span>
+    <span class="doccomment">/// Inserts path into the catalog</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">insert</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">Path</span>) {
         <span class="comment">// get the metadata (needed for preliminary comparision and storage)</span>
         <span class="kw">let</span> <span class="ident">file</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">vfs</span>.<span class="ident">get_file</span>(<span class="ident">path</span>).<span class="ident">expect</span>(<span class="string">&quot;No such file&quot;</span>);

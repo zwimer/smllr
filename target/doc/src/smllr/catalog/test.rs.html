@@ -200,24 +200,102 @@
 <span id="155">155</span>
 <span id="156">156</span>
 <span id="157">157</span>
+<span id="158">158</span>
+<span id="159">159</span>
+<span id="160">160</span>
+<span id="161">161</span>
+<span id="162">162</span>
+<span id="163">163</span>
+<span id="164">164</span>
+<span id="165">165</span>
+<span id="166">166</span>
+<span id="167">167</span>
+<span id="168">168</span>
+<span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
 </pre><pre class="rust ">
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">test</span> {
 
     <span class="kw">use</span> <span class="ident">vfs</span>::{<span class="ident">TestFile</span>, <span class="ident">TestFileSystem</span>, <span class="ident">TestMD</span>};
-
     <span class="kw">use</span> <span class="ident">catalog</span>::<span class="ident">FileCataloger</span>;
 
     <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">path</span>::<span class="ident">PathBuf</span>;
     <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">collections</span>::<span class="ident">HashSet</span>;
 
-    <span class="comment">// verify files w/ the same size but different values aren&#39;t the same</span>
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">dup_all_unique</span>() {
+        <span class="comment">// completely distinct files should not be flagged as duplicates</span>
+        <span class="comment">// they share no criteria in common (inode/size/hash/beginning)</span>
 
-    <span class="comment">// verify files w/ the same size and first k bytes aren&#39;t the same</span>
+        <span class="kw">let</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">TestFileSystem</span>::<span class="ident">new</span>();
+        {
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
+            <span class="ident">fs</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">add</span>(
+                <span class="ident">TestFile</span>::<span class="ident">new</span>(<span class="string">&quot;/a&quot;</span>)
+                    .<span class="ident">with_contents</span>(<span class="ident">String</span>::<span class="ident">from</span>(<span class="string">&quot;A&quot;</span>))
+                    .<span class="ident">with_metadata</span>(<span class="ident">TestMD</span>::<span class="ident">new</span>())
+                    .<span class="ident">with_inode</span>(<span class="number">1</span>),
+            );
+            <span class="ident">fs</span>.<span class="ident">add</span>(
+                <span class="ident">TestFile</span>::<span class="ident">new</span>(<span class="string">&quot;/b&quot;</span>)
+                    .<span class="ident">with_contents</span>(<span class="ident">String</span>::<span class="ident">from</span>(<span class="string">&quot;BB&quot;</span>))
+                    .<span class="ident">with_metadata</span>(<span class="ident">TestMD</span>::<span class="ident">new</span>())
+                    .<span class="ident">with_inode</span>(<span class="number">2</span>),
+            );
+            <span class="ident">fs</span>.<span class="ident">add</span>(
+                <span class="ident">TestFile</span>::<span class="ident">new</span>(<span class="string">&quot;/c&quot;</span>)
+                    .<span class="ident">with_contents</span>(<span class="ident">String</span>::<span class="ident">from</span>(<span class="string">&quot;CCC&quot;</span>))
+                    .<span class="ident">with_metadata</span>(<span class="ident">TestMD</span>::<span class="ident">new</span>())
+                    .<span class="ident">with_inode</span>(<span class="number">3</span>),
+            );
+        }
+        <span class="kw">let</span> <span class="ident">files</span>: <span class="ident">HashSet</span><span class="op">&lt;</span>_<span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="string">&quot;/a&quot;</span>, <span class="string">&quot;/b&quot;</span>, <span class="string">&quot;/c&quot;</span>].<span class="ident">iter</span>().<span class="ident">map</span>(<span class="ident">PathBuf</span>::<span class="ident">from</span>).<span class="ident">collect</span>();
 
-    <span class="comment">// verify identical files are matched</span>
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fc</span> <span class="op">=</span> <span class="ident">FileCataloger</span>::<span class="ident">new</span>(<span class="ident">fs</span>);
+        <span class="kw">for</span> <span class="ident">file</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">files</span> {
+            <span class="ident">fc</span>.<span class="ident">insert</span>(<span class="ident">file</span>);
+        }
 
-    <span class="comment">// hard links / across drives ?</span>
+        <span class="kw">let</span> <span class="ident">repeats</span> <span class="op">=</span> <span class="ident">fc</span>.<span class="ident">get_repeats</span>();
+        <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">repeats</span>.<span class="ident">is_empty</span>());
+    }
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">dup_test_same_size</span>() {
@@ -225,22 +303,28 @@
         <span class="comment">// files should not be flagged as duplicates</span>
         <span class="kw">let</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">TestFileSystem</span>::<span class="ident">new</span>();
         {
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs_</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
-            <span class="ident">fs_</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
-            <span class="ident">fs_</span>.<span class="ident">add</span>(
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
+            <span class="ident">fs</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
+            <span class="ident">fs</span>.<span class="ident">add</span>(
                 <span class="ident">TestFile</span>::<span class="ident">new</span>(<span class="string">&quot;/a&quot;</span>)
                     .<span class="ident">with_contents</span>(<span class="ident">String</span>::<span class="ident">from</span>(<span class="string">&quot;AAAA&quot;</span>))
                     .<span class="ident">with_metadata</span>(<span class="ident">TestMD</span>::<span class="ident">new</span>())
                     .<span class="ident">with_inode</span>(<span class="number">1</span>),
             );
-            <span class="ident">fs_</span>.<span class="ident">add</span>(
+            <span class="ident">fs</span>.<span class="ident">add</span>(
                 <span class="ident">TestFile</span>::<span class="ident">new</span>(<span class="string">&quot;/b&quot;</span>)
                     .<span class="ident">with_contents</span>(<span class="ident">String</span>::<span class="ident">from</span>(<span class="string">&quot;BBBB&quot;</span>))
                     .<span class="ident">with_metadata</span>(<span class="ident">TestMD</span>::<span class="ident">new</span>())
                     .<span class="ident">with_inode</span>(<span class="number">2</span>),
             );
+            <span class="ident">fs</span>.<span class="ident">add</span>(
+                <span class="ident">TestFile</span>::<span class="ident">new</span>(<span class="string">&quot;/c&quot;</span>)
+                    .<span class="ident">with_contents</span>(<span class="ident">String</span>::<span class="ident">from</span>(<span class="string">&quot;CCCC&quot;</span>))
+                    .<span class="ident">with_metadata</span>(<span class="ident">TestMD</span>::<span class="ident">new</span>())
+                    .<span class="ident">with_inode</span>(<span class="number">3</span>),
+            );
         }
-        <span class="kw">let</span> <span class="ident">files</span>: <span class="ident">HashSet</span><span class="op">&lt;</span>_<span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="string">&quot;/a&quot;</span>, <span class="string">&quot;/b&quot;</span>].<span class="ident">iter</span>().<span class="ident">map</span>(<span class="ident">PathBuf</span>::<span class="ident">from</span>).<span class="ident">collect</span>();
+        <span class="kw">let</span> <span class="ident">files</span>: <span class="ident">HashSet</span><span class="op">&lt;</span>_<span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="string">&quot;/a&quot;</span>, <span class="string">&quot;/b&quot;</span>, <span class="string">&quot;/c&quot;</span>].<span class="ident">iter</span>().<span class="ident">map</span>(<span class="ident">PathBuf</span>::<span class="ident">from</span>).<span class="ident">collect</span>();
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fc</span> <span class="op">=</span> <span class="ident">FileCataloger</span>::<span class="ident">new</span>(<span class="ident">fs</span>);
         <span class="kw">for</span> <span class="ident">file</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">files</span> {
@@ -257,23 +341,29 @@
         <span class="comment">// files should not be flagged as duplicates</span>
         <span class="kw">let</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">TestFileSystem</span>::<span class="ident">new</span>();
         {
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs_</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
-            <span class="ident">fs_</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
+            <span class="ident">fs</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
             <span class="kw">let</span> <span class="ident">start</span>: <span class="ident">String</span> <span class="op">=</span> ::<span class="ident">std</span>::<span class="ident">iter</span>::<span class="ident">repeat</span>(<span class="string">&#39;A&#39;</span>).<span class="ident">take</span>(<span class="number">4096</span>).<span class="ident">collect</span>();
-            <span class="ident">fs_</span>.<span class="ident">add</span>(
+            <span class="ident">fs</span>.<span class="ident">add</span>(
                 <span class="ident">TestFile</span>::<span class="ident">new</span>(<span class="string">&quot;/a&quot;</span>)
                     .<span class="ident">with_contents</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}_a&quot;</span>, <span class="ident">start</span>))
                     .<span class="ident">with_metadata</span>(<span class="ident">TestMD</span>::<span class="ident">new</span>())
                     .<span class="ident">with_inode</span>(<span class="number">1</span>),
             );
-            <span class="ident">fs_</span>.<span class="ident">add</span>(
+            <span class="ident">fs</span>.<span class="ident">add</span>(
                 <span class="ident">TestFile</span>::<span class="ident">new</span>(<span class="string">&quot;/b&quot;</span>)
                     .<span class="ident">with_contents</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}_b&quot;</span>, <span class="ident">start</span>))
                     .<span class="ident">with_metadata</span>(<span class="ident">TestMD</span>::<span class="ident">new</span>())
                     .<span class="ident">with_inode</span>(<span class="number">2</span>),
             );
+            <span class="ident">fs</span>.<span class="ident">add</span>(
+                <span class="ident">TestFile</span>::<span class="ident">new</span>(<span class="string">&quot;/c&quot;</span>)
+                    .<span class="ident">with_contents</span>(<span class="macro">format</span><span class="macro">!</span>(<span class="string">&quot;{}_c&quot;</span>, <span class="ident">start</span>))
+                    .<span class="ident">with_metadata</span>(<span class="ident">TestMD</span>::<span class="ident">new</span>())
+                    .<span class="ident">with_inode</span>(<span class="number">3</span>),
+            );
         }
-        <span class="kw">let</span> <span class="ident">files</span>: <span class="ident">HashSet</span><span class="op">&lt;</span>_<span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="string">&quot;/a&quot;</span>, <span class="string">&quot;/b&quot;</span>].<span class="ident">iter</span>().<span class="ident">map</span>(<span class="ident">PathBuf</span>::<span class="ident">from</span>).<span class="ident">collect</span>();
+        <span class="kw">let</span> <span class="ident">files</span>: <span class="ident">HashSet</span><span class="op">&lt;</span>_<span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="string">&quot;/a&quot;</span>, <span class="string">&quot;/b&quot;</span>, <span class="string">&quot;/c&quot;</span>].<span class="ident">iter</span>().<span class="ident">map</span>(<span class="ident">PathBuf</span>::<span class="ident">from</span>).<span class="ident">collect</span>();
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fc</span> <span class="op">=</span> <span class="ident">FileCataloger</span>::<span class="ident">new</span>(<span class="ident">fs</span>);
         <span class="kw">for</span> <span class="ident">file</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">files</span> {
@@ -289,23 +379,29 @@
         <span class="comment">// unlinked files with the same contents should be flagged as duplicates</span>
         <span class="kw">let</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">TestFileSystem</span>::<span class="ident">new</span>();
         {
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs_</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
-            <span class="ident">fs_</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
+            <span class="ident">fs</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
             <span class="kw">let</span> <span class="ident">contents</span>: <span class="ident">String</span> <span class="op">=</span> ::<span class="ident">std</span>::<span class="ident">iter</span>::<span class="ident">repeat</span>(<span class="string">&#39;A&#39;</span>).<span class="ident">take</span>(<span class="number">4096</span>).<span class="ident">collect</span>();
-            <span class="ident">fs_</span>.<span class="ident">add</span>(
+            <span class="ident">fs</span>.<span class="ident">add</span>(
                 <span class="ident">TestFile</span>::<span class="ident">new</span>(<span class="string">&quot;/a&quot;</span>)
                     .<span class="ident">with_contents</span>(<span class="ident">contents</span>.<span class="ident">clone</span>())
                     .<span class="ident">with_metadata</span>(<span class="ident">TestMD</span>::<span class="ident">new</span>())
                     .<span class="ident">with_inode</span>(<span class="number">1</span>),
             );
-            <span class="ident">fs_</span>.<span class="ident">add</span>(
+            <span class="ident">fs</span>.<span class="ident">add</span>(
                 <span class="ident">TestFile</span>::<span class="ident">new</span>(<span class="string">&quot;/b&quot;</span>)
-                    .<span class="ident">with_contents</span>(<span class="ident">contents</span>)
+                    .<span class="ident">with_contents</span>(<span class="ident">contents</span>.<span class="ident">clone</span>())
                     .<span class="ident">with_metadata</span>(<span class="ident">TestMD</span>::<span class="ident">new</span>())
                     .<span class="ident">with_inode</span>(<span class="number">2</span>),
             );
+            <span class="ident">fs</span>.<span class="ident">add</span>(
+                <span class="ident">TestFile</span>::<span class="ident">new</span>(<span class="string">&quot;/c&quot;</span>)
+                    .<span class="ident">with_contents</span>(<span class="ident">contents</span>)
+                    .<span class="ident">with_metadata</span>(<span class="ident">TestMD</span>::<span class="ident">new</span>())
+                    .<span class="ident">with_inode</span>(<span class="number">3</span>),
+            );
         }
-        <span class="kw">let</span> <span class="ident">files</span>: <span class="ident">HashSet</span><span class="op">&lt;</span>_<span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="string">&quot;/a&quot;</span>, <span class="string">&quot;/b&quot;</span>].<span class="ident">iter</span>().<span class="ident">map</span>(<span class="ident">PathBuf</span>::<span class="ident">from</span>).<span class="ident">collect</span>();
+        <span class="kw">let</span> <span class="ident">files</span>: <span class="ident">HashSet</span><span class="op">&lt;</span>_<span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec</span><span class="macro">!</span>[<span class="string">&quot;/a&quot;</span>, <span class="string">&quot;/b&quot;</span>, <span class="string">&quot;/c&quot;</span>].<span class="ident">iter</span>().<span class="ident">map</span>(<span class="ident">PathBuf</span>::<span class="ident">from</span>).<span class="ident">collect</span>();
 
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fc</span> <span class="op">=</span> <span class="ident">FileCataloger</span>::<span class="ident">new</span>(<span class="ident">fs</span>);
         <span class="kw">for</span> <span class="ident">file</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">files</span> {
@@ -315,7 +411,7 @@
         <span class="kw">let</span> <span class="ident">repeats</span> <span class="op">=</span> <span class="ident">fc</span>.<span class="ident">get_repeats</span>();
         <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="number">1</span>, <span class="ident">repeats</span>.<span class="ident">len</span>());
         <span class="kw">let</span> <span class="ident">dups</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">repeats</span>[<span class="number">0</span>].<span class="number">0</span>;
-        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="number">2</span>, <span class="ident">dups</span>.<span class="ident">len</span>());
+        <span class="macro">assert_eq</span><span class="macro">!</span>(<span class="number">3</span>, <span class="ident">dups</span>.<span class="ident">len</span>());
         <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">dups</span>.<span class="ident">contains</span>(<span class="kw-2">&amp;</span><span class="ident">PathBuf</span>::<span class="ident">from</span>(<span class="string">&quot;/a&quot;</span>)));
         <span class="macro">assert</span><span class="macro">!</span>(<span class="ident">dups</span>.<span class="ident">contains</span>(<span class="kw-2">&amp;</span><span class="ident">PathBuf</span>::<span class="ident">from</span>(<span class="string">&quot;/b&quot;</span>)));
     }
@@ -326,16 +422,16 @@
         <span class="comment">// even if they (somehow) have different contents</span>
         <span class="kw">let</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">TestFileSystem</span>::<span class="ident">new</span>();
         {
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs_</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
-            <span class="ident">fs_</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
+            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">fs</span> <span class="op">=</span> <span class="ident">fs</span>.<span class="ident">borrow_mut</span>();
+            <span class="ident">fs</span>.<span class="ident">create_dir</span>(<span class="string">&quot;/&quot;</span>);
             <span class="comment">// note that all test files passed to FileCataloger must have metadata</span>
-            <span class="ident">fs_</span>.<span class="ident">add</span>(
+            <span class="ident">fs</span>.<span class="ident">add</span>(
                 <span class="ident">TestFile</span>::<span class="ident">new</span>(<span class="string">&quot;/a&quot;</span>)
                     .<span class="ident">with_inode</span>(<span class="number">1</span>)
                     .<span class="ident">with_contents</span>(<span class="ident">String</span>::<span class="ident">from</span>(<span class="string">&quot;AAAA&quot;</span>))
                     .<span class="ident">with_metadata</span>(<span class="ident">TestMD</span>::<span class="ident">new</span>()),
             );
-            <span class="ident">fs_</span>.<span class="ident">add</span>(
+            <span class="ident">fs</span>.<span class="ident">add</span>(
                 <span class="ident">TestFile</span>::<span class="ident">new</span>(<span class="string">&quot;/b&quot;</span>)
                     .<span class="ident">with_inode</span>(<span class="number">1</span>)
                     .<span class="ident">with_contents</span>(<span class="ident">String</span>::<span class="ident">from</span>(<span class="string">&quot;BBBB&quot;</span>))

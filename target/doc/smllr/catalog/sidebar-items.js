@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["proxy",""]],"struct":[["FileCataloger","Catalog files, determining lazily if files are identical by checking filesize, the first K bytes, and then the whole file hash but only when necessary to check"]]});
