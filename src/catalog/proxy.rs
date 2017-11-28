@@ -1,30 +1,17 @@
-
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::fs::File;
-use std::io::{self, Read};
 use std::collections::hash_map::Entry;
 
-use super::super::ID;
-use super::super::FIRST_K_BYTES as K;
-
-use md5;
-
-// helper types
-
-// the type md5::compute() derefs to
-pub type Hash = [u8; 16];
-
-// FirstBytes is a wrapper for a hashmap of the first bytes of a file.
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct FirstBytes(pub(super) [u8; K]);
+use vfs::{File, VFS};
+use super::ID;
+use super::super::{FirstBytes, Hash};
 
 // Duplicates is a decorator for a vector of pathbufs which represents
 // a set of files. In code, it is an invariant that any 2 files in a
 // duplicates are identicle.
 #[derive(Clone)]
-pub struct Duplicates(pub(super) Vec<PathBuf>);
-
+/// Collection of `PathBuf`s that point to identical files
+pub struct Duplicates(pub(crate) Vec<PathBuf>);
 
 impl Duplicates {
     // Convert a path to a vector of length 1 containing that path
@@ -45,14 +32,16 @@ impl Duplicates {
     }
 }
 
-
 // // // // // // // // // // // // // // // // // // // // //
-/// proxy of firstbytes; untill 2 elements have been added, no chance of a collision
-/// so don't make the hashmap and shortcut.
+/// Proxy of firstbytes: until two elements have been added, there is no
+/// chance of a collision so put off constructing the hashmap and shortcut
 pub enum FirstKBytesProxy {
     // in the first state there is one file
     // don't look up its first k bytes unless it has the same size as another
-    Delay { id: ID, dups: Duplicates },
+    Delay {
+        id: ID,
+        dups: Duplicates,
+    },
     // after 2 files with the first k bytes have been found, store them
     // also maintain a shortcut for looking up their values by their id
     // for hardlink detection.
@@ -71,22 +60,19 @@ impl FirstKBytesProxy {
             dups: Duplicates::from(path),
         }
     }
-    /// Helper Function; gets the first bytes of file identified with path.
-    fn get_first_bytes(path: &Path) -> io::Result<FirstBytes> {
-        // if the file is less than K bytes, the last K-n will be zeros
-        let mut f = File::open(path)?;
-        let mut v = [0u8; K];
-        f.read(&mut v)?;
-        Ok(FirstBytes(v)) // FirstBytes
-        //Ok(*md5::compute(v))  // Hash of FirstBytes
-    }
 
-    // identify and return all repeats under this node, collected in vectors to indicate
-    // the collisions in lower nodes.
-    pub(super) fn get_repeats(&self) -> Vec<Vec<Duplicates>> {
-        match self {
-            &FirstKBytesProxy::Delay { .. } => vec![],
-            &FirstKBytesProxy::Thunk { ref thunk, .. } => {
+    /// Traverse contained `HashProxy`s and identify contents with more than one
+    /// path associated with it
+    pub(super) fn get_repeats(&self) -> Vec<Duplicates> {
+        match *self {
+            // in the Delay state, return `dups` if it contains multiple paths
+            FirstKBytesProxy::Delay { ref dups, .. } => if dups.0.len() >= 2 {
+                vec![dups.clone()]
+            } else {
+                vec![]
+            },
+            // in the Thunk state, traverse all `HashProx`s
+            FirstKBytesProxy::Thunk { ref thunk, .. } => {
                 thunk.iter().fold(vec![], |mut acc, (_fb, hp)| {
                     acc.append(&mut hp.get_repeats());
                     acc
@@ -97,7 +83,7 @@ impl FirstKBytesProxy {
 
     /// Transition type from a Delay to a Thunk with the introduction of a new file
     /// Preview both files and add them to the contents of the new Thunk
-    fn transition(&mut self, new_id: ID, new_path: &Path) {
+    fn transition<T: VFS>(&mut self, vfs: &T, new_id: ID, new_path: &Path) {
         // convert from a Delay to a Thunk
         // panics if new belongs in Delay.dups
         // panics if `self` is of type Thunk
@@ -120,9 +106,13 @@ impl FirstKBytesProxy {
         // Initialize new type's variables
         let mut thunk = HashMap::new();
         let mut shortcut = HashMap::new();
+
         // get first bytes of both files
-        let new_first_bytes = Self::get_first_bytes(new_path).unwrap();
-        let old_first_bytes = Self::get_first_bytes(&del_dups.0[0]).unwrap();
+        let new_file = vfs.get_file(new_path).unwrap();
+        let old_file = vfs.get_file(&del_dups.0[0]).unwrap();
+        let new_first_bytes = new_file.get_first_bytes().unwrap();
+        let old_first_bytes = old_file.get_first_bytes().unwrap();
+
         // and add them to the map's shortcut.
         shortcut.insert(new_id, new_first_bytes.clone());
         shortcut.insert(del_id, old_first_bytes.clone());
@@ -131,7 +121,7 @@ impl FirstKBytesProxy {
         let new_dups = Duplicates::from(new_path);
         if new_first_bytes == old_first_bytes {
             let mut hp = HashProxy::new(del_id, del_dups);
-            hp.insert(new_id, new_dups);
+            hp.insert(vfs, new_id, new_dups);
             thunk.insert(old_first_bytes, hp);
         } else {
             thunk.insert(new_first_bytes, HashProxy::new(new_id, new_dups));
@@ -142,28 +132,31 @@ impl FirstKBytesProxy {
     }
 
     /// Add a new path to the proxy
-    pub fn insert(&mut self, id: ID, path: &Path) {
-        match self {
+    pub fn insert<T: VFS>(&mut self, vfs: &T, id: ID, path: &Path) {
+        match *self {
             // If a hard link and self is a Delay, insert a hard link to what's
             // already stored in Delay
-            &mut FirstKBytesProxy::Delay {
+            FirstKBytesProxy::Delay {
                 id: id2,
                 ref mut dups,
             } if id == id2 => {
                 dups.push(path);
             }
-            // If self is a thunk get first bytes and add to shortcut. If a match for a proxy, add
+            // If self is a thunk get first bytes and add to shortcut.
+            // If a match for a proxy, add
             // to the proxy; otherwise create a new hashproxy.
-            &mut FirstKBytesProxy::Thunk {
+            FirstKBytesProxy::Thunk {
                 ref mut thunk,
                 ref mut shortcut,
             } => {
-                let first_bytes = Self::get_first_bytes(path).unwrap();
+                let file = vfs.get_file(path).unwrap();
+                let first_bytes = file.get_first_bytes().unwrap();
+                //let first_bytes = Self::get_first_bytes(path).unwrap();
                 shortcut.insert(id, first_bytes.clone());
                 match thunk.entry(first_bytes) {
                     // call `insert` on the underlying HashProxy
                     Entry::Occupied(mut occ_entry) => {
-                        occ_entry.get_mut().insert(id, Duplicates::from(path))
+                        occ_entry.get_mut().insert(vfs, id, Duplicates::from(path))
                     }
                     // not there: create a new HashProxy
                     Entry::Vacant(vac_entry) => {
@@ -174,60 +167,66 @@ impl FirstKBytesProxy {
             }
             // If we are a delay and need to insert a path that is not a hardlink,
             // transition to a thunk
-            &mut FirstKBytesProxy::Delay { .. } => self.transition(id, path),
+            FirstKBytesProxy::Delay { .. } => self.transition(vfs, id, path),
         }
     }
 }
 
 // // // // // // // // // // // // // // // // // // // // //
-/// Proxy of Hashmap thunk; untill 2 elements have been added, no chance of a collision
-/// so don't make the hashmap and shortcut.
+
+/// Proxy of hashes: until two elements have been added, there is no
+/// chance of a collision so put off constructing the hashmap and shortcut
 pub enum HashProxy {
-    Delay { id: ID, dups: Duplicates },
+    // only one unique element has been added
+    Delay {
+        id: ID,
+        dups: Duplicates,
+    },
+    // need to map `Hash`es to a set of `Duplicates`
     Thunk {
-        //thunk: HashMap<Hash, Duplicates>,
-        thunk: HashMap<Hash, HashMap<ID, Duplicates>>,
+        thunk: HashMap<Hash, Duplicates>,
         shortcut: HashMap<ID, Hash>,
     },
+    // see `FirstKBytesProxy` for more documentation
+    // major difference is that `Duplicates` can contain non-hardlinks
 }
 
 
-
+// closely parallels FirstKBytesProxy's documentation
 impl HashProxy {
     //Construct a new hashprxy. As only 1 object, will be of the Delay type.
     fn new(id: ID, dups: Duplicates) -> Self {
         HashProxy::Delay { id, dups }
     }
-    // helper fn to hash a file
-    fn get_hash(path: &Path) -> io::Result<Hash> {
-        // not buffered for now
-        let mut f = File::open(path)?;
-        let mut v = vec![];
-        f.read_to_end(&mut v)?;
-        Ok(*md5::compute(v))
-    }
 
     // get all repeats under this node and return as a set of sets of duplicates.
-    fn get_repeats(&self) -> Vec<Vec<Duplicates>> {
-        match self {
-            &HashProxy::Delay { .. } => vec![],
-            &HashProxy::Thunk { ref thunk, .. } => {
+    /// Check all Duplicates for files associated with multiple Paths
+    fn get_repeats(&self) -> Vec<Duplicates> {
+        match *self {
+            HashProxy::Delay { ref dups, .. } => if dups.0.len() >= 2 {
+                vec![dups.clone()]
+            } else {
+                vec![]
+            },
+            HashProxy::Thunk { ref thunk, .. } => {
                 thunk
-                    .iter() // Over all entries in the hashmap, get
+                    .iter()
                     .filter_map(|(_hash, repeats)| {
-                        if repeats.len() < 2 {
-                            // only include entries that have >1 'repeat'
-                            None
+                        if repeats.0.len() >= 2 {
+                            // if there are 2 or more elements
+                            // (including 2 links to 1 file)
+                            Some(repeats.clone())
                         } else {
-                            Some(repeats.iter().map(|(_id, dups)| dups.clone()).collect())
+                            // exactly one representation on the hard drive
+                            None
                         }
-                    })//return the colletion of collections from each map.
+                    })
                     .collect()
             }
         }
     }
     // private helper fuction which handles the conversion from Delay to HashProxy::Thunk
-    fn transition(&mut self, new_id: ID, new_dups: Duplicates) {
+    fn transition<T: VFS>(&mut self, vfs: &T, new_id: ID, new_dups: Duplicates) {
         // convert Delay to Thunk
         let (del_id, del_dups) = match *self {
             HashProxy::Delay { id, ref mut dups } => {
@@ -239,66 +238,62 @@ impl HashProxy {
         //Set up variables for thunk state
         let mut thunk = HashMap::new();
         let mut shortcut = HashMap::new();
-        // get hashes, insert into shortcut and
-        let new_hash = Self::get_hash(new_dups.get_path()).unwrap();
-        let old_hash = Self::get_hash(del_dups.get_path()).unwrap();
 
-        shortcut.insert(new_id, new_hash.clone());
-        shortcut.insert(del_id, old_hash.clone());
+        // get hashes
+        let new_file = vfs.get_file(new_dups.get_path()).unwrap();
+        let old_file = vfs.get_file(del_dups.get_path()).unwrap();
+        let new_hash = new_file.get_hash().unwrap();
+        let old_hash = old_file.get_hash().unwrap();
 
-        if new_hash == old_hash {
-            // add both dups to the same map (or the first would be overwritten)
-            let mut hm = HashMap::new();
-            hm.insert(new_id, new_dups);
-            hm.insert(del_id, del_dups);
-            thunk.insert(old_hash, hm);
-        } else {
-            // add dups to different maps
-            let mut new_hm = HashMap::new();
-            new_hm.insert(new_id, new_dups);
-            thunk.insert(new_hash, new_hm);
-            let mut old_hm = HashMap::new();
-            old_hm.insert(del_id, del_dups);
-            thunk.insert(old_hash, old_hm);
-        }
+        // insert into shortcut
+        shortcut.insert(new_id, new_hash);
+        shortcut.insert(del_id, old_hash);
+
+        // thunk: HashMap < Hash, Duplicates >
+        thunk.insert(new_hash, new_dups);
+        thunk
+            .entry(old_hash)
+            .or_insert_with(|| Duplicates(vec![]))
+            .append(del_dups);
+
         // set our pointer to the new thunk state.
         *self = HashProxy::Thunk { thunk, shortcut };
     }
-    // insert Duplicate into the datastructure
-    fn insert(&mut self, id: ID, dups: Duplicates) {
-        match self {
+
+    // insert Duplicate into the data structure
+    fn insert<T: VFS>(&mut self, vfs: &T, id: ID, dups: Duplicates) {
+        match *self {
             // if its just a hard link and we are in Delay: just append it
-            &mut HashProxy::Delay {
+            HashProxy::Delay {
                 id: id2,
                 dups: ref mut dups2,
             } if id == id2 => {
                 dups2.append(dups);
             }
             // If we are in a thunk state, just add file and its hash
-            &mut HashProxy::Thunk {
+            HashProxy::Thunk {
                 ref mut thunk,
                 ref mut shortcut,
             } => {
-                let hash = Self::get_hash(dups.get_path()).unwrap();
-                shortcut.insert(id, hash.clone());
+                let file = vfs.get_file(dups.get_path()).unwrap();
+                let hash = file.get_hash().unwrap();
+                shortcut.insert(id, hash);
                 match thunk.entry(hash) {
                     Entry::Occupied(mut occ_entry) => {
                         // if files are completely identical
                         // add to the repeat hashtable (the val of the thunk)
                         // either create it or append to its ID's existing entry
                         let repeats = occ_entry.get_mut();
-                        repeats.entry(id).or_insert(Duplicates(vec![])).append(dups);
-                    }   //  Otherwise just add it to a new hashmap.
+                        repeats.append(dups);
+                    } //  Otherwise just add it to a new hashmap.
                     Entry::Vacant(vacant_entry) => {
-                        let mut hm = HashMap::new();
-                        hm.insert(id, dups);
-                        vacant_entry.insert(hm);
+                        vacant_entry.insert(dups);
                     }
                 }
             }
             // if a new non-link file is added while self is a delay stage: transition to Thunk
-            &mut HashProxy::Delay { .. } => {
-                self.transition(id, dups);
+            HashProxy::Delay { .. } => {
+                self.transition(vfs, id, dups);
             }
         }
     }

@@ -24,8 +24,9 @@ impl Debug for Duplicates {
         if let Some(i) = self.0.get(0) {
             write!(f, "{:?}", i)?;
         } else {
-            write!(f, "~EMPTY~")?; //something's probably wrong as ATM this object only
-            //should be created if 2+ entries are to be added
+            // something's probably wrong as ATM this object only
+            // should be created if 2+ entries are to be added
+            write!(f, "~EMPTY~")?;
         }
         for i in self.0.iter().skip(1) {
             write!(f, ", {:?}", i)?;
@@ -35,7 +36,7 @@ impl Debug for Duplicates {
 }
 
 // print contents of FileCataloger.
-impl Debug for FileCataloger {
+impl<T: VFS> Debug for FileCataloger<T> {
     fn fmt(&self, f: &mut Formatter) -> Result {
         for (size, fkbp) in &self.catalog {
             writeln!(f, " {:06}b: {:?}", size, fkbp)?;
@@ -44,15 +45,17 @@ impl Debug for FileCataloger {
     }
 }
 
+// print debug info for FirstKBytesProxy
 impl Debug for FirstKBytesProxy {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "FKBProxy::")?;
-        match self {
+        match *self {
             //if Delay, write all id's and paths in the delay,
-            &FirstKBytesProxy::Delay { ref id, ref dups } => {
+            FirstKBytesProxy::Delay { ref id, ref dups } => {
                 write!(f, "Delay: ({:?})  {:?}", id, dups)?;
+            }
             }//else (is thunk), write all abriviated key-value pairs
-            &FirstKBytesProxy::Thunk { ref thunk, .. } => {
+            FirstKBytesProxy::Thunk { ref thunk, .. } => {
                 //(first k-bytes in ddd..ddd form)
                 write!(f, "Thunk: ")?;
                 for (bytes, hp) in thunk {
@@ -73,14 +76,17 @@ impl Debug for FirstKBytesProxy {
     }
 }
 
+// print debug info for HashProxy
 impl Debug for HashProxy {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "HashProxy::")?;
-        match self {//if delay print id and list of duplicates
-            &HashProxy::Delay { ref id, ref dups } => {
+        match *self {
+            //if delay print id and list of duplicates
+            HashProxy::Delay { ref id, ref dups } => {
                 write!(f, "Delay: ({:?})  {:?}", id, dups)?;
-            }// if thunk, print hashmap in key-value pairs with key as dd..dd
-            &HashProxy::Thunk { ref thunk, .. } => {
+            }
+            // if thunk, print hashmap in key-value pairs with key as dd..dd
+            HashProxy::Thunk { ref thunk, .. } => {
                 write!(f, "Thunk: ")?;
                 for (hash, repeats) in thunk {
                     write!(
@@ -92,10 +98,7 @@ impl Debug for HashProxy {
                         hash[15]
                     )?;
                     // and value as a list of paths
-                    //write!(f, "!!!{}!!!", repeats.len())?;
-                    for (id, dups) in repeats {
-                        write!(f, "{:?}=>{:?}, ", id, dups)?;
-                    }
+                    write!(f, "{:?}, ", repeats)?;
                 }
             }
         }

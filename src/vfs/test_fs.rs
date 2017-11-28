@@ -1,15 +1,18 @@
 // mock filesystem for testing
 
-use std::path::{Path, PathBuf};
 use std::io;
-use std::time::SystemTime;
 use std::rc::Rc;
-use std::collections::HashMap;
-//RUST NOTE: super is the rust equivelent of .. in the filesystem.
-use super::{DeviceId, File, FileType, Inode, MetaData, VFS};
+use std::cell::RefCell;
+use std::path::{Path, PathBuf};
+use std::time::{self, SystemTime};
+use std::collections::{HashMap, HashSet};
+//RUST NOTE: `super` means up a module (often up a directory)
+use vfs::{DeviceId, File, FileType, Inode, MetaData, VFS};
+use super::{FirstBytes, Hash, FIRST_K_BYTES};
 use super::super::ID;
+use md5;
 
-/// TestMD is the mock metadata struct.
+/// `TestMD` is the mock metadata struct.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TestMD {
     len: u64,
@@ -17,6 +20,7 @@ pub struct TestMD {
     kind: FileType,
     id: ID,
 }
+
 //implementation of the MetaData trait for testMD.
 impl MetaData for TestMD {
     fn get_len(&self) -> u64 {
@@ -36,7 +40,41 @@ impl MetaData for TestMD {
     }
 }
 
-/// TestFile denotes a mockfile.
+impl Default for TestMD {
+    fn default() -> Self {
+        TestMD::new()
+    }
+}
+
+// TestMD must be easy to make and also customize for unit testing
+impl TestMD {
+    pub fn new() -> Self {
+        TestMD {
+            len: 0,
+            creation: SystemTime::now(),
+            kind: FileType::File,
+            id: ID { dev: 0, inode: 0 },
+        }
+    }
+    pub fn with_len(mut self, n: u64) -> Self {
+        self.len = n;
+        self
+    }
+    pub fn with_creation_time(mut self, t: SystemTime) -> Self {
+        self.creation = t;
+        self
+    }
+    pub fn with_kind(mut self, k: FileType) -> Self {
+        self.kind = k;
+        self
+    }
+    pub fn with_id(mut self, id: ID) -> Self {
+        self.id = id;
+        self
+    }
+}
+
+/// `TestFile` denotes a mockfile.
 /// Note that we are mocking the linux-style filesystem
 /// where many things are 'files', including directories,
 /// links, devices (/dev/sda might be familair).
@@ -49,8 +87,66 @@ pub struct TestFile {
     metadata: Option<TestMD>,
 }
 
-/// implementation of the File trait
-/// for TestFile.
+// build up a File object for mock testing
+impl TestFile {
+    pub fn new(s: &str) -> Self {
+        TestFile {
+            path: PathBuf::from(s),
+            contents: None,
+            kind: FileType::File,
+            inode: Inode(0),
+            metadata: None,
+        }
+    }
+    pub fn with_contents(mut self, c: String) -> Self {
+        if let Some(ref mut md) = self.metadata {
+            md.len = c.len() as u64;
+        }
+        self.contents = Some(c);
+        self
+    }
+    pub fn with_kind(mut self, k: FileType) -> Self {
+        if let Some(ref mut md) = self.metadata {
+            md.kind = k;
+        }
+        self.kind = k;
+        self
+    }
+    pub fn with_inode(mut self, i: u64) -> Self {
+        if let Some(ref mut md) = self.metadata {
+            md.id.inode = i;
+        }
+        self.inode = Inode(i);
+        self
+    }
+    pub fn with_metadata(mut self, mut md: TestMD) -> Self {
+        // fix filetype discrepancy
+        if self.kind != FileType::File {
+            md.kind = self.kind;
+        } else if md.kind != FileType::File {
+            self.kind = md.kind;
+        }
+        // fix len discrepancy
+        if let Some(ref c) = self.contents {
+            md.len = c.len() as u64;
+        } else if md.len != 0 {
+            // for now do nothing
+            // it is okay for `len` to be >0 and `contents` to be empty
+            //let contents = ::std::iter::repeat('?').take(md.len as usize).collect();
+            //self.contents = Some(contents);
+        }
+        // fix inode discrepancy
+        if self.inode.0 != 0 {
+            md.id.inode = self.inode.0;
+        } else if md.id.inode != 0 {
+            self.inode.0 = md.id.inode;
+        }
+        self.metadata = Some(md);
+        self
+    }
+}
+
+/// Implementation of the File trait for `TestFile`
 impl File for TestFile {
     type MD = TestMD;
 
@@ -64,14 +160,31 @@ impl File for TestFile {
         Ok(self.kind)
     }
     fn get_metadata(&self) -> io::Result<TestMD> {
-        self.metadata.ok_or(
-            io::Error::new(io::ErrorKind::Other, "No MD"),
-        )
+        self.metadata
+            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "No MD"))
+    }
+    fn get_first_bytes(&self) -> io::Result<FirstBytes> {
+        if let Some(ref cont) = self.contents {
+            let mut bytes = [0u8; FIRST_K_BYTES];
+            for (c, b) in cont.bytes().zip(bytes.iter_mut()) {
+                *b = c;
+            }
+            Ok(FirstBytes(bytes))
+        } else {
+            Err(io::Error::new(io::ErrorKind::NotFound, "No contents set"))
+        }
+    }
+    fn get_hash(&self) -> io::Result<Hash> {
+        if let Some(ref cont) = self.contents {
+            Ok(*md5::compute(cont))
+        } else {
+            Err(io::Error::new(io::ErrorKind::NotFound, "No contents set"))
+        }
     }
 }
 
-/// TestFileSystem denotes a Mock Filesystem we use instead of risking
-/// our own data.
+/// `TestFileSystem` denotes a Mock Filesystem we use instead of risking
+/// our own data or dealing with the actual filesystem
 #[derive(Debug)]
 pub struct TestFileSystem {
     files: HashMap<PathBuf, TestFile>,
@@ -95,7 +208,7 @@ impl TestFileSystem {
         // Create the metadata for the file
         let md = TestMD {
             len: 0,
-            creation: SystemTime::now(),
+            creation: time::UNIX_EPOCH,
             kind,
             id: ID {
                 inode: inode.0,
@@ -115,11 +228,23 @@ impl TestFileSystem {
     }
 
     /// constructor: initializes self.
-    pub fn new() -> Rc<Self> {
-        Rc::new(TestFileSystem {
+    pub fn new() -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(TestFileSystem {
             files: HashMap::new(),
             symlinks: HashMap::new(),
-        })
+        }))
+    }
+    /// get size
+    pub fn num_elements(&self) -> usize {
+        self.files.len() + self.symlinks.len()
+    }
+    /// get number of unique inodes
+    pub fn num_inodes(&self) -> usize {
+        let inodes: HashSet<_> = self.files
+            .iter()
+            .map(|f| f.1.get_inode().unwrap())
+            .collect();
+        inodes.len()
     }
     /// Creates a new file at path. Anologous to '$touch path'
     pub fn create_file<P: AsRef<Path>>(&mut self, path: P) {
@@ -130,7 +255,7 @@ impl TestFileSystem {
         self.create_regular(path.as_ref(), FileType::Dir);
     }
     /// Creates a new symlink from path to target. analogous to
-    /// '$ln -s -t target path
+    /// 'ln -s -t target path
     pub fn create_symlink<P: AsRef<Path>>(&mut self, path: P, target: P) {
         // Create the symlink file.
         let tf = TestFile {
@@ -144,13 +269,17 @@ impl TestFileSystem {
         let val = (tf, target.as_ref().to_owned());
         self.symlinks.insert(path.as_ref().to_owned(), val);
     }
+    /// Register a new file
+    pub fn add(&mut self, tf: TestFile) {
+        self.files.insert(tf.path.to_owned(), tf);
+    }
 
     // getters for the Mock Filesystem.
     // RUST SYNTAX: <'a> is a lifetime paramater. Lifetimes are pretty
     // unique to rust; essentially they are used to pass the parent
     // through so they are invalidated when the parent is.
 
-    ///Resolves the
+    /// Resolves the path into a TestFile
     fn lookup<'a>(&'a self, path: &Path) -> io::Result<&'a TestFile> {
         if let Some(tf) = self.files.get(path) {
             Ok(tf)
@@ -173,7 +302,7 @@ impl TestFileSystem {
 }
 
 // Implementation of the VFS interface for the whole of the Mock File System.
-impl VFS for Rc<TestFileSystem> {
+impl VFS for Rc<RefCell<TestFileSystem>> {
     type FileIter = TestFile;
 
     /// VFS::list_dir(p)  gets an iterator over the contents of p.
@@ -182,16 +311,19 @@ impl VFS for Rc<TestFileSystem> {
         p: P,
     ) -> io::Result<Box<Iterator<Item = io::Result<TestFile>>>> {
         let mut v = vec![];
+        let fs = self.borrow();
         // collect all files which are children of p
-        for (path, file) in &self.files {
-            let parent = path.parent();
-            if parent == Some(p.as_ref()) || parent.is_none() {
+        let is_root = p.as_ref().components().count() == 1;
+        for (path, file) in &fs.files {
+            if path.parent() == Some(p.as_ref()) || (is_root && path.components().count() == 2) {
+                // include a file if it's parent is in `p`
+                // or if `p` is the root and `path` is 1 level down
                 v.push(Ok(file.clone()));
             }
         }
         // collect all symlinks which are children of p
-        for (src, &(ref file, ref _dst)) in &self.symlinks {
-            if src.parent() == Some(p.as_ref()) {
+        for (src, &(ref file, ref _dst)) in &fs.symlinks {
+            if src.parent() == Some(p.as_ref()) || p.as_ref().parent().is_none() {
                 v.push(Ok(file.clone()));
             }
         }
@@ -222,14 +354,13 @@ impl VFS for Rc<TestFileSystem> {
     /// FileType of path cannot be symlink; they are handled diffrently; use
     /// VFS::get_symlink_metadata for symlinks
     fn get_metadata<P: AsRef<Path>>(&self, path: P) -> io::Result<<Self::FileIter as File>::MD> {
-        match self.files.get(path.as_ref()) {
+        let fs = self.borrow();
+        match fs.files.get(path.as_ref()) {
             Some(f) => f.get_metadata(),
-            None => {
-                match self.symlinks.get(path.as_ref()) {
-                    Some(&(_, ref p)) => self.lookup(p).and_then(|f| f.get_metadata()),
-                    None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
-                }
-            }
+            None => match fs.symlinks.get(path.as_ref()) {
+                Some(&(_, ref p)) => fs.lookup(p).and_then(|f| f.get_metadata()),
+                None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
+            },
         }
     }
 
@@ -238,23 +369,69 @@ impl VFS for Rc<TestFileSystem> {
         &self,
         path: P,
     ) -> io::Result<<Self::FileIter as File>::MD> {
-        match self.files.get(path.as_ref()) {
+        let fs = self.borrow();
+        match fs.files.get(path.as_ref()) {
             Some(f) => f.get_metadata(),
-            None => {
-                match self.symlinks.get(path.as_ref()) {
-                    Some(&(ref f, _)) => f.get_metadata(),
-                    None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
-                }
-            }
+            None => match fs.symlinks.get(path.as_ref()) {
+                Some(&(ref f, _)) => f.get_metadata(),
+                None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
+            },
         }
     }
 
     /// VFS::read_link(p) resolves symlink at path p to the path its pointing to
     /// or gives an error if the link is broken.
     fn read_link<P: AsRef<Path>>(&self, path: P) -> io::Result<PathBuf> {
-        match self.symlinks.get(path.as_ref()) {
+        match self.borrow().symlinks.get(path.as_ref()) {
             Some(&(_, ref p)) => Ok(p.to_owned()),
             None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
         }
+    }
+
+    fn get_file(&self, p: &Path) -> io::Result<Self::FileIter> {
+        match self.borrow().files.get(p) {
+            Some(f) => Ok(f.to_owned()),
+            None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
+        }
+    }
+
+    fn rm_file<P: AsRef<Path>>(&mut self, p: &P) -> io::Result<()> {
+        let mut fs = self.borrow_mut();
+        match fs.files.remove(p.as_ref()) {
+            Some(_) => Ok(()),
+            None => Err(io::Error::new(io::ErrorKind::Other, "Couldn't delete file")),
+        }
+    }
+
+    fn make_link(&mut self, src: &Path, dst: &Path) -> io::Result<()> {
+        let mut fs = self.borrow_mut();
+        let old_md = fs.files
+            .get(dst)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "No dst file"))?
+            .get_metadata()?;
+        let old_inode = old_md.get_inode();
+        let old_device = old_md.get_device()?;
+
+        let new_dir = src.parent().unwrap(); // can't be root
+        let new_device = fs.files
+            .get(new_dir)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "No src md"))?
+            .get_metadata()?
+            .get_device()?;
+
+        if old_device != new_device {
+            // can't make a hard link across devices (on most filesystems)
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "Cannot make hard link across filesystems",
+            ));
+        }
+
+        let name = src.to_str().expect("invalid unicode link name");
+        fs.files.insert(
+            src.to_path_buf(),
+            TestFile::new(name).with_inode(old_inode.0),
+        );
+        Ok(())
     }
 }
