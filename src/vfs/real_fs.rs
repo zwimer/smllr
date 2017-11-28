@@ -112,10 +112,9 @@ impl VFS for RealFileSystem {
         // the only way to generate a DirEntry is by iterating over a directory
         // so we have to iterate over the parent directory and identify `p`
         let dir = p.parent().expect("Called get_file() on root dir");
-        match fs::read_dir(dir)
-            .expect("Couldn't ls file dir")
-            .find(|e| e.as_ref().map(|i| i.path() == p).unwrap_or(false))
-        {
+        match fs::read_dir(dir).expect("Couldn't ls file dir").find(|e| {
+            e.as_ref().map(|i| i.path() == p).unwrap_or(false)
+        }) {
             Some(f) => Ok(f.unwrap()),
             None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
         }

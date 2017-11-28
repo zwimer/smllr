@@ -33,16 +33,12 @@ impl Duplicates {
 }
 
 // // // // // // // // // // // // // // // // // // // // //
-
 /// Proxy of firstbytes: until two elements have been added, there is no
 /// chance of a collision so put off constructing the hashmap and shortcut
 pub enum FirstKBytesProxy {
     // in the first state there is one file
     // don't look up its first k bytes unless it has the same size as another
-    Delay {
-        id: ID,
-        dups: Duplicates,
-    },
+    Delay { id: ID, dups: Duplicates },
     // after 2 files with the first k bytes have been found, store them
     // also maintain a shortcut for looking up their values by their id
     // for hardlink detection.
@@ -67,11 +63,13 @@ impl FirstKBytesProxy {
     pub(super) fn get_repeats(&self) -> Vec<Duplicates> {
         match *self {
             // in the Delay state, return `dups` if it contains multiple paths
-            FirstKBytesProxy::Delay { ref dups, .. } => if dups.0.len() >= 2 {
-                vec![dups.clone()]
-            } else {
-                vec![]
-            },
+            FirstKBytesProxy::Delay { ref dups, .. } => {
+                if dups.0.len() >= 2 {
+                    vec![dups.clone()]
+                } else {
+                    vec![]
+                }
+            }
             // in the Thunk state, traverse all `HashProx`s
             FirstKBytesProxy::Thunk { ref thunk, .. } => {
                 thunk.iter().fold(vec![], |mut acc, (_fb, hp)| {
@@ -140,8 +138,7 @@ impl FirstKBytesProxy {
             FirstKBytesProxy::Delay {
                 id: id2,
                 ref mut dups,
-            } if id == id2 =>
-            {
+            } if id == id2 => {
                 dups.push(path);
             }
             // If self is a thunk get first bytes and add to shortcut.
@@ -180,10 +177,7 @@ impl FirstKBytesProxy {
 /// chance of a collision so put off constructing the hashmap and shortcut
 pub enum HashProxy {
     // only one unique element has been added
-    Delay {
-        id: ID,
-        dups: Duplicates,
-    },
+    Delay { id: ID, dups: Duplicates },
     // need to map `Hash`es to a set of `Duplicates`
     Thunk {
         thunk: HashMap<Hash, Duplicates>,
@@ -205,11 +199,13 @@ impl HashProxy {
     /// Check all Duplicates for files associated with multiple Paths
     fn get_repeats(&self) -> Vec<Duplicates> {
         match *self {
-            HashProxy::Delay { ref dups, .. } => if dups.0.len() >= 2 {
-                vec![dups.clone()]
-            } else {
-                vec![]
-            },
+            HashProxy::Delay { ref dups, .. } => {
+                if dups.0.len() >= 2 {
+                    vec![dups.clone()]
+                } else {
+                    vec![]
+                }
+            }
             HashProxy::Thunk { ref thunk, .. } => {
                 thunk
                     .iter()
@@ -227,7 +223,7 @@ impl HashProxy {
             }
         }
     }
-
+    // private helper fuction which handles the conversion from Delay to HashProxy::Thunk
     fn transition<T: VFS>(&mut self, vfs: &T, new_id: ID, new_dups: Duplicates) {
         // convert Delay to Thunk
         let (del_id, del_dups) = match *self {
@@ -269,8 +265,7 @@ impl HashProxy {
             HashProxy::Delay {
                 id: id2,
                 dups: ref mut dups2,
-            } if id == id2 =>
-            {
+            } if id == id2 => {
                 dups2.append(dups);
             }
             // If we are in a thunk state, just add file and its hash

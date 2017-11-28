@@ -174,21 +174,15 @@ mod test {
         {
             let mut fs = fs.borrow_mut();
             fs.create_dir("/"); // inode #0
-            fs.add(
-                TestFile::new("/a")
-                    .with_inode(1)
-                    .with_metadata(TestMD::new()),
-            );
-            fs.add(
-                TestFile::new("/b")
-                    .with_inode(2)
-                    .with_metadata(TestMD::new()),
-            );
-            fs.add(
-                TestFile::new("/c")
-                    .with_inode(3)
-                    .with_metadata(TestMD::new()),
-            );
+            fs.add(TestFile::new("/a").with_inode(1).with_metadata(
+                TestMD::new(),
+            ));
+            fs.add(TestFile::new("/b").with_inode(2).with_metadata(
+                TestMD::new(),
+            ));
+            fs.add(TestFile::new("/c").with_inode(3).with_metadata(
+                TestMD::new(),
+            ));
         };
         let paths = vec!["/a", "/b", "/c"];
         let files = Duplicates(paths.iter().map(PathBuf::from).collect());
@@ -215,20 +209,18 @@ mod test {
         let fs = TestFileSystem::new();
         {
             let mut fs = fs.borrow_mut();
-            fs.add(
-                TestFile::new("/")
-                    .with_kind(FileType::Dir)
-                    .with_metadata(TestMD::new().with_id(ID { inode: 1, dev: 10 })),
-            );
-            fs.add(
-                TestFile::new("/a").with_metadata(TestMD::new().with_id(ID { inode: 2, dev: 20 })),
-            );
-            fs.add(
-                TestFile::new("/b").with_metadata(TestMD::new().with_id(ID { inode: 3, dev: 20 })),
-            );
-            fs.add(
-                TestFile::new("/c").with_metadata(TestMD::new().with_id(ID { inode: 4, dev: 20 })),
-            );
+            fs.add(TestFile::new("/").with_kind(FileType::Dir).with_metadata(
+                TestMD::new().with_id(ID { inode: 1, dev: 10 }),
+            ));
+            fs.add(TestFile::new("/a").with_metadata(TestMD::new().with_id(
+                ID { inode: 2, dev: 20 },
+            )));
+            fs.add(TestFile::new("/b").with_metadata(TestMD::new().with_id(
+                ID { inode: 3, dev: 20 },
+            )));
+            fs.add(TestFile::new("/c").with_metadata(TestMD::new().with_id(
+                ID { inode: 4, dev: 20 },
+            )));
         };
         let paths = vec!["/a", "/b", "/c"];
         let files = Duplicates(paths.iter().map(PathBuf::from).collect());
