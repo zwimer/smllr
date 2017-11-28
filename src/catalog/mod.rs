@@ -42,7 +42,7 @@ impl<T: VFS> FileCataloger<T> {
         let mut all = vec![];
         // for each subgrouping (done by size), get all the list of duplicates and
         // add them to are return variable.
-        for fkbp in self.catalog.values() {
+        for (_size, ref fkbp) in &self.catalog {
             all.append(&mut fkbp.get_repeats());
         }
         all

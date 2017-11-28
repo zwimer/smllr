@@ -4,10 +4,17 @@
 
 **Implemented enhancements:**
 
+- Make FileCataloger generic over a VFS [\#13](https://github.com/zwimer/smllr/issues/13)
+- Switch `HashProxy::Thunk.thunk` to map `Hash` to `Duplicates` [\#12](https://github.com/zwimer/smllr/issues/12)
 - Peer metric [\#5](https://github.com/zwimer/smllr/pull/5) ([zwimer](https://github.com/zwimer))
 
 **Merged pull requests:**
 
+- Beta: more comments, check for hard linking across devices, more tests [\#22](https://github.com/zwimer/smllr/pull/22) ([stensonowen](https://github.com/stensonowen))
+- Selector, Actor, Unit tests; prep for beta [\#21](https://github.com/zwimer/smllr/pull/21) ([stensonowen](https://github.com/stensonowen))
+- Make FileCataloger mockable [\#20](https://github.com/zwimer/smllr/pull/20) ([stensonowen](https://github.com/stensonowen))
+- Comments [\#19](https://github.com/zwimer/smllr/pull/19) ([Istyatur](https://github.com/Istyatur))
+- Updated changelog [\#11](https://github.com/zwimer/smllr/pull/11) ([zwimer](https://github.com/zwimer))
 - Proxy: Demo 1 [\#10](https://github.com/zwimer/smllr/pull/10) ([stensonowen](https://github.com/stensonowen))
 - Basic directory walker [\#9](https://github.com/zwimer/smllr/pull/9) ([stensonowen](https://github.com/stensonowen))
 - Added changelog generated with github\_changelog\_generator [\#8](https://github.com/zwimer/smllr/pull/8) ([Istyatur](https://github.com/Istyatur))

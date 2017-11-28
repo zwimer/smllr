@@ -158,8 +158,9 @@ impl File for TestFile {
         Ok(self.kind)
     }
     fn get_metadata(&self) -> io::Result<TestMD> {
-        self.metadata
-            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "No MD"))
+        self.metadata.ok_or_else(|| {
+            io::Error::new(io::ErrorKind::Other, "No MD")
+        })
     }
     fn get_first_bytes(&self) -> io::Result<FirstBytes> {
         // read the first K bytes of the file
@@ -359,10 +360,12 @@ impl VFS for Rc<RefCell<TestFileSystem>> {
         let fs = self.borrow();
         match fs.files.get(path.as_ref()) {
             Some(f) => f.get_metadata(),
-            None => match fs.symlinks.get(path.as_ref()) {
-                Some(&(_, ref p)) => fs.lookup(p).and_then(|f| f.get_metadata()),
-                None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
-            },
+            None => {
+                match fs.symlinks.get(path.as_ref()) {
+                    Some(&(_, ref p)) => fs.lookup(p).and_then(|f| f.get_metadata()),
+                    None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
+                }
+            }
         }
     }
 
@@ -374,10 +377,12 @@ impl VFS for Rc<RefCell<TestFileSystem>> {
         let fs = self.borrow();
         match fs.files.get(path.as_ref()) {
             Some(f) => f.get_metadata(),
-            None => match fs.symlinks.get(path.as_ref()) {
-                Some(&(ref f, _)) => f.get_metadata(),
-                None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
-            },
+            None => {
+                match fs.symlinks.get(path.as_ref()) {
+                    Some(&(ref f, _)) => f.get_metadata(),
+                    None => Err(io::Error::new(io::ErrorKind::NotFound, "No such file")),
+                }
+            }
         }
     }
 
