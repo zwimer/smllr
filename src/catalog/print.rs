@@ -8,6 +8,7 @@ use std::fmt::{Debug, Formatter, Result};
 
 use super::ID;
 use catalog::FileCataloger;
+use hash::FileHash;
 
 use vfs::VFS;
 use catalog::proxy::{Duplicates, FirstKBytesProxy, HashProxy};
@@ -38,7 +39,7 @@ impl Debug for Duplicates {
 }
 
 // print debug info for FileCataloger
-impl<T: VFS> Debug for FileCataloger<T> {
+impl<T: VFS, H: FileHash> Debug for FileCataloger<T, H> {
     fn fmt(&self, f: &mut Formatter) -> Result {
         for (size, fkbp) in &self.catalog {
             writeln!(f, " {:06}b: {:?}", size, fkbp)?;
@@ -48,11 +49,11 @@ impl<T: VFS> Debug for FileCataloger<T> {
 }
 
 // print debug info for FirstKBytesProxy
-impl Debug for FirstKBytesProxy {
+impl<H: FileHash> Debug for FirstKBytesProxy<H> {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "FKBProxy::")?;
         match *self {
-            FirstKBytesProxy::Delay { ref id, ref dups } => {
+            FirstKBytesProxy::Delay { ref id, ref dups, .. } => {
                 write!(f, "Delay: ({:?})  {:?}", id, dups)?;
             }
             FirstKBytesProxy::Thunk { ref thunk, .. } => {
@@ -76,11 +77,11 @@ impl Debug for FirstKBytesProxy {
 }
 
 // print debug info for HashProxy
-impl Debug for HashProxy {
+impl<T: FileHash> Debug for HashProxy<T> {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "HashProxy::")?;
         match *self {
-            HashProxy::Delay { ref id, ref dups } => {
+            HashProxy::Delay { ref id, ref dups, .. } => {
                 write!(f, "Delay: ({:?})  {:?}", id, dups)?;
             }
             HashProxy::Thunk { ref thunk, .. } => {

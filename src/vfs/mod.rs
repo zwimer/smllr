@@ -11,7 +11,8 @@ pub use self::real_fs::RealFileSystem;
 mod test_fs;
 pub use self::test_fs::{TestFile, TestFileSystem, TestMD};
 
-use super::{FirstBytes, Hash, FIRST_K_BYTES};
+use super::{FirstBytes, FIRST_K_BYTES};
+use hash::{FileHash, Hash, Md5Hash_};
 
 //definition of traits
 //RUST NOTE: the "trait foo: baz" denotes that foo reuires that
@@ -64,7 +65,8 @@ pub trait File: Debug {
     /// Read first K bytes of the file
     fn get_first_bytes(&self) -> io::Result<FirstBytes>;
     /// Hash the contents of the file
-    fn get_hash(&self) -> io::Result<Hash>;
+    //fn get_hash(&self) -> io::Result<Md5Hash_>;
+    fn get_hash<H: FileHash>(&self, hasher: &H) -> io::Result<Hash>;
 }
 // the MetaData trait defines the interface for metadata
 // it is the subset of the interface of fs::MetaData that we use

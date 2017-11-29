@@ -8,8 +8,9 @@ use std::time::{self, SystemTime};
 use std::collections::{HashMap, HashSet};
 //RUST NOTE: `super` means up a module (often up a directory)
 use vfs::{DeviceId, File, FileType, Inode, MetaData, VFS};
-use super::{FirstBytes, Hash, FIRST_K_BYTES};
+use super::{FirstBytes, FIRST_K_BYTES};
 use super::super::ID;
+use hash::{FileHash, Hash};
 use md5;
 
 /// `TestMD` is the mock metadata struct.
@@ -174,10 +175,10 @@ impl File for TestFile {
             Err(io::Error::new(io::ErrorKind::NotFound, "No contents set"))
         }
     }
-    fn get_hash(&self) -> io::Result<Hash> {
+    fn get_hash<H: FileHash>(&self, hasher: &H) -> io::Result<Hash> {
         // hash the contents of the file
         if let Some(ref cont) = self.contents {
-            Ok(*md5::compute(cont))
+            Ok(hasher.hash(cont.as_bytes()))
         } else {
             Err(io::Error::new(io::ErrorKind::NotFound, "No contents set"))
         }

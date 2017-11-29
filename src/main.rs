@@ -4,6 +4,7 @@ extern crate env_logger;
 extern crate log;
 extern crate md5;
 extern crate regex;
+extern crate tiny_keccak;
 
 use clap::{App, Arg};
 
@@ -36,8 +37,7 @@ pub struct ID {
 pub struct FirstBytes(pub(crate) [u8; FIRST_K_BYTES]);
 const FIRST_K_BYTES: usize = 32;
 
-/// Represent the md5 hash of a complete file
-pub type Hash = [u8; 16];
+pub mod hash;
 
 
 fn main() {
@@ -133,9 +133,10 @@ fn main() {
         .blacklist_patterns(pats_n);
     let files = dw.traverse_all();
 
+    let hasher = hash::Md5Sum;
     // catalog all files from the DirWalker
     // duplicates are identified as files are inserted one at a time
-    let mut fc = FileCataloger::new(fs);
+    let mut fc = FileCataloger::new(hasher, fs);
     for file in &files {
         fc.insert(file);
     }

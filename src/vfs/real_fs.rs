@@ -9,7 +9,8 @@ use std::{io, time};
 use std::io::Read;
 
 use super::{DeviceId, File, FileType, Inode, MetaData, VFS};
-use super::{FirstBytes, Hash, FIRST_K_BYTES};
+use super::{FirstBytes, FIRST_K_BYTES};
+use hash::{FileHash, Hash};
 
 use md5;
 
@@ -60,12 +61,12 @@ impl File for DirEntry {
         file.read(&mut bytes)?;
         Ok(FirstBytes(bytes))
     }
-    fn get_hash(&self) -> io::Result<Hash> {
+    fn get_hash<H: FileHash>(&self, hasher: &H) -> io::Result<Hash> {
         let path = self.get_path();
         let mut file = fs::File::open(&path)?;
         let mut v = vec![];
         file.read_to_end(&mut v)?;
-        Ok(*md5::compute(v))
+        Ok(hasher.hash(&v))
     }
 }
 
