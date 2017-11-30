@@ -61,12 +61,12 @@ impl File for DirEntry {
         file.read(&mut bytes)?;
         Ok(FirstBytes(bytes))
     }
-    fn get_hash<H: FileHash>(&self, hasher: &H) -> io::Result<Hash> {
+    fn get_hash<H: FileHash>(&self) -> io::Result<Hash> {
         let path = self.get_path();
         let mut file = fs::File::open(&path)?;
         let mut v = vec![];
         file.read_to_end(&mut v)?;
-        Ok(hasher.hash(&v))
+        Ok(H::hash_(&v))
     }
 }
 
