@@ -66,7 +66,7 @@ pub trait File: Debug {
     fn get_first_bytes(&self) -> io::Result<FirstBytes>;
     /// Hash the contents of the file
     //fn get_hash(&self) -> io::Result<Md5Hash_>;
-    fn get_hash<H: FileHash>(&self) -> io::Result<Hash>;
+    fn get_hash<H: FileHash>(&self, hasher: &H) -> io::Result<Hash>;
 }
 // the MetaData trait defines the interface for metadata
 // it is the subset of the interface of fs::MetaData that we use

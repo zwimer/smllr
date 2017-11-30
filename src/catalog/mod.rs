@@ -18,6 +18,7 @@ mod test; // include unit tests
 ///  by checking filesize, the first K bytes, and then the whole file hash
 ///  but only when necessary to check
 pub struct FileCataloger<T: VFS, H: FileHash> {
+    hasher: H,
     catalog: HashMap<u64, FirstKBytesProxy<H>>,
     vfs: T,
     // For now, omit the shortcut. We're just using the real fs right now, so
@@ -29,9 +30,10 @@ pub struct FileCataloger<T: VFS, H: FileHash> {
 
 impl<T: VFS, H: FileHash> FileCataloger<T, H> {
     /// Initilize the filecataloger
-    pub fn new(vfs: T) -> Self {
+    pub fn new(hasher: H, vfs: T) -> Self {
         FileCataloger {
             catalog: HashMap::new(),
+            hasher,
             vfs: vfs,
         }
     }
@@ -65,7 +67,7 @@ impl<T: VFS, H: FileHash> FileCataloger<T, H> {
             Entry::Occupied(mut occ_entry) => occ_entry.get_mut().insert(&self.vfs, id, path),
             // otherwise create a new firstkbytesproxy with path as the delayed insert.
             Entry::Vacant(vac_entry) => {
-                vac_entry.insert(FirstKBytesProxy::new(id, path));
+                vac_entry.insert(FirstKBytesProxy::new(self.hasher, id, path));
             }
         }
     }

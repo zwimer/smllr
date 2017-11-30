@@ -175,10 +175,10 @@ impl File for TestFile {
             Err(io::Error::new(io::ErrorKind::NotFound, "No contents set"))
         }
     }
-    fn get_hash<H: FileHash>(&self) -> io::Result<Hash> {
+    fn get_hash<H: FileHash>(&self, hasher: &H) -> io::Result<Hash> {
         // hash the contents of the file
         if let Some(ref cont) = self.contents {
-            Ok(H::hash_(cont.as_bytes()))
+            Ok(hasher.hash(cont.as_bytes()))
         } else {
             Err(io::Error::new(io::ErrorKind::NotFound, "No contents set"))
         }

@@ -136,8 +136,7 @@ fn main() {
     let hasher = hash::Md5Sum;
     // catalog all files from the DirWalker
     // duplicates are identified as files are inserted one at a time
-    //let mut fc = FileCataloger::new(hasher, fs);
-    let mut fc = FileCataloger::new(fs);
+    let mut fc = FileCataloger::new(hasher, fs);
     for file in &files {
         fc.insert(file);
     }
