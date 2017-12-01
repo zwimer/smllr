@@ -12,8 +12,6 @@ use super::{DeviceId, File, FileType, Inode, MetaData, VFS};
 use super::{FirstBytes, FIRST_K_BYTES};
 use hash::{FileHash, Hash};
 
-use md5;
-
 // Wrap our metadata trait around fs::Metadata.
 impl MetaData for fs::Metadata {
     fn get_len(&self) -> u64 {

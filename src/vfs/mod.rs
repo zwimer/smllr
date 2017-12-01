@@ -12,7 +12,7 @@ mod test_fs;
 pub use self::test_fs::{TestFile, TestFileSystem, TestMD};
 
 use super::{FirstBytes, FIRST_K_BYTES};
-use hash::{FileHash, Hash, Md5Hash_};
+use hash::{FileHash, Hash};
 
 //definition of traits
 //RUST NOTE: the "trait foo: baz" denotes that foo reuires that

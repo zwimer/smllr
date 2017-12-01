@@ -5,8 +5,7 @@ use std::collections::hash_map::Entry;
 use vfs::{File, VFS};
 use super::ID;
 use super::super::FirstBytes;
-use hash::Md5Hash_;
-use hash::{Hash, FileHash, Md5Sum};
+use hash::{Hash, FileHash};
 
 // Duplicates is a decorator for a vector of pathbufs which represents
 // a set of files. In code, it is an invariant that any 2 files in a
@@ -143,9 +142,9 @@ impl<H: FileHash> FirstKBytesProxy<H> {
             // If a hard link and self is a Delay, insert a hard link to what's
             // already stored in Delay
             FirstKBytesProxy::Delay {
-                ref hasher,
                 id: id2,
                 ref mut dups,
+                ..
             } if id == id2 =>
             {
                 dups.push(path);
@@ -276,9 +275,9 @@ impl<H: FileHash> HashProxy<H> {
         match *self {
             // if its just a hard link and we are in Delay: just append it
             HashProxy::Delay {
-                ref hasher,
                 id: id2,
                 dups: ref mut dups2,
+                ..
             } if id == id2 =>
             {
                 dups2.append(dups);

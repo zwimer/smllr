@@ -11,7 +11,6 @@ use vfs::{DeviceId, File, FileType, Inode, MetaData, VFS};
 use super::{FirstBytes, FIRST_K_BYTES};
 use super::super::ID;
 use hash::{FileHash, Hash};
-use md5;
 
 /// `TestMD` is the mock metadata struct.
 #[derive(Debug, Clone, Copy, PartialEq)]

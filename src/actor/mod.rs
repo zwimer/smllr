@@ -11,12 +11,12 @@ pub trait FileActor<V: VFS, S: Selector<V>> {
     /// FileActor<V, S>.act(Duplicates) lets selector S select the file
     /// in duplicates which is considered the 'true' file and then
     /// 'acts' in a manner apropriate to the fileactor.
-    fn act(&mut self, dups: Duplicates);
+    fn act(&mut self, dups: Duplicates) -> u64;
 }
 
 // call FileActor methods on objects on the heap that support it
 impl<V: VFS, S: Selector<V>> FileActor<V, S> for Box<FileActor<V, S>> {
-    fn act(&mut self, dups: Duplicates) {
+    fn act(&mut self, dups: Duplicates) -> u64 {
         (**self).act(dups)
     }
 }
@@ -75,7 +75,7 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FilePrinter<V, S> {
     /// which file in the set is considered the 'true' file and which are
     /// 'duplicates' of it as well as how much space would be saved by
     /// deleting them.
-    fn act(&mut self, dups: Duplicates) {
+    fn act(&mut self, dups: Duplicates) -> u64 {
         let real = self.selector.select(&dups); // identify true file with selector S
         let size = self.vfs
             .get_file(real)
@@ -84,12 +84,12 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FilePrinter<V, S> {
             .unwrap()
             .get_len(); // Get The size from the filesystem
         let mut save_size = 0;
-        info!("`{:?}` is the true file", real); //log the selection
-        println!("`{:?}` is the true file", real); //print the file that is considered 'true'
+        info!("{:?} is the true file", real); //log the selection
+        println!("{:?} is the true file", real); //print the file that is considered 'true'
                                                    // iterate over all other duplicates
         for f in dups.0.iter().filter(|&f| f.as_path() != real) {
-            info!("\t`{:?}` is a duplicate", f); // Log as duplicate
-            println!("\t`{:?}` is a duplicate", f); // and inform the user
+            info!("\t{:?} is a duplicate", f); // Log as duplicate
+            println!("\t{:?} is a duplicate", f); // and inform the user
             save_size += size; //increment the amount of space we could save by size
         }
         //log the amount of space that could be saved
@@ -98,10 +98,11 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FilePrinter<V, S> {
             save_size
         );
         //print the amount of space that could be saved to the user
-        println!(
-            "You can save {} bytes by deduplicating this file",
-            save_size
-        );
+        //println!(
+        //    "You can save {} bytes by deduplicating this file",
+        //    save_size
+        //);
+        save_size
     }
 }
 
@@ -110,7 +111,7 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileDeleter<V, S> {
     /// <FileDeleter<V, S> as FileActor<V, S> >.act(), we simply print what
     /// files are duplicated and have been deleted, which one is considered
     /// the 'true' and which are and how much space has been freed.
-    fn act(&mut self, dups: Duplicates) {
+    fn act(&mut self, dups: Duplicates) -> u64 {
         //Get the file we arn't deleteing from the selector
         let real = self.selector.select(&dups);
         let size = self.vfs
@@ -120,19 +121,20 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileDeleter<V, S> {
             .unwrap()
             .get_len(); //get the size from the filesystem
         let mut save_size = 0;
-        info!("`{:?}` is the true file", real); //Log which file we are not deleting
-        println!("`{:?}` is the true file", real); //and inform the user
+        info!("{:?} is the true file", real); //Log which file we are not deleting
+        //println!("`{:?}` is the true file", real); //and inform the user
                                                    // iterate over all other duplicates
         for f in dups.0.iter().filter(|&f| f.as_path() != real) {
-            info!("\tDeleting `{:?}`...", f); // log that we will delete them
-            println!("\tDeleting `{:?}`...", f); // and inform the user
+            info!("\tDeleting {:?}...", f); // log that we will delete them
+            //println!("\tDeleting `{:?}`...", f); // and inform the user
             self.vfs.rm_file(f).expect("Couldn't delete file");
             // delete vfs handles logging and error printing in the case of errors
             save_size += size; //and increment the amount of space freed
         }
         //log the amount of space freed
         info!("You saved {} bytes by deduplicating this file", save_size);
-        println!("You saved {} bytes by deduplicating this file", save_size); // and inform the user
+        //println!("You saved {} bytes by deduplicating this file", save_size); // and inform the user
+        save_size
     }
 }
 
@@ -142,7 +144,7 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileLinker<V, S> {
     /// is the 'original' and which have been replaced with hardlinks to
     /// the that file (and are thus effectively that file), along with
     /// how much space has been freed.
-    fn act(&mut self, dups: Duplicates) {
+    fn act(&mut self, dups: Duplicates) -> u64 {
         // Select the File:
         // get the file, metadata, size, and device from the vfs
         let real = self.selector.select(&dups);
@@ -151,8 +153,8 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileLinker<V, S> {
         let real_dev = real_md.get_device().expect("Couldn't get link dst device");
         let size = real_md.get_len();
         let mut save_size = 0;
-        info!("`{:?}` is the true file", real); //log the 'real' file
-        println!("`{:?}` is the true file", real); //and inform the user
+        info!("{:?} is the true file", real); //log the 'real' file
+        //println!("`{:?}` is the true file", real); //and inform the user
                                                    // iterate over all other duplicates
         for f in dups.0.iter().filter(|&f| f.as_path() != real) {
             // Check that we can create a hardlink
@@ -180,13 +182,13 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileLinker<V, S> {
                 );
             } else {
                 //If we can, log and print that we are deleting of the file
-                info!("\tDeleting `{:?}`...", f);
-                println!("\tDeleting `{:?}`...", f);
+                info!("\tDeleting {:?}...", f);
+                //println!("\tDeleting `{:?}`...", f);
                 //And deleting it.
                 self.vfs.rm_file(f).expect("Couldn't delete file");
                 //log and print that we are replacing it with a link
-                info!("\t\tand replacing it with a link to `{:?}`...", real);
-                println!("\t\tand replacing it with a link to `{:?}`...", real);
+                info!("\t\tand replacing it with a link to {:?}...", real);
+                //println!("\t\tand replacing it with a link to `{:?}`...", real);
                 //and link.
                 self.vfs.make_link(f, real).expect("Couldn't create link");
                 //and increment the amount of space we save
@@ -195,6 +197,7 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileLinker<V, S> {
         }
         // and log and print how much space was saved
         info!("You saved {} bytes by deduplicating this file", save_size);
-        println!("You saved {} bytes by deduplicating this file", save_size);
+        //println!("You saved {} bytes by deduplicating this file", save_size);
+        save_size
     }
 }

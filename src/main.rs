@@ -39,6 +39,20 @@ const FIRST_K_BYTES: usize = 32;
 
 pub mod hash;
 
+fn prettify_bytes(b: u64) -> String {
+    if b < 1024 {
+        format!("{} B", b)
+    } else if b < 1024*1024 {
+        format!("{} KB", b/1024)
+    } else if b < 1024*1024*1024 {
+        format!("{} MB", b/1024/1024)
+    } else if b < 1024*1024*1024*1024 {
+        format!("{} GB", b/1024/1024/1024)
+    } else {
+        format!("{} B", b)
+    }
+}
+
 
 fn main() {
     // build arg parser
@@ -132,15 +146,25 @@ fn main() {
         .blacklist_folders(dirs_n)
         .blacklist_patterns(pats_n);
     let files = dw.traverse_all();
+    println!("Traversing {} files...", files.len());
 
-    let hasher = hash::Md5Sum;
     // catalog all files from the DirWalker
     // duplicates are identified as files are inserted one at a time
-    let mut fc = FileCataloger::new(hasher, fs);
-    for file in &files {
-        fc.insert(file);
-    }
-    let repeats = fc.get_repeats();
+    let repeats = if matches.is_present("paranoid") {
+        info!("Using SHA-3");
+        let mut fc = FileCataloger::new(hash::Sha3Sum, fs);
+        for file in &files {
+            fc.insert(file);
+        }
+        fc.get_repeats()
+    } else {
+        info!("Using MD5");
+        let mut fc = FileCataloger::new(hash::Md5Sum, fs);
+        for file in &files {
+            fc.insert(file);
+        }
+        fc.get_repeats()
+    };
 
     // use a Box to put the Selector and Actor on the heap as trait objects
     // different selectors or actors are different sizes (e.g. test_fs contains
@@ -179,7 +203,15 @@ fn main() {
     };
 
     // act on all sets of duplicates
-    for dups in repeats {
-        actor.act(dups);
+    if repeats.is_empty() {
+        println!("No duplicates found");
+    } else {
+        println!("Acting on {} sets of duplicates...", repeats.len());
+        let mut saved_bytes = 0;
+        for dups in repeats {
+            saved_bytes += actor.act(dups);
+        }
+        println!("Idenfied {}", prettify_bytes(saved_bytes));
     }
 }
+

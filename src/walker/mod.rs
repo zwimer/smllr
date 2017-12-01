@@ -127,7 +127,7 @@ where
     /// Perform operation on a file: in this case just add it to a hashset
     fn handle_file(&mut self, path: &Path) {
         // do your thing: here just add to a field of filepaths
-        debug!("\tHANDLING FILE {:?}", path);
+        trace!("\tHANDLING FILE {:?}", path);
         let was_absent = self.files.insert(path.to_owned());
         assert!(was_absent);
     }
