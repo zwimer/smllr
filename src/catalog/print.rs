@@ -53,7 +53,9 @@ impl<H: FileHash> Debug for FirstKBytesProxy<H> {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "FKBProxy::")?;
         match *self {
-            FirstKBytesProxy::Delay { ref id, ref dups, .. } => {
+            FirstKBytesProxy::Delay {
+                ref id, ref dups, ..
+            } => {
                 write!(f, "Delay: ({:?})  {:?}", id, dups)?;
             }
             FirstKBytesProxy::Thunk { ref thunk, .. } => {
@@ -81,7 +83,9 @@ impl<T: FileHash> Debug for HashProxy<T> {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "HashProxy::")?;
         match *self {
-            HashProxy::Delay { ref id, ref dups, .. } => {
+            HashProxy::Delay {
+                ref id, ref dups, ..
+            } => {
                 write!(f, "Delay: ({:?})  {:?}", id, dups)?;
             }
             HashProxy::Thunk { ref thunk, .. } => {

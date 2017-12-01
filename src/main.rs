@@ -42,12 +42,12 @@ pub mod hash;
 fn prettify_bytes(b: u64) -> String {
     if b < 1024 {
         format!("{} B", b)
-    } else if b < 1024*1024 {
-        format!("{} KB", b/1024)
-    } else if b < 1024*1024*1024 {
-        format!("{} MB", b/1024/1024)
-    } else if b < 1024*1024*1024*1024 {
-        format!("{} GB", b/1024/1024/1024)
+    } else if b < 1024 * 1024 {
+        format!("{} KB", b / 1024)
+    } else if b < 1024 * 1024 * 1024 {
+        format!("{} MB", b / 1024 / 1024)
+    } else if b < 1024 * 1024 * 1024 * 1024 {
+        format!("{} GB", b / 1024 / 1024 / 1024)
     } else {
         format!("{} B", b)
     }
@@ -214,4 +214,3 @@ fn main() {
         println!("Idenfied {}", prettify_bytes(saved_bytes));
     }
 }
-

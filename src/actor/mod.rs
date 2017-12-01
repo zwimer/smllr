@@ -86,7 +86,7 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FilePrinter<V, S> {
         let mut save_size = 0;
         info!("{:?} is the true file", real); //log the selection
         println!("{:?} is the true file", real); //print the file that is considered 'true'
-                                                   // iterate over all other duplicates
+                                                 // iterate over all other duplicates
         for f in dups.0.iter().filter(|&f| f.as_path() != real) {
             info!("\t{:?} is a duplicate", f); // Log as duplicate
             println!("\t{:?} is a duplicate", f); // and inform the user
@@ -121,19 +121,18 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileDeleter<V, S> {
             .unwrap()
             .get_len(); //get the size from the filesystem
         let mut save_size = 0;
-        info!("{:?} is the true file", real); //Log which file we are not deleting
-        //println!("`{:?}` is the true file", real); //and inform the user
-                                                   // iterate over all other duplicates
+        //Log which file we are not deleting
+        info!("{:?} is the true file", real);
+        // iterate over all other duplicates
         for f in dups.0.iter().filter(|&f| f.as_path() != real) {
-            info!("\tDeleting {:?}...", f); // log that we will delete them
-            //println!("\tDeleting `{:?}`...", f); // and inform the user
+            // log that we will delete them
+            info!("\tDeleting {:?}...", f);
             self.vfs.rm_file(f).expect("Couldn't delete file");
             // delete vfs handles logging and error printing in the case of errors
             save_size += size; //and increment the amount of space freed
         }
         //log the amount of space freed
         info!("You saved {} bytes by deduplicating this file", save_size);
-        //println!("You saved {} bytes by deduplicating this file", save_size); // and inform the user
         save_size
     }
 }
@@ -153,9 +152,9 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileLinker<V, S> {
         let real_dev = real_md.get_device().expect("Couldn't get link dst device");
         let size = real_md.get_len();
         let mut save_size = 0;
-        info!("{:?} is the true file", real); //log the 'real' file
-        //println!("`{:?}` is the true file", real); //and inform the user
-                                                   // iterate over all other duplicates
+        //log the 'real' file
+        info!("{:?} is the true file", real);
+        // iterate over all other duplicates
         for f in dups.0.iter().filter(|&f| f.as_path() != real) {
             // Check that we can create a hardlink
             let f_dir = f.parent().unwrap(); // can't be a dir so can't be "/"
