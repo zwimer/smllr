@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::collections::hash_map::Entry;
 
 use vfs::{File, VFS};
-use super::ID;
+use helpers::ID;
 use helpers::FirstBytes;
 use hash::FileHash;
 

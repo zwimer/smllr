@@ -10,8 +10,6 @@ use std::io::Read;
 
 use vfs::{File, MetaData, VFS};
 use vfs::{DeviceId, FileType, Inode};
-//use super::{DeviceId, File, FileType, Inode, MetaData, VFS};
-//use super::{FirstBytes, FIRST_K_BYTES};
 use helpers::{FirstBytes, FIRST_K_BYTES};
 use hash::FileHash;
 
@@ -71,8 +69,7 @@ impl File for DirEntry {
     }
 }
 
-//Empty struct which represents the 'Real Filesystem'
-//all of its 'Member variables' are on the drive.
+/// Empty struct representing the Real Filesystem. Calls go through std::fs to access real files
 #[derive(Debug, Clone, Copy)]
 pub struct RealFileSystem;
 

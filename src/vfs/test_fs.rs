@@ -6,10 +6,8 @@ use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::time::{self, SystemTime};
 use std::collections::{HashMap, HashSet};
-//RUST NOTE: `super` means up a module (often up a directory)
+
 use vfs::{DeviceId, File, FileType, Inode, MetaData, VFS};
-//use super::{FirstBytes, FIRST_K_BYTES};
-//use super::super::ID;
 use helpers::{FirstBytes, FIRST_K_BYTES, ID};
 use hash::FileHash;
 
@@ -184,8 +182,8 @@ impl File for TestFile {
     }
 }
 
-/// `TestFileSystem` denotes a Mock Filesystem we use instead of risking
-/// our own data or dealing with the actual filesystem
+/// Denotes a Mock Filesystem used instead of risking
+/// real data or dealing with the actual filesystem
 #[derive(Debug)]
 pub struct TestFileSystem {
     files: HashMap<PathBuf, TestFile>,

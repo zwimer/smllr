@@ -6,12 +6,14 @@ extern crate md5;
 extern crate regex;
 extern crate tiny_keccak;
 
-// TODO make helper module for this stuff
-
+// import from external libraries
 use clap::{App, Arg};
 
+// import from standard library
 use std::path::Path;
 use std::ffi::OsStr;
+
+// import from our own modules
 
 pub mod helpers;
 use helpers::prettify_bytes;
@@ -20,7 +22,7 @@ pub mod walker;
 use walker::DirWalker;
 
 pub mod vfs;
-use vfs::RealFileSystem;
+pub use vfs::{RealFileSystem, TestFileSystem};
 
 pub mod catalog;
 use catalog::FileCataloger;
@@ -30,6 +32,7 @@ use actor::{FileActor, FileDeleter, FileLinker, FilePrinter};
 use actor::selector::{DateSelect, PathSelect, Selector};
 
 pub mod hash;
+use hash::{Md5Sum, Sha3Sum};
 
 fn main() {
     // build arg parser
@@ -127,25 +130,17 @@ fn main() {
 
     // catalog all files from the DirWalker
     // duplicates are identified as files are inserted one at a time
-    // TODO reduce code duplication
+    // can't combine code because Sha3Sum and Md5Sum might be different sizes
     let repeats = if matches.is_present("paranoid") {
         info!("Using SHA-3");
-        //let mut fc = FileCataloger::new(hash::Sha3Sum, fs);
-        let mut fc: FileCataloger<RealFileSystem, hash::Sha3Sum> = FileCataloger::new(fs);
-        for file in &files {
-            fc.insert(file);
-        }
+        let mut fc: FileCataloger<RealFileSystem, Sha3Sum> = FileCataloger::new(fs);
+        files.iter().for_each(|f| fc.insert(f));
         fc.get_repeats()
     } else {
-        unimplemented!()
-        /*
         info!("Using MD5");
-        let mut fc = FileCataloger::new(hash::Md5Sum, fs);
-        for file in &files {
-            fc.insert(file);
-        }
+        let mut fc: FileCataloger<RealFileSystem, Md5Sum> = FileCataloger::new(fs);
+        files.iter().for_each(|f| fc.insert(f));
         fc.get_repeats()
-        */
     };
 
     // use a Box to put the Selector and Actor on the heap as trait objects

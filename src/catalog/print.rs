@@ -6,7 +6,7 @@
 
 use std::fmt::{Debug, Formatter, Result};
 
-use super::ID;
+use helpers::ID;
 use catalog::FileCataloger;
 use hash::FileHash;
 
