@@ -84,9 +84,9 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FilePrinter<V, S> {
         // get the size; need to know how much space we're freeing
         let size = self.vfs
             .get_file(real)
-            .unwrap()
+            .expect("Failed to get file from path")
             .get_metadata()
-            .unwrap()
+            .expect("Failed to get file metadata")
             .get_len();
         let mut save_size = 0;
         // log the selection
@@ -118,9 +118,9 @@ impl<V: VFS, S: Selector<V>> FileActor<V, S> for FileDeleter<V, S> {
         let real = self.selector.select(&dups);
         let size = self.vfs
             .get_file(real)
-            .unwrap()
+            .expect("Failed to get file from path")
             .get_metadata()
-            .unwrap()
+            .expect("Failed to get file metadata")
             .get_len(); //get the size from the filesystem
         let mut save_size = 0;
         //Log which file we are not deleting

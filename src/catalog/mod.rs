@@ -57,7 +57,7 @@ impl<T: VFS, H: FileHash> FileCataloger<T, H> {
         let md = file.get_metadata().expect("IO Error getting Metadata");
         let size: u64 = md.get_len();
         let id = ID {
-            dev: md.get_device().unwrap().0,
+            dev: md.get_device().expect("Failed to read device info").0,
             inode: md.get_inode().0,
         };
         // sort by size into the appropriate proxy

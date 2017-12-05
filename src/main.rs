@@ -101,16 +101,25 @@ fn main() {
         .get_matches();
 
     // decide which files are fair game
-    let dirs: Vec<&OsStr> = matches.values_of_os("paths").unwrap().collect();
+    let dirs: Vec<&OsStr> = matches
+        .values_of_os("paths")
+        .expect("Failed to get `paths` from the command line arguments")
+        .collect();
     // if the user supplied blacklisted paths, collect them
     let dirs_n: Vec<&OsStr> = if matches.is_present("bad_paths") {
-        matches.values_of_os("bad_paths").unwrap().collect()
+        matches
+            .values_of_os("bad_paths")
+            .expect("Failed to get `bad_paths`")
+            .collect()
     } else {
         vec![]
     };
     // if the user supplied blacklisted file regexes, collect them
     let pats_n: Vec<_> = if matches.is_present("bad_regex") {
-        matches.values_of("bad_regex").unwrap().collect()
+        matches
+            .values_of("bad_regex")
+            .expect("Failed to get `bad_regex`")
+            .collect()
     } else {
         vec![]
     };
@@ -118,7 +127,7 @@ fn main() {
     // print log info to stderr
     // to alter granularity, set environmental variable RUST_LOG
     // e.g. `RUST_LOG=debug ./smllr ... 2> /tmp/smllr_log`
-    env_logger::init().unwrap();
+    env_logger::init().expect("Failed to initialize logging");
 
     // create and customize a DirWalker over the real filesystem
     // collect all relevant files

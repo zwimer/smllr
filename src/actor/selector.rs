@@ -108,10 +108,12 @@ impl<V: VFS> Selector<V> for PathSelect<V> {
 
 // helper function for comparing two Files based on their date
 fn date_cmp<'a, T: File>(a: &'a T, b: &'a T) -> Ordering {
-    let md_a = a.get_metadata().unwrap();
-    let md_b = b.get_metadata().unwrap();
-    let date_a = md_a.get_creation_time().unwrap();
-    let date_b = md_b.get_creation_time().unwrap();
+    let md_a = a.get_metadata().expect("Failed to get metadata");
+    let md_b = b.get_metadata().expect("Failed to get metadata");
+    let date_a = md_a.get_creation_time()
+        .expect("Failed to get creation time");
+    let date_b = md_b.get_creation_time()
+        .expect("Failed to get creation time");
     date_a.cmp(&date_b)
 }
 
@@ -124,18 +126,18 @@ impl<V: VFS> Selector<V> for DateSelect<V> {
     fn min<'b>(&self, dups: &'b Duplicates) -> &'b Path {
         dups.0
             .iter()
-            .map(|path| (path, self.vfs.get_file(path).unwrap()))
+            .map(|path| (path, self.vfs.get_file(path).expect("Failed to get file")))
             .min_by(|&(_, ref a), &(_, ref b)| date_cmp(a, b))
-            .unwrap()
+            .unwrap() // safe to assume >0 files
             .0
     }
     // select the file modified first
     fn max<'b>(&self, dups: &'b Duplicates) -> &'b Path {
         dups.0
             .iter()
-            .map(|path| (path, self.vfs.get_file(path).unwrap()))
+            .map(|path| (path, self.vfs.get_file(path).expect("Failed to get file")))
             .max_by(|&(_, ref a), &(_, ref b)| date_cmp(a, b))
-            .unwrap()
+            .unwrap() // safe to assume >0 files
             .0
     }
     fn select<'b>(&self, dups: &'b Duplicates) -> &'b Path {

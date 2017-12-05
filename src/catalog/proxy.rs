@@ -115,10 +115,16 @@ impl<H: FileHash> FirstKBytesProxy<H> {
         let mut shortcut: HashMap<_, <H as FileHash>::Output> = HashMap::new();
 
         // get first bytes of both files
-        let new_file = vfs.get_file(new_path).unwrap();
-        let old_file = vfs.get_file(&del_dups.0[0]).unwrap();
-        let new_first_bytes: <H as FileHash>::Output = new_file.get_first_bytes::<H>().unwrap();
-        let old_first_bytes: <H as FileHash>::Output = old_file.get_first_bytes::<H>().unwrap();
+        let new_file = vfs.get_file(new_path)
+            .expect("Failed to get file from path");
+        let old_file = vfs.get_file(&del_dups.0[0])
+            .expect("Failed to get file from path");
+        let new_first_bytes: <H as FileHash>::Output = new_file
+            .get_first_bytes::<H>()
+            .expect("Failed to hash first bytes");
+        let old_first_bytes: <H as FileHash>::Output = old_file
+            .get_first_bytes::<H>()
+            .expect("Failed to hash first bytes");
 
         // and add them to the map's shortcut.
         shortcut.insert(new_id, new_first_bytes.clone());
@@ -158,9 +164,9 @@ impl<H: FileHash> FirstKBytesProxy<H> {
                 ref mut thunk,
                 ref mut shortcut,
             } => {
-                let file = vfs.get_file(path).unwrap();
-                let first_bytes: <H as FileHash>::Output = file.get_first_bytes::<H>().unwrap();
-                //let first_bytes = Self::get_first_bytes(path).unwrap();
+                let file = vfs.get_file(path).expect("Failed to get file");
+                let first_bytes: <H as FileHash>::Output = file.get_first_bytes::<H>()
+                    .expect("Failed to hash first bytes");
                 shortcut.insert(id, first_bytes.clone());
                 match thunk.entry(first_bytes) {
                     // call `insert` on the underlying HashProxy
@@ -253,10 +259,14 @@ impl<H: FileHash> HashProxy<H> {
         let mut shortcut = HashMap::new();
 
         // get hashes
-        let new_file = vfs.get_file(new_dups.get_path()).unwrap();
-        let old_file = vfs.get_file(del_dups.get_path()).unwrap();
-        let new_hash: <H as FileHash>::Output = new_file.get_hash::<H>().unwrap();
-        let old_hash: <H as FileHash>::Output = old_file.get_hash::<H>().unwrap();
+        let new_file = vfs.get_file(new_dups.get_path())
+            .expect("Failed to get file");
+        let old_file = vfs.get_file(del_dups.get_path())
+            .expect("Failed to get file");
+        let new_hash: <H as FileHash>::Output =
+            new_file.get_hash::<H>().expect("Failed to hash file");
+        let old_hash: <H as FileHash>::Output =
+            old_file.get_hash::<H>().expect("Failed to hash file");
 
         // insert into shortcut
         shortcut.insert(new_id, new_hash.clone());
@@ -280,7 +290,6 @@ impl<H: FileHash> HashProxy<H> {
             HashProxy::Delay {
                 id: id2,
                 dups: ref mut dups2,
-                //..
             } if id == id2 =>
             {
                 dups2.append(dups);
@@ -290,8 +299,10 @@ impl<H: FileHash> HashProxy<H> {
                 ref mut thunk,
                 ref mut shortcut,
             } => {
-                let file = vfs.get_file(dups.get_path()).unwrap();
-                let hash: <H as FileHash>::Output = file.get_hash::<H>().unwrap();
+                let file = vfs.get_file(dups.get_path())
+                    .expect("Failed to get file from path");
+                let hash: <H as FileHash>::Output =
+                    file.get_hash::<H>().expect("Failed to hash file");
                 shortcut.insert(id, hash.clone());
                 match thunk.entry(hash) {
                     Entry::Occupied(mut occ_entry) => {
