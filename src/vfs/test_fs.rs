@@ -8,7 +8,7 @@ use std::time::{self, SystemTime};
 use std::collections::{HashMap, HashSet};
 
 use vfs::{DeviceId, File, FileType, Inode, MetaData, VFS};
-use helpers::{FirstBytes, FIRST_K_BYTES, ID};
+use helpers::{FIRST_K_BYTES, ID};
 use hash::FileHash;
 
 /// `TestMD` is the mock metadata struct.
@@ -160,7 +160,8 @@ impl File for TestFile {
         self.metadata
             .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "No MD"))
     }
-    fn get_first_bytes(&self) -> io::Result<FirstBytes> {
+    //fn get_first_bytes(&self) -> io::Result<FirstBytes> {
+    fn get_first_bytes<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output> {
         // read the first K bytes of the file
         // if the file is less than K bytes, the remaining bytes are treated as zeros
         if let Some(ref cont) = self.contents {
@@ -168,7 +169,8 @@ impl File for TestFile {
             for (c, b) in cont.bytes().zip(bytes.iter_mut()) {
                 *b = c;
             }
-            Ok(FirstBytes(bytes))
+            //Ok(FirstBytes(bytes))
+            Ok(H::hash(&bytes))
         } else {
             Err(io::Error::new(io::ErrorKind::NotFound, "No contents set"))
         }

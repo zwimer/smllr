@@ -61,7 +61,8 @@ impl<H: FileHash> Debug for FirstKBytesProxy<H> {
             FirstKBytesProxy::Thunk { ref thunk, .. } => {
                 write!(f, "Thunk: ")?;
                 for (bytes, hp) in thunk {
-                    let s = String::from_utf8_lossy(&bytes.0);
+                    //let s = String::from_utf8_lossy(&bytes);
+                    let s = format!("{:?}", bytes);
                     write!(f, "``")?;
                     for c in s.chars().take(3) {
                         write!(f, "{}", c)?;

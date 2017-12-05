@@ -133,12 +133,12 @@ fn main() {
     // can't combine code because Sha3Sum and Md5Sum might be different sizes
     let repeats = if matches.is_present("paranoid") {
         info!("Using SHA-3");
-        let mut fc: FileCataloger<RealFileSystem, Sha3Sum> = FileCataloger::new(fs);
+        let mut fc: FileCataloger<_, Sha3Sum> = FileCataloger::new(fs);
         files.iter().for_each(|f| fc.insert(f));
         fc.get_repeats()
     } else {
         info!("Using MD5");
-        let mut fc: FileCataloger<RealFileSystem, Md5Sum> = FileCataloger::new(fs);
+        let mut fc: FileCataloger<_, Md5Sum> = FileCataloger::new(fs);
         files.iter().for_each(|f| fc.insert(f));
         fc.get_repeats()
     };

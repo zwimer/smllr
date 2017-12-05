@@ -4,7 +4,6 @@ use std::collections::hash_map::Entry;
 
 use vfs::{File, VFS};
 use helpers::ID;
-use helpers::FirstBytes;
 use hash::FileHash;
 
 // Duplicates is a decorator for a vector of pathbufs which represents
@@ -48,8 +47,8 @@ pub enum FirstKBytesProxy<H: FileHash> {
     // also maintain a shortcut for looking up their values by their id
     // for hardlink detection.
     Thunk {
-        thunk: HashMap<FirstBytes, HashProxy<H>>,
-        shortcut: HashMap<ID, FirstBytes>,
+        thunk: HashMap<<H as FileHash>::Output, HashProxy<H>>,
+        shortcut: HashMap<ID, <H as FileHash>::Output>,
     },
 }
 
@@ -106,14 +105,14 @@ impl<H: FileHash> FirstKBytesProxy<H> {
         };
         assert!(new_id != del_id);
         // Initialize new type's variables
-        let mut thunk = HashMap::new();
-        let mut shortcut = HashMap::new();
+        let mut thunk: HashMap<<H as FileHash>::Output, _> = HashMap::new();
+        let mut shortcut: HashMap<_, <H as FileHash>::Output> = HashMap::new();
 
         // get first bytes of both files
         let new_file = vfs.get_file(new_path).unwrap();
         let old_file = vfs.get_file(&del_dups.0[0]).unwrap();
-        let new_first_bytes = new_file.get_first_bytes().unwrap();
-        let old_first_bytes = old_file.get_first_bytes().unwrap();
+        let new_first_bytes: <H as FileHash>::Output = new_file.get_first_bytes::<H>().unwrap();
+        let old_first_bytes: <H as FileHash>::Output = old_file.get_first_bytes::<H>().unwrap();
 
         // and add them to the map's shortcut.
         shortcut.insert(new_id, new_first_bytes.clone());
@@ -154,7 +153,7 @@ impl<H: FileHash> FirstKBytesProxy<H> {
                 ref mut shortcut,
             } => {
                 let file = vfs.get_file(path).unwrap();
-                let first_bytes = file.get_first_bytes().unwrap();
+                let first_bytes: <H as FileHash>::Output = file.get_first_bytes::<H>().unwrap();
                 //let first_bytes = Self::get_first_bytes(path).unwrap();
                 shortcut.insert(id, first_bytes.clone());
                 match thunk.entry(first_bytes) {

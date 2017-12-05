@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test {
 
-    use ID;
+    use helpers::ID;
     use actor::{FileActor, FileDeleter, FileLinker, FilePrinter};
     use actor::selector::{DateSelect, PathSelect, Selector};
     use vfs::{FileType, TestFile, TestFileSystem, TestMD};

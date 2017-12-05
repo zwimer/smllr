@@ -11,7 +11,6 @@ pub use self::real_fs::RealFileSystem;
 mod test_fs;
 pub use self::test_fs::{TestFile, TestFileSystem, TestMD};
 
-use helpers::FirstBytes;
 use hash::FileHash;
 
 //definition of traits
@@ -62,8 +61,9 @@ pub trait File: Debug {
     fn get_path(&self) -> PathBuf;
     fn get_type(&self) -> io::Result<FileType>;
     fn get_metadata(&self) -> io::Result<Self::MD>;
-    /// Read first K bytes of the file
-    fn get_first_bytes(&self) -> io::Result<FirstBytes>;
+    /// Read and hash first K bytes of the file
+    //fn get_first_bytes(&self) -> io::Result<FirstBytes>;
+    fn get_first_bytes<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output>;
     /// Hash the contents of the file
     fn get_hash<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output>;
 }
