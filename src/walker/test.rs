@@ -67,8 +67,9 @@ mod test {
             fs.create_file("/d.cpp");
         }
         let dw =
-            DirWalker::new(fs, &vec![Path::new("/")]).blacklist_patterns(vec!["/b+", ".*.cpp"]);
+            DirWalker::new(fs, &vec![Path::new("/")]).blacklist_patterns(vec!["/b.+", ".*.cpp"]);
         let files = dw.traverse_all();
+        println!("{:?}", files);
         assert_eq!(2, files.len());
         assert!(files.contains(Path::new("/a.pdf")));
         assert!(files.contains(Path::new("/c.htm")));

@@ -94,14 +94,21 @@ where
         //  1) haven't been seen before and
         //  2) don't match a blacklist regex pattern
         //      NOTE: if a path is invalid unicode it will never match a pattern
-        !self.files.contains(path) && {
-            if let Some(path_str) = path.to_str() {
-                self.blacklist_patterns
-                    .iter()
-                    .all(|re| !re.is_match(path_str))
-            } else {
-                true
-            }
+        if self.files.contains(path) {
+            // have traversed this file before
+            false
+        } else if let Some(path_str) = path.to_str() {
+            // handle file if all regexes do NOT match
+            self.blacklist_patterns.iter().all(|re| {
+                if let Some(m) = re.find(path_str) {
+                    (m.start(), m.end()) != (0, path_str.len())
+                } else {
+                    true
+                }
+            })
+        } else {
+            // invalid unicode: not regex blacklist
+            true
         }
     }
 
@@ -112,16 +119,28 @@ where
         //  2) don't match a folder blacklist, and
         //  3) don't match a regex pattern blacklist
         //      NOTE: again, bad unicode paths will not match any regex
-        !self.folders.contains(path) && self.blacklist_dirs.iter().all(|dir| !path.starts_with(dir))
-            && {
-                if let Some(path_str) = path.to_str() {
-                    self.blacklist_patterns
-                        .iter()
-                        .all(|re| !re.is_match(path_str))
-                } else {
-                    true
-                }
-            }
+
+        if self.folders.contains(path) {
+            // have traversed this folder before
+            false
+        } else if self.blacklist_dirs.iter().any(|dir| path.starts_with(dir)) {
+            // the directory has been blacklisted
+            false
+        } else if let Some(path_str) = path.to_str() {
+                // only traverse if all patterns do NOT match
+                self.blacklist_patterns.iter().all(|re| {
+                    if let Some(m) = re.find(path_str) {
+                        // skip if the match is the whole thing
+                        (m.start(), m.end()) != (0, path_str.len())
+                    } else {
+                        // no match: traverse
+                        true
+                    }
+                })
+        } else {
+            // invalid unicode: don't try any regex matching
+            true
+        }
     }
 
     /// Perform operation on a file: in this case just add it to a hashset
