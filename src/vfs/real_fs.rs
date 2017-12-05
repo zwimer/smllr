@@ -8,9 +8,12 @@ use std::os::linux::fs::MetadataExt as MetadataExt_linux; // ew
 use std::{io, time};
 use std::io::Read;
 
-use super::{DeviceId, File, FileType, Inode, MetaData, VFS};
-use super::{FirstBytes, FIRST_K_BYTES};
-use hash::{FileHash};
+use vfs::{File, MetaData, VFS};
+use vfs::{DeviceId, FileType, Inode};
+//use super::{DeviceId, File, FileType, Inode, MetaData, VFS};
+//use super::{FirstBytes, FIRST_K_BYTES};
+use helpers::{FirstBytes, FIRST_K_BYTES};
+use hash::FileHash;
 
 // Wrap our metadata trait around fs::Metadata.
 impl MetaData for fs::Metadata {

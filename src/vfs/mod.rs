@@ -11,8 +11,8 @@ pub use self::real_fs::RealFileSystem;
 mod test_fs;
 pub use self::test_fs::{TestFile, TestFileSystem, TestMD};
 
-use super::{FirstBytes, FIRST_K_BYTES};
-use hash::{FileHash};
+use helpers::FirstBytes;
+use hash::FileHash;
 
 //definition of traits
 //RUST NOTE: the "trait foo: baz" denotes that foo reuires that

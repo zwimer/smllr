@@ -4,8 +4,8 @@ use std::collections::hash_map::Entry;
 
 use vfs::{File, VFS};
 use super::ID;
-use super::super::FirstBytes;
-use hash::{FileHash};
+use helpers::FirstBytes;
+use hash::FileHash;
 
 // Duplicates is a decorator for a vector of pathbufs which represents
 // a set of files. In code, it is an invariant that any 2 files in a
@@ -41,7 +41,6 @@ pub enum FirstKBytesProxy<H: FileHash> {
     // in the first state there is one file
     // don't look up its first k bytes unless it has the same size as another
     Delay {
-        //hasher: H,
         id: ID,
         dups: Duplicates,
     },
@@ -49,7 +48,6 @@ pub enum FirstKBytesProxy<H: FileHash> {
     // also maintain a shortcut for looking up their values by their id
     // for hardlink detection.
     Thunk {
-        //hasher: H,
         thunk: HashMap<FirstBytes, HashProxy<H>>,
         shortcut: HashMap<ID, FirstBytes>,
     },
@@ -93,10 +91,7 @@ impl<H: FileHash> FirstKBytesProxy<H> {
         // panics if `self` is of type Thunk
         // NOTE this involves EITHER a clone of dups OR a promise-violating hack
         let (del_id, del_dups) = match *self {
-            FirstKBytesProxy::Delay {
-                id,
-                ref mut dups,
-            } => {
+            FirstKBytesProxy::Delay { id, ref mut dups } => {
                 // this a somewhat hacky potential future speedup
                 // if there are problems with Duplicates being empty, look here
                 // "steal" `dups` so we don't have to clone it
@@ -135,11 +130,7 @@ impl<H: FileHash> FirstKBytesProxy<H> {
             thunk.insert(old_first_bytes, HashProxy::new(del_id, del_dups));
         }
         // replace pointer from delay a pointer to thunk.
-        *self = FirstKBytesProxy::Thunk {
-            //hasher: hasher,
-            thunk,
-            shortcut,
-        };
+        *self = FirstKBytesProxy::Thunk { thunk, shortcut };
     }
 
     /// Add a new path to the proxy
@@ -159,7 +150,6 @@ impl<H: FileHash> FirstKBytesProxy<H> {
             // If a match for a proxy, add
             // to the proxy; otherwise create a new hashproxy.
             FirstKBytesProxy::Thunk {
-                //ref hasher,
                 ref mut thunk,
                 ref mut shortcut,
             } => {
@@ -209,9 +199,7 @@ pub enum HashProxy<H: FileHash> {
 // closely parallels FirstKBytesProxy's documentation
 impl<H: FileHash> HashProxy<H> {
     //Construct a new hashprxy. As only 1 object, will be of the Delay type.
-    //fn new(hasher: H, id: ID, dups: Duplicates) -> Self {
     fn new(id: ID, dups: Duplicates) -> Self {
-        //HashProxy::Delay { hasher, id, dups }
         HashProxy::Delay { id, dups }
     }
 
@@ -245,13 +233,8 @@ impl<H: FileHash> HashProxy<H> {
     fn transition<T: VFS>(&mut self, vfs: &T, new_id: ID, new_dups: Duplicates) {
         // convert Delay to Thunk
         let (del_id, del_dups) = match *self {
-            HashProxy::Delay {
-                //ref hasher,
-                id,
-                ref mut dups,
-            } => {
+            HashProxy::Delay { id, ref mut dups } => {
                 assert!(id != new_id);
-                //(*hasher, id, dups.clone())
                 (id, dups.clone())
             }
             _ => unreachable!(),
@@ -263,7 +246,6 @@ impl<H: FileHash> HashProxy<H> {
         // get hashes
         let new_file = vfs.get_file(new_dups.get_path()).unwrap();
         let old_file = vfs.get_file(del_dups.get_path()).unwrap();
-        //let new_hash = new_file.get_hash(&hasher).unwrap();
         let new_hash: <H as FileHash>::Output = new_file.get_hash::<H>().unwrap();
         let old_hash: <H as FileHash>::Output = old_file.get_hash::<H>().unwrap();
 
@@ -279,11 +261,7 @@ impl<H: FileHash> HashProxy<H> {
             .append(del_dups);
 
         // set our pointer to the new thunk state.
-        *self = HashProxy::Thunk {
-            //hasher,
-            thunk,
-            shortcut,
-        };
+        *self = HashProxy::Thunk { thunk, shortcut };
     }
 
     // insert Duplicate into the data structure
@@ -300,7 +278,6 @@ impl<H: FileHash> HashProxy<H> {
             }
             // If we are in a thunk state, just add file and its hash
             HashProxy::Thunk {
-                //ref hasher,
                 ref mut thunk,
                 ref mut shortcut,
             } => {

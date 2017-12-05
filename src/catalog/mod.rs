@@ -2,7 +2,7 @@ use std::path::Path;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 
-pub use super::ID;
+pub use helpers::ID;
 use vfs::{File, MetaData, VFS};
 use hash::FileHash;
 
@@ -18,22 +18,18 @@ mod test; // include unit tests
 ///  by checking filesize, the first K bytes, and then the whole file hash
 ///  but only when necessary to check
 pub struct FileCataloger<T: VFS, H: FileHash> {
-    hasher: H,
     catalog: HashMap<u64, FirstKBytesProxy<H>>,
     vfs: T,
-    // For now, omit the shortcut. We're just using the real fs right now, so
-    // a file is just a Path, which has no associated metadata.
-    // In the future we could get the ID from the DirWalker for free*, but
-    // for now we need to retrieve the metadata to get the ID which gives the
-    // size for no extra cost. So no need to map ID to size
+    // In the future, it would also be helpful to include a shortcut to know
+    // which FirstKBytesProxies contain duplicates to avoid a full search when
+    // get_repeats() is called.
 }
 
 impl<T: VFS, H: FileHash> FileCataloger<T, H> {
     /// Initilize the filecataloger
-    pub fn new(hasher: H, vfs: T) -> Self {
+    pub fn new(vfs: T) -> Self {
         FileCataloger {
             catalog: HashMap::new(),
-            hasher,
             vfs: vfs,
         }
     }
@@ -45,7 +41,8 @@ impl<T: VFS, H: FileHash> FileCataloger<T, H> {
         let mut all = vec![];
         // for each subgrouping (done by size), get all the list of duplicates and
         // add them to are return variable.
-        for (_size, ref fkbp) in &self.catalog {
+        for fkbp in self.catalog.values() {
+            //for (_size, ref fkbp) in &self.catalog {
             all.append(&mut fkbp.get_repeats());
         }
         all

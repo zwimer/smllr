@@ -89,8 +89,9 @@ impl<T: FileHash> Debug for HashProxy<T> {
                 write!(f, "Delay: ({:?})  {:?}", id, dups)?;
             }
             HashProxy::Thunk { ref thunk, .. } => {
-                write!(f, "Thunk: ")?;
-                write!(f, "TODO HASH")?;
+                write!(f, "Thunk: {:?}", thunk)?;
+                //write!(f, "Thunk: ")?;
+                //write!(f, "TODO HASH")?;
                 /*
                 for (hash, repeats) in thunk {
                     write!(
@@ -103,8 +104,7 @@ impl<T: FileHash> Debug for HashProxy<T> {
                     )?;
                     write!(f, "{:?}, ", repeats)?;
                 }
-                */
-            }
+                */            }
         }
         Ok(())
     }

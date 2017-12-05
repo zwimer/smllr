@@ -8,9 +8,10 @@ use std::time::{self, SystemTime};
 use std::collections::{HashMap, HashSet};
 //RUST NOTE: `super` means up a module (often up a directory)
 use vfs::{DeviceId, File, FileType, Inode, MetaData, VFS};
-use super::{FirstBytes, FIRST_K_BYTES};
-use super::super::ID;
-use hash::{FileHash};
+//use super::{FirstBytes, FIRST_K_BYTES};
+//use super::super::ID;
+use helpers::{FirstBytes, FIRST_K_BYTES, ID};
+use hash::FileHash;
 
 /// `TestMD` is the mock metadata struct.
 #[derive(Debug, Clone, Copy, PartialEq)]

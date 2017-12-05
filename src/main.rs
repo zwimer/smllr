@@ -13,6 +13,9 @@ use clap::{App, Arg};
 use std::path::Path;
 use std::ffi::OsStr;
 
+pub mod helpers;
+use helpers::prettify_bytes;
+
 pub mod walker;
 use walker::DirWalker;
 
@@ -26,35 +29,7 @@ pub mod actor;
 use actor::{FileActor, FileDeleter, FileLinker, FilePrinter};
 use actor::selector::{DateSelect, PathSelect, Selector};
 
-
-/// Uniquely identify a file by its device id and inode
-#[derive(Clone, Copy, Hash, PartialEq, Eq)]
-pub struct ID {
-    dev: u64,
-    inode: u64,
-}
-
-/// Represent the first K bytes of a file
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct FirstBytes(pub(crate) [u8; FIRST_K_BYTES]);
-const FIRST_K_BYTES: usize = 32;
-
 pub mod hash;
-
-fn prettify_bytes(b: u64) -> String {
-    if b < 1024 {
-        format!("{} B", b)
-    } else if b < 1024 * 1024 {
-        format!("{} KB", b / 1024)
-    } else if b < 1024 * 1024 * 1024 {
-        format!("{} MB", b / 1024 / 1024)
-    } else if b < 1024 * 1024 * 1024 * 1024 {
-        format!("{} GB", b / 1024 / 1024 / 1024)
-    } else {
-        format!("{} B", b)
-    }
-}
-
 
 fn main() {
     // build arg parser
@@ -155,18 +130,22 @@ fn main() {
     // TODO reduce code duplication
     let repeats = if matches.is_present("paranoid") {
         info!("Using SHA-3");
-        let mut fc = FileCataloger::new(hash::Sha3Sum, fs);
+        //let mut fc = FileCataloger::new(hash::Sha3Sum, fs);
+        let mut fc: FileCataloger<RealFileSystem, hash::Sha3Sum> = FileCataloger::new(fs);
         for file in &files {
             fc.insert(file);
         }
         fc.get_repeats()
     } else {
+        unimplemented!()
+        /*
         info!("Using MD5");
         let mut fc = FileCataloger::new(hash::Md5Sum, fs);
         for file in &files {
             fc.insert(file);
         }
         fc.get_repeats()
+        */
     };
 
     // use a Box to put the Selector and Actor on the heap as trait objects
