@@ -10,7 +10,7 @@ use std::collections::{HashMap, HashSet};
 use vfs::{DeviceId, File, FileType, Inode, MetaData, VFS};
 use super::{FirstBytes, FIRST_K_BYTES};
 use super::super::ID;
-use hash::{FileHash, Hash};
+use hash::{FileHash};
 
 /// `TestMD` is the mock metadata struct.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -174,17 +174,9 @@ impl File for TestFile {
             Err(io::Error::new(io::ErrorKind::NotFound, "No contents set"))
         }
     }
-    fn get_hash<H: FileHash>(&self, hasher: &H) -> io::Result<<H as FileHash>::Output> {
-        // hash the contents of the file
+    fn get_hash<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output> {
         if let Some(ref cont) = self.contents {
-            Ok(hasher.hash(cont.as_bytes()))
-        } else {
-            Err(io::Error::new(io::ErrorKind::NotFound, "No contents set"))
-        }
-    }
-    fn get_hash_<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output> {
-        if let Some(ref cont) = self.contents {
-            Ok(H::hash_(cont.as_bytes()))
+            Ok(H::hash(cont.as_bytes()))
         } else {
             Err(io::Error::new(io::ErrorKind::NotFound, "No contents set"))
         }

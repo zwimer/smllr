@@ -67,7 +67,7 @@ impl<T: VFS, H: FileHash> FileCataloger<T, H> {
             Entry::Occupied(mut occ_entry) => occ_entry.get_mut().insert(&self.vfs, id, path),
             // otherwise create a new firstkbytesproxy with path as the delayed insert.
             Entry::Vacant(vac_entry) => {
-                vac_entry.insert(FirstKBytesProxy::new(self.hasher, id, path));
+                vac_entry.insert(FirstKBytesProxy::new(id, path));
             }
         }
     }

@@ -10,7 +10,7 @@ use std::io::Read;
 
 use super::{DeviceId, File, FileType, Inode, MetaData, VFS};
 use super::{FirstBytes, FIRST_K_BYTES};
-use hash::{FileHash, Hash};
+use hash::{FileHash};
 
 // Wrap our metadata trait around fs::Metadata.
 impl MetaData for fs::Metadata {
@@ -59,19 +59,12 @@ impl File for DirEntry {
         file.read(&mut bytes)?;
         Ok(FirstBytes(bytes))
     }
-    fn get_hash<H: FileHash>(&self, hasher: &H) -> io::Result<<H as FileHash>::Output> {
+    fn get_hash<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output> {
         let path = self.get_path();
         let mut file = fs::File::open(&path)?;
         let mut v = vec![];
         file.read_to_end(&mut v)?;
-        Ok(hasher.hash(&v))
-    }
-    fn get_hash_<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output> {
-        let path = self.get_path();
-        let mut file = fs::File::open(&path)?;
-        let mut v = vec![];
-        file.read_to_end(&mut v)?;
-        Ok(H::hash_(&v))
+        Ok(H::hash(&v))
     }
 }
 
