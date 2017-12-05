@@ -150,6 +150,8 @@ fn main() {
 
     // catalog all files from the DirWalker
     // duplicates are identified as files are inserted one at a time
+    let repeats: Vec<catalog::proxy::Duplicates> = unimplemented!();
+    /*
     let repeats = if matches.is_present("paranoid") {
         info!("Using SHA-3");
         let mut fc = FileCataloger::new(hash::Sha3Sum, fs);
@@ -165,6 +167,7 @@ fn main() {
         }
         fc.get_repeats()
     };
+    */
 
     // use a Box to put the Selector and Actor on the heap as trait objects
     // different selectors or actors are different sizes (e.g. test_fs contains

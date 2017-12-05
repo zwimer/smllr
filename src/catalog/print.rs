@@ -90,6 +90,8 @@ impl<T: FileHash> Debug for HashProxy<T> {
             }
             HashProxy::Thunk { ref thunk, .. } => {
                 write!(f, "Thunk: ")?;
+                write!(f, "TODO HASH")?;
+                /*
                 for (hash, repeats) in thunk {
                     write!(
                         f,
@@ -101,6 +103,7 @@ impl<T: FileHash> Debug for HashProxy<T> {
                     )?;
                     write!(f, "{:?}, ", repeats)?;
                 }
+                */
             }
         }
         Ok(())

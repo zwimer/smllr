@@ -195,15 +195,15 @@ impl<H: FileHash> FirstKBytesProxy<H> {
 pub enum HashProxy<H: FileHash> {
     // only one unique element has been added
     Delay {
-        hasher: H,
+        //hasher: H,
         id: ID,
         dups: Duplicates,
     },
     // need to map `Hash`es to a set of `Duplicates`
     Thunk {
-        hasher: H,
-        thunk: HashMap<Hash, Duplicates>,
-        shortcut: HashMap<ID, Hash>,
+        //hasher: H,
+        thunk: HashMap<<H as FileHash>::Output, Duplicates>,
+        shortcut: HashMap<ID, <H as FileHash>::Output>,
     },
     // see `FirstKBytesProxy` for more documentation
     // major difference is that `Duplicates` can contain non-hardlinks
@@ -213,8 +213,10 @@ pub enum HashProxy<H: FileHash> {
 // closely parallels FirstKBytesProxy's documentation
 impl<H: FileHash> HashProxy<H> {
     //Construct a new hashprxy. As only 1 object, will be of the Delay type.
+    //fn new(hasher: H, id: ID, dups: Duplicates) -> Self {
     fn new(hasher: H, id: ID, dups: Duplicates) -> Self {
-        HashProxy::Delay { hasher, id, dups }
+        //HashProxy::Delay { hasher, id, dups }
+        HashProxy::Delay { id, dups }
     }
 
     // get all repeats under this node and return as a set of sets of duplicates.
@@ -246,26 +248,28 @@ impl<H: FileHash> HashProxy<H> {
     // private helper fuction which handles the conversion from Delay to HashProxy::Thunk
     fn transition<T: VFS>(&mut self, vfs: &T, new_id: ID, new_dups: Duplicates) {
         // convert Delay to Thunk
-        let (hasher, del_id, del_dups) = match *self {
+        let (del_id, del_dups) = match *self {
             HashProxy::Delay {
-                ref hasher,
+                //ref hasher,
                 id,
                 ref mut dups,
             } => {
                 assert!(id != new_id);
-                (*hasher, id, dups.clone())
+                //(*hasher, id, dups.clone())
+                (id, dups.clone())
             }
             _ => unreachable!(),
         };
         //Set up variables for thunk state
-        let mut thunk = HashMap::new();
+        let mut thunk: HashMap<<H as FileHash>::Output, Duplicates> = HashMap::new();
         let mut shortcut = HashMap::new();
 
         // get hashes
         let new_file = vfs.get_file(new_dups.get_path()).unwrap();
         let old_file = vfs.get_file(del_dups.get_path()).unwrap();
-        let new_hash = new_file.get_hash(&hasher).unwrap();
-        let old_hash = old_file.get_hash(&hasher).unwrap();
+        //let new_hash = new_file.get_hash(&hasher).unwrap();
+        let new_hash: <H as FileHash>::Output = new_file.get_hash_::<H>().unwrap();
+        let old_hash: <H as FileHash>::Output = old_file.get_hash_::<H>().unwrap();
 
         // insert into shortcut
         shortcut.insert(new_id, new_hash.clone());
@@ -280,9 +284,9 @@ impl<H: FileHash> HashProxy<H> {
 
         // set our pointer to the new thunk state.
         *self = HashProxy::Thunk {
+            //hasher,
             thunk,
             shortcut,
-            hasher,
         };
     }
 
@@ -293,19 +297,19 @@ impl<H: FileHash> HashProxy<H> {
             HashProxy::Delay {
                 id: id2,
                 dups: ref mut dups2,
-                ..
+                //..
             } if id == id2 =>
             {
                 dups2.append(dups);
             }
             // If we are in a thunk state, just add file and its hash
             HashProxy::Thunk {
-                ref hasher,
+                //ref hasher,
                 ref mut thunk,
                 ref mut shortcut,
             } => {
                 let file = vfs.get_file(dups.get_path()).unwrap();
-                let hash = file.get_hash(hasher).unwrap();
+                let hash: <H as FileHash>::Output = file.get_hash_::<H>().unwrap();
                 shortcut.insert(id, hash.clone());
                 match thunk.entry(hash) {
                     Entry::Occupied(mut occ_entry) => {
