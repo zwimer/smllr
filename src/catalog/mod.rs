@@ -1,3 +1,5 @@
+//! Identify duplicates in a collection of files
+
 use std::path::Path;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;

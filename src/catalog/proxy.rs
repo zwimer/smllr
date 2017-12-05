@@ -1,3 +1,5 @@
+//! Internals of the Cataloge data structure: identifying files by their size, hash, or first bytes
+
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::collections::hash_map::Entry;
@@ -40,14 +42,18 @@ pub enum FirstKBytesProxy<H: FileHash> {
     // in the first state there is one file
     // don't look up its first k bytes unless it has the same size as another
     Delay {
+        /// The unique identifier of this collection
         id: ID,
+        /// A collection of hard links
         dups: Duplicates,
     },
     // after 2 files with the first k bytes have been found, store them
     // also maintain a shortcut for looking up their values by their id
     // for hardlink detection.
     Thunk {
+        /// Identify a `HashProxy` by the hash of the first K bytes
         thunk: HashMap<<H as FileHash>::Output, HashProxy<H>>,
+        /// Map the unique identifier to a first k bytes hash to enable registering links later
         shortcut: HashMap<ID, <H as FileHash>::Output>,
     },
 }
@@ -182,12 +188,16 @@ impl<H: FileHash> FirstKBytesProxy<H> {
 pub enum HashProxy<H: FileHash> {
     // only one unique element has been added
     Delay {
+        /// The unique identifier for the paths
         id: ID,
+        /// A collection of duplicate paths
         dups: Duplicates,
     },
     // need to map `Hash`es to a set of `Duplicates`
     Thunk {
+        /// Identify a set of duplicates by the hash of its complete contents
         thunk: HashMap<<H as FileHash>::Output, Duplicates>,
+        /// Map the unique identifier to a file's hash to enable registering links later
         shortcut: HashMap<ID, <H as FileHash>::Output>,
     },
     // see `FirstKBytesProxy` for more documentation

@@ -1,5 +1,4 @@
-// This file defines a number of traits and helper
-// for filesystem interface used for dependancy injection.
+//! Define a mock filesystem for more fine-grained control over unit tests
 
 use std::{fs, io, time};
 use std::fmt::Debug;
@@ -54,7 +53,7 @@ pub trait VFS: Clone + Debug {
     fn make_link(&mut self, src: &Path, dst: &Path) -> io::Result<()>;
 }
 
-// the File trait defines the common interface for files.
+/// Define common interface for a real or mock file
 pub trait File: Debug {
     type MD: MetaData;
     fn get_inode(&self) -> io::Result<Inode>;
@@ -62,13 +61,13 @@ pub trait File: Debug {
     fn get_type(&self) -> io::Result<FileType>;
     fn get_metadata(&self) -> io::Result<Self::MD>;
     /// Read and hash first K bytes of the file
-    //fn get_first_bytes(&self) -> io::Result<FirstBytes>;
     fn get_first_bytes<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output>;
     /// Hash the contents of the file
     fn get_hash<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output>;
 }
-// the MetaData trait defines the interface for metadata
+
 // it is the subset of the interface of fs::MetaData that we use
+/// Define common interface for real of mock metadata object
 pub trait MetaData: Debug {
     fn get_len(&self) -> u64;
     fn get_creation_time(&self) -> io::Result<time::SystemTime>;

@@ -10,7 +10,7 @@ use std::io::Read;
 
 use vfs::{File, MetaData, VFS};
 use vfs::{DeviceId, FileType, Inode};
-use helpers::{FIRST_K_BYTES};
+use helpers::FIRST_K_BYTES;
 use hash::FileHash;
 
 // Wrap our metadata trait around fs::Metadata.

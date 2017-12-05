@@ -5,7 +5,9 @@ pub const FIRST_K_BYTES: usize = 4096;
 /// Uniquely identify a file by its device id and inode
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub struct ID {
+    /// Device ID (unique to Linux)
     pub dev: u64,
+    /// Filesystem Inode
     pub inode: u64,
 }
 

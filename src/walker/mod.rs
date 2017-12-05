@@ -1,3 +1,5 @@
+//! Traverse a filesystem and identify files of interest
+
 use std::path::{Path, PathBuf};
 use std::{env, io};
 use std::ffi::OsStr;
@@ -8,6 +10,8 @@ use vfs::{File, FileType, MetaData, VFS};
 
 mod test; //include unit tests
 
+/// Customizable object to traverse a series of directories, efficiently identifying files and
+/// omitting files in certain paths or that match certain patterns
 #[derive(Debug)]
 pub struct DirWalker<T: VFS> {
     // files to include/exclude
@@ -127,16 +131,16 @@ where
             // the directory has been blacklisted
             false
         } else if let Some(path_str) = path.to_str() {
-                // only traverse if all patterns do NOT match
-                self.blacklist_patterns.iter().all(|re| {
-                    if let Some(m) = re.find(path_str) {
-                        // skip if the match is the whole thing
-                        (m.start(), m.end()) != (0, path_str.len())
-                    } else {
-                        // no match: traverse
-                        true
-                    }
-                })
+            // only traverse if all patterns do NOT match
+            self.blacklist_patterns.iter().all(|re| {
+                if let Some(m) = re.find(path_str) {
+                    // skip if the match is the whole thing
+                    (m.start(), m.end()) != (0, path_str.len())
+                } else {
+                    // no match: traverse
+                    true
+                }
+            })
         } else {
             // invalid unicode: don't try any regex matching
             true

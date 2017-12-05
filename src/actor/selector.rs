@@ -1,3 +1,5 @@
+//! Determine which of the duplicate files shouldn't be touched
+
 use std::cmp::Ordering;
 use std::path::Path;
 use std::marker::PhantomData;
@@ -7,12 +9,13 @@ use catalog::proxy::Duplicates;
 
 /// Interface for choosing between files
 pub trait Selector<V: VFS> {
-    // indicate that you want the max instead of the min or vice versa
+    /// Indicate that you want the max instead of the min or vice versa
     fn reverse(&mut self);
-    // choose which of the Paths in Duplicates is the "true" (unchanged) one
+    /// Choose which of the Paths in Duplicates is the "true" (unchanged) one
     fn select<'b>(&self, dups: &'b Duplicates) -> &'b Path;
-    // helpers to be called by select
+    /// Helper to be called by `select`: identify the minimum
     fn min<'b>(&self, dups: &'b Duplicates) -> &'b Path;
+    /// Helper to be called by `select`: identify the maximum
     fn max<'b>(&self, dups: &'b Duplicates) -> &'b Path;
 }
 
@@ -30,6 +33,7 @@ pub struct DateSelect<V: VFS> {
 
 // constructor for PathSelect
 impl<V: VFS> PathSelect<V> {
+    /// Construct an empty `PathSelect`
     pub fn new(_: V) -> Self {
         PathSelect {
             reverse: false,
@@ -40,6 +44,7 @@ impl<V: VFS> PathSelect<V> {
 
 // constructor for DateSelect
 impl<V: VFS> DateSelect<V> {
+    /// Construct an empty `DateSelect`
     pub fn new(v: V) -> Self {
         DateSelect {
             reverse: false,

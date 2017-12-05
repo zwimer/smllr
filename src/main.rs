@@ -1,3 +1,5 @@
+//! Identify and handle duplicate files in a fast and extensible way
+
 extern crate clap;
 extern crate env_logger;
 #[macro_use]
@@ -15,7 +17,7 @@ use std::ffi::OsStr;
 
 // import from our own modules
 
-pub mod helpers;
+mod helpers;
 use helpers::prettify_bytes;
 
 pub mod walker;
