@@ -50,7 +50,7 @@ RUST_LOG=trace ./smllr . 2> log
 
 If gem is functional, you can install the auto-generator with
 ```bash
-	gem install github_changelog_generator 
+gem install github_changelog_generator 
 ```
 
 To update the change long, run `github_changelog_generator` to generate the changelog.
