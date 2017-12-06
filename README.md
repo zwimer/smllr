@@ -17,6 +17,11 @@ Documentation for the code is hosted at [https://zwimer.com/smllr](https://zwime
 
 To install the changelog generator, gem is required.
 
+To build documentation, `cd` into into the `smllr` directory then run
+```bash
+cargo doc
+```
+
 ## Installation
 
 ### Pre-Built
@@ -44,6 +49,13 @@ RUST_LOG=warn ./smllr .
 To copy all trace and debug info to a file, run 
 ```bash
 RUST_LOG=trace ./smllr . 2> log
+```
+
+## Testing
+
+To test this application, `cd` into the smllr directory then run
+```bash
+cargo test
 ```
 
 ## Changelog generator
