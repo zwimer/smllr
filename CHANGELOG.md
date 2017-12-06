@@ -2,14 +2,29 @@
 
 ## [Unreleased](https://github.com/zwimer/smllr/tree/HEAD)
 
+[Full Changelog](https://github.com/zwimer/smllr/compare/1.0...HEAD)
+
+**Merged pull requests:**
+
+- remove binary: use github release instead [\#27](https://github.com/zwimer/smllr/pull/27) ([stensonowen](https://github.com/stensonowen))
+
+## [1.0](https://github.com/zwimer/smllr/tree/1.0) (2017-12-06)
 **Implemented enhancements:**
 
+- Switch FirstKBytes type to a hash instead of just the first few 32 bytes [\#14](https://github.com/zwimer/smllr/issues/14)
 - Make FileCataloger generic over a VFS [\#13](https://github.com/zwimer/smllr/issues/13)
 - Switch `HashProxy::Thunk.thunk` to map `Hash` to `Duplicates` [\#12](https://github.com/zwimer/smllr/issues/12)
 - Peer metric [\#5](https://github.com/zwimer/smllr/pull/5) ([zwimer](https://github.com/zwimer))
 
+**Fixed bugs:**
+
+- Pattern matching blacklist only checks if pattern appears in the filepath, not if entire filepath matches a pattern [\#15](https://github.com/zwimer/smllr/issues/15)
+
 **Merged pull requests:**
 
+- Final pr: docs, code cleanup, bug fixes [\#26](https://github.com/zwimer/smllr/pull/26) ([stensonowen](https://github.com/stensonowen))
+- MOR COMINTZ [\#25](https://github.com/zwimer/smllr/pull/25) ([stensonowen](https://github.com/stensonowen))
+- Comments [\#24](https://github.com/zwimer/smllr/pull/24) ([Istyatur](https://github.com/Istyatur))
 - Beta: more comments, check for hard linking across devices, more tests [\#22](https://github.com/zwimer/smllr/pull/22) ([stensonowen](https://github.com/stensonowen))
 - Selector, Actor, Unit tests; prep for beta [\#21](https://github.com/zwimer/smllr/pull/21) ([stensonowen](https://github.com/stensonowen))
 - Make FileCataloger mockable [\#20](https://github.com/zwimer/smllr/pull/20) ([stensonowen](https://github.com/stensonowen))
