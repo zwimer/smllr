@@ -3,7 +3,7 @@ De-duplicate your hard drive.
 
 ## Requirements
 
-Compiling this program requires Rust stable and Rust's standard libraries to be installed. This program was written and tested on 16.04 LTS. This has been tested on other Linux systems as well, and works, but no promises are made.
+Compiling this program requires Rust stable and Rust's standard libraries to be installed. This program was written and tested on Ubuntu 16.04 LTS. This has been tested on other Linux systems as well, and works, but no promises are made.
 
 ## Documentation
 
