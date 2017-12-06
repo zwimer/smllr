@@ -1,9 +1,12 @@
+//! Identify duplicates in a collection of files
+
 use std::path::Path;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 
-pub use super::ID;
+pub use helpers::ID;
 use vfs::{File, MetaData, VFS};
+use hash::FileHash;
 
 pub mod proxy;
 use self::proxy::{Duplicates, FirstKBytesProxy};
@@ -16,17 +19,15 @@ mod test; // include unit tests
 /// Catalog files, determining lazily if files are identical
 ///  by checking filesize, the first K bytes, and then the whole file hash
 ///  but only when necessary to check
-pub struct FileCataloger<T: VFS> {
-    catalog: HashMap<u64, FirstKBytesProxy>,
+pub struct FileCataloger<T: VFS, H: FileHash> {
+    catalog: HashMap<u64, FirstKBytesProxy<H>>,
     vfs: T,
-    // For now, omit the shortcut. We're just using the real fs right now, so
-    // a file is just a Path, which has no associated metadata.
-    // In the future we could get the ID from the DirWalker for free*, but
-    // for now we need to retrieve the metadata to get the ID which gives the
-    // size for no extra cost. So no need to map ID to size
+    // In the future, it would also be helpful to include a shortcut to know
+    // which FirstKBytesProxies contain duplicates to avoid a full search when
+    // get_repeats() is called.
 }
 
-impl<T: VFS> FileCataloger<T> {
+impl<T: VFS, H: FileHash> FileCataloger<T, H> {
     /// Initilize the filecataloger
     pub fn new(vfs: T) -> Self {
         FileCataloger {
@@ -42,7 +43,8 @@ impl<T: VFS> FileCataloger<T> {
         let mut all = vec![];
         // for each subgrouping (done by size), get all the list of duplicates and
         // add them to are return variable.
-        for (_size, ref fkbp) in &self.catalog {
+        for fkbp in self.catalog.values() {
+            //for (_size, ref fkbp) in &self.catalog {
             all.append(&mut fkbp.get_repeats());
         }
         all
@@ -55,7 +57,7 @@ impl<T: VFS> FileCataloger<T> {
         let md = file.get_metadata().expect("IO Error getting Metadata");
         let size: u64 = md.get_len();
         let id = ID {
-            dev: md.get_device().unwrap().0,
+            dev: md.get_device().expect("Failed to read device info").0,
             inode: md.get_inode().0,
         };
         // sort by size into the appropriate proxy

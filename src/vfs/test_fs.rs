@@ -6,17 +6,16 @@ use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::time::{self, SystemTime};
 use std::collections::{HashMap, HashSet};
-//RUST NOTE: `super` means up a module (often up a directory)
+
 use vfs::{DeviceId, File, FileType, Inode, MetaData, VFS};
-use super::{FirstBytes, Hash, FIRST_K_BYTES};
-use super::super::ID;
-use md5;
+use helpers::{FIRST_K_BYTES, ID};
+use hash::FileHash;
 
 /// `TestMD` is the mock metadata struct.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TestMD {
     len: u64,
-    creation: SystemTime,
+    modified: SystemTime,
     kind: FileType,
     id: ID,
 }
@@ -26,8 +25,8 @@ impl MetaData for TestMD {
     fn get_len(&self) -> u64 {
         self.len
     }
-    fn get_creation_time(&self) -> io::Result<SystemTime> {
-        Ok(self.creation)
+    fn get_mod_time(&self) -> io::Result<SystemTime> {
+        Ok(self.modified)
     }
     fn get_type(&self) -> FileType {
         self.kind
@@ -47,7 +46,7 @@ impl TestMD {
     pub fn new() -> Self {
         TestMD {
             len: 0,
-            creation: SystemTime::now(),
+            modified: SystemTime::now(),
             kind: FileType::File,
             id: ID { dev: 0, inode: 0 },
         }
@@ -56,8 +55,8 @@ impl TestMD {
         self.len = n;
         self
     }
-    pub fn with_creation_time(mut self, t: SystemTime) -> Self {
-        self.creation = t;
+    pub fn with_mod_time(mut self, t: SystemTime) -> Self {
+        self.modified = t;
         self
     }
     pub fn with_kind(mut self, k: FileType) -> Self {
@@ -161,7 +160,8 @@ impl File for TestFile {
         self.metadata
             .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "No MD"))
     }
-    fn get_first_bytes(&self) -> io::Result<FirstBytes> {
+    //fn get_first_bytes(&self) -> io::Result<FirstBytes> {
+    fn get_first_bytes<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output> {
         // read the first K bytes of the file
         // if the file is less than K bytes, the remaining bytes are treated as zeros
         if let Some(ref cont) = self.contents {
@@ -169,23 +169,23 @@ impl File for TestFile {
             for (c, b) in cont.bytes().zip(bytes.iter_mut()) {
                 *b = c;
             }
-            Ok(FirstBytes(bytes))
+            //Ok(FirstBytes(bytes))
+            Ok(H::hash(&bytes))
         } else {
             Err(io::Error::new(io::ErrorKind::NotFound, "No contents set"))
         }
     }
-    fn get_hash(&self) -> io::Result<Hash> {
-        // hash the contents of the file
+    fn get_hash<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output> {
         if let Some(ref cont) = self.contents {
-            Ok(*md5::compute(cont))
+            Ok(H::hash(cont.as_bytes()))
         } else {
             Err(io::Error::new(io::ErrorKind::NotFound, "No contents set"))
         }
     }
 }
 
-/// `TestFileSystem` denotes a Mock Filesystem we use instead of risking
-/// our own data or dealing with the actual filesystem
+/// Denotes a Mock Filesystem used instead of risking
+/// real data or dealing with the actual filesystem
 #[derive(Debug)]
 pub struct TestFileSystem {
     files: HashMap<PathBuf, TestFile>,
@@ -209,7 +209,7 @@ impl TestFileSystem {
         // Create the metadata for the file
         let md = TestMD {
             len: 0,
-            creation: time::UNIX_EPOCH,
+            modified: time::UNIX_EPOCH,
             kind,
             id: ID {
                 inode: inode.0,

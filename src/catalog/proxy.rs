@@ -1,10 +1,12 @@
+//! Internals of the Cataloge data structure: identifying files by their size, hash, or first bytes
+
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::collections::hash_map::Entry;
 
 use vfs::{File, VFS};
-use super::ID;
-use super::super::{FirstBytes, Hash};
+use helpers::ID;
+use hash::FileHash;
 
 // Duplicates is a decorator for a vector of pathbufs which represents
 // a set of files. In code, it is an invariant that any 2 files in a
@@ -36,24 +38,28 @@ impl Duplicates {
 
 /// Proxy of firstbytes: until two elements have been added, there is no
 /// chance of a collision so put off constructing the hashmap and shortcut
-pub enum FirstKBytesProxy {
+pub enum FirstKBytesProxy<H: FileHash> {
     // in the first state there is one file
     // don't look up its first k bytes unless it has the same size as another
     Delay {
+        /// The unique identifier of this collection
         id: ID,
+        /// A collection of hard links
         dups: Duplicates,
     },
     // after 2 files with the first k bytes have been found, store them
     // also maintain a shortcut for looking up their values by their id
     // for hardlink detection.
     Thunk {
-        thunk: HashMap<FirstBytes, HashProxy>,
-        shortcut: HashMap<ID, FirstBytes>,
+        /// Identify a `HashProxy` by the hash of the first K bytes
+        thunk: HashMap<<H as FileHash>::Output, HashProxy<H>>,
+        /// Map the unique identifier to a first k bytes hash to enable registering links later
+        shortcut: HashMap<ID, <H as FileHash>::Output>,
     },
 }
 
 
-impl FirstKBytesProxy {
+impl<H: FileHash> FirstKBytesProxy<H> {
     /// Construct a new FirstKBytesProxy with delay of path
     pub fn new(id: ID, path: &Path) -> Self {
         FirstKBytesProxy::Delay {
@@ -105,14 +111,20 @@ impl FirstKBytesProxy {
         };
         assert!(new_id != del_id);
         // Initialize new type's variables
-        let mut thunk = HashMap::new();
-        let mut shortcut = HashMap::new();
+        let mut thunk: HashMap<<H as FileHash>::Output, _> = HashMap::new();
+        let mut shortcut: HashMap<_, <H as FileHash>::Output> = HashMap::new();
 
         // get first bytes of both files
-        let new_file = vfs.get_file(new_path).unwrap();
-        let old_file = vfs.get_file(&del_dups.0[0]).unwrap();
-        let new_first_bytes = new_file.get_first_bytes().unwrap();
-        let old_first_bytes = old_file.get_first_bytes().unwrap();
+        let new_file = vfs.get_file(new_path)
+            .expect("Failed to get file from path");
+        let old_file = vfs.get_file(&del_dups.0[0])
+            .expect("Failed to get file from path");
+        let new_first_bytes: <H as FileHash>::Output = new_file
+            .get_first_bytes::<H>()
+            .expect("Failed to hash first bytes");
+        let old_first_bytes: <H as FileHash>::Output = old_file
+            .get_first_bytes::<H>()
+            .expect("Failed to hash first bytes");
 
         // and add them to the map's shortcut.
         shortcut.insert(new_id, new_first_bytes.clone());
@@ -140,6 +152,7 @@ impl FirstKBytesProxy {
             FirstKBytesProxy::Delay {
                 id: id2,
                 ref mut dups,
+                ..
             } if id == id2 =>
             {
                 dups.push(path);
@@ -151,9 +164,9 @@ impl FirstKBytesProxy {
                 ref mut thunk,
                 ref mut shortcut,
             } => {
-                let file = vfs.get_file(path).unwrap();
-                let first_bytes = file.get_first_bytes().unwrap();
-                //let first_bytes = Self::get_first_bytes(path).unwrap();
+                let file = vfs.get_file(path).expect("Failed to get file");
+                let first_bytes: <H as FileHash>::Output = file.get_first_bytes::<H>()
+                    .expect("Failed to hash first bytes");
                 shortcut.insert(id, first_bytes.clone());
                 match thunk.entry(first_bytes) {
                     // call `insert` on the underlying HashProxy
@@ -178,16 +191,20 @@ impl FirstKBytesProxy {
 
 /// Proxy of hashes: until two elements have been added, there is no
 /// chance of a collision so put off constructing the hashmap and shortcut
-pub enum HashProxy {
+pub enum HashProxy<H: FileHash> {
     // only one unique element has been added
     Delay {
+        /// The unique identifier for the paths
         id: ID,
+        /// A collection of duplicate paths
         dups: Duplicates,
     },
     // need to map `Hash`es to a set of `Duplicates`
     Thunk {
-        thunk: HashMap<Hash, Duplicates>,
-        shortcut: HashMap<ID, Hash>,
+        /// Identify a set of duplicates by the hash of its complete contents
+        thunk: HashMap<<H as FileHash>::Output, Duplicates>,
+        /// Map the unique identifier to a file's hash to enable registering links later
+        shortcut: HashMap<ID, <H as FileHash>::Output>,
     },
     // see `FirstKBytesProxy` for more documentation
     // major difference is that `Duplicates` can contain non-hardlinks
@@ -195,7 +212,7 @@ pub enum HashProxy {
 
 
 // closely parallels FirstKBytesProxy's documentation
-impl HashProxy {
+impl<H: FileHash> HashProxy<H> {
     //Construct a new hashprxy. As only 1 object, will be of the Delay type.
     fn new(id: ID, dups: Duplicates) -> Self {
         HashProxy::Delay { id, dups }
@@ -238,18 +255,22 @@ impl HashProxy {
             _ => unreachable!(),
         };
         //Set up variables for thunk state
-        let mut thunk = HashMap::new();
+        let mut thunk: HashMap<<H as FileHash>::Output, Duplicates> = HashMap::new();
         let mut shortcut = HashMap::new();
 
         // get hashes
-        let new_file = vfs.get_file(new_dups.get_path()).unwrap();
-        let old_file = vfs.get_file(del_dups.get_path()).unwrap();
-        let new_hash = new_file.get_hash().unwrap();
-        let old_hash = old_file.get_hash().unwrap();
+        let new_file = vfs.get_file(new_dups.get_path())
+            .expect("Failed to get file");
+        let old_file = vfs.get_file(del_dups.get_path())
+            .expect("Failed to get file");
+        let new_hash: <H as FileHash>::Output =
+            new_file.get_hash::<H>().expect("Failed to hash file");
+        let old_hash: <H as FileHash>::Output =
+            old_file.get_hash::<H>().expect("Failed to hash file");
 
         // insert into shortcut
-        shortcut.insert(new_id, new_hash);
-        shortcut.insert(del_id, old_hash);
+        shortcut.insert(new_id, new_hash.clone());
+        shortcut.insert(del_id, old_hash.clone());
 
         // thunk: HashMap < Hash, Duplicates >
         thunk.insert(new_hash, new_dups);
@@ -278,9 +299,11 @@ impl HashProxy {
                 ref mut thunk,
                 ref mut shortcut,
             } => {
-                let file = vfs.get_file(dups.get_path()).unwrap();
-                let hash = file.get_hash().unwrap();
-                shortcut.insert(id, hash);
+                let file = vfs.get_file(dups.get_path())
+                    .expect("Failed to get file from path");
+                let hash: <H as FileHash>::Output =
+                    file.get_hash::<H>().expect("Failed to hash file");
+                shortcut.insert(id, hash.clone());
                 match thunk.entry(hash) {
                     Entry::Occupied(mut occ_entry) => {
                         // if files are completely identical

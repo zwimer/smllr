@@ -8,18 +8,18 @@ use std::os::linux::fs::MetadataExt as MetadataExt_linux; // ew
 use std::{io, time};
 use std::io::Read;
 
-use super::{DeviceId, File, FileType, Inode, MetaData, VFS};
-use super::{FirstBytes, Hash, FIRST_K_BYTES};
-
-use md5;
+use vfs::{File, MetaData, VFS};
+use vfs::{DeviceId, FileType, Inode};
+use helpers::FIRST_K_BYTES;
+use hash::FileHash;
 
 // Wrap our metadata trait around fs::Metadata.
 impl MetaData for fs::Metadata {
     fn get_len(&self) -> u64 {
         self.len()
     }
-    fn get_creation_time(&self) -> io::Result<time::SystemTime> {
-        self.created()
+    fn get_mod_time(&self) -> io::Result<time::SystemTime> {
+        self.modified()
     }
     fn get_type(&self) -> FileType {
         self.file_type().into()
@@ -53,24 +53,25 @@ impl File for DirEntry {
     fn get_metadata(&self) -> io::Result<fs::Metadata> {
         self.metadata()
     }
-    fn get_first_bytes(&self) -> io::Result<FirstBytes> {
+    //fn get_first_bytes(&self) -> io::Result<FirstBytes> { }
+    fn get_first_bytes<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output> {
         let mut bytes = [0u8; FIRST_K_BYTES];
         let path = self.get_path();
         let mut file = fs::File::open(&path)?;
         file.read(&mut bytes)?;
-        Ok(FirstBytes(bytes))
+        Ok(H::hash(&bytes))
+        //Ok(FirstBytes(bytes))
     }
-    fn get_hash(&self) -> io::Result<Hash> {
+    fn get_hash<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output> {
         let path = self.get_path();
         let mut file = fs::File::open(&path)?;
         let mut v = vec![];
         file.read_to_end(&mut v)?;
-        Ok(*md5::compute(v))
+        Ok(H::hash(&v))
     }
 }
 
-//Empty struct which represents the 'Real Filesystem'
-//all of its 'Member variables' are on the drive.
+/// Empty struct representing the Real Filesystem. Calls go through `std::fs` to access real files
 #[derive(Debug, Clone, Copy)]
 pub struct RealFileSystem;
 

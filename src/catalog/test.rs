@@ -3,6 +3,7 @@ mod test {
 
     use vfs::{TestFile, TestFileSystem, TestMD};
     use catalog::FileCataloger;
+    use hash::{Md5Sum, Sha3Sum};
 
     use std::path::PathBuf;
     use std::collections::HashSet;
@@ -37,7 +38,7 @@ mod test {
         }
         let files: HashSet<_> = vec!["/a", "/b", "/c"].iter().map(PathBuf::from).collect();
 
-        let mut fc = FileCataloger::new(fs);
+        let mut fc: FileCataloger<_, Sha3Sum> = FileCataloger::new(fs);
         for file in &files {
             fc.insert(file);
         }
@@ -75,7 +76,7 @@ mod test {
         }
         let files: HashSet<_> = vec!["/a", "/b", "/c"].iter().map(PathBuf::from).collect();
 
-        let mut fc = FileCataloger::new(fs);
+        let mut fc: FileCataloger<_, Md5Sum> = FileCataloger::new(fs);
         for file in &files {
             fc.insert(file);
         }
@@ -114,7 +115,7 @@ mod test {
         }
         let files: HashSet<_> = vec!["/a", "/b", "/c"].iter().map(PathBuf::from).collect();
 
-        let mut fc = FileCataloger::new(fs);
+        let mut fc: FileCataloger<_, Md5Sum> = FileCataloger::new(fs);
         for file in &files {
             fc.insert(file);
         }
@@ -152,7 +153,7 @@ mod test {
         }
         let files: HashSet<_> = vec!["/a", "/b", "/c"].iter().map(PathBuf::from).collect();
 
-        let mut fc = FileCataloger::new(fs);
+        let mut fc: FileCataloger<_, Md5Sum> = FileCataloger::new(fs);
         for file in &files {
             fc.insert(file);
         }
@@ -189,7 +190,7 @@ mod test {
         }
         let files: HashSet<_> = vec!["/a", "/b"].iter().map(PathBuf::from).collect();
 
-        let mut fc = FileCataloger::new(fs);
+        let mut fc: FileCataloger<_, Md5Sum> = FileCataloger::new(fs);
         for file in &files {
             fc.insert(file);
         }

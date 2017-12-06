@@ -1,3 +1,5 @@
+//! Determine which of the duplicate files shouldn't be touched
+
 use std::cmp::Ordering;
 use std::path::Path;
 use std::marker::PhantomData;
@@ -7,12 +9,13 @@ use catalog::proxy::Duplicates;
 
 /// Interface for choosing between files
 pub trait Selector<V: VFS> {
-    // indicate that you want the max instead of the min or vice versa
+    /// Indicate that you want the max instead of the min or vice versa
     fn reverse(&mut self);
-    // choose which of the Paths in Duplicates is the "true" (unchanged) one
+    /// Choose which of the Paths in Duplicates is the "true" (unchanged) one
     fn select<'b>(&self, dups: &'b Duplicates) -> &'b Path;
-    // helpers to be called by select
+    /// Helper to be called by `select`: identify the minimum
     fn min<'b>(&self, dups: &'b Duplicates) -> &'b Path;
+    /// Helper to be called by `select`: identify the maximum
     fn max<'b>(&self, dups: &'b Duplicates) -> &'b Path;
 }
 
@@ -22,7 +25,7 @@ pub struct PathSelect<V: VFS> {
     vfs: PhantomData<V>, // must be generic over VFS but don't need as field
 }
 
-/// Chose between files based on their creation date
+/// Chose between files based on which was most recently modified
 pub struct DateSelect<V: VFS> {
     reverse: bool,
     vfs: V,
@@ -30,6 +33,7 @@ pub struct DateSelect<V: VFS> {
 
 // constructor for PathSelect
 impl<V: VFS> PathSelect<V> {
+    /// Construct an empty `PathSelect`
     pub fn new(_: V) -> Self {
         PathSelect {
             reverse: false,
@@ -40,6 +44,7 @@ impl<V: VFS> PathSelect<V> {
 
 // constructor for DateSelect
 impl<V: VFS> DateSelect<V> {
+    /// Construct an empty `DateSelect`
     pub fn new(v: V) -> Self {
         DateSelect {
             reverse: false,
@@ -103,10 +108,12 @@ impl<V: VFS> Selector<V> for PathSelect<V> {
 
 // helper function for comparing two Files based on their date
 fn date_cmp<'a, T: File>(a: &'a T, b: &'a T) -> Ordering {
-    let md_a = a.get_metadata().unwrap();
-    let md_b = b.get_metadata().unwrap();
-    let date_a = md_a.get_creation_time().unwrap();
-    let date_b = md_b.get_creation_time().unwrap();
+    let md_a = a.get_metadata().expect("Failed to get metadata");
+    let md_b = b.get_metadata().expect("Failed to get metadata");
+    let date_a = md_a.get_mod_time()
+        .expect("Failed to get modification time");
+    let date_b = md_b.get_mod_time()
+        .expect("Failed to get modification time");
     date_a.cmp(&date_b)
 }
 
@@ -119,18 +126,18 @@ impl<V: VFS> Selector<V> for DateSelect<V> {
     fn min<'b>(&self, dups: &'b Duplicates) -> &'b Path {
         dups.0
             .iter()
-            .map(|path| (path, self.vfs.get_file(path).unwrap()))
+            .map(|path| (path, self.vfs.get_file(path).expect("Failed to get file")))
             .min_by(|&(_, ref a), &(_, ref b)| date_cmp(a, b))
-            .unwrap()
+            .unwrap() // safe to assume >0 files
             .0
     }
     // select the file modified first
     fn max<'b>(&self, dups: &'b Duplicates) -> &'b Path {
         dups.0
             .iter()
-            .map(|path| (path, self.vfs.get_file(path).unwrap()))
+            .map(|path| (path, self.vfs.get_file(path).expect("Failed to get file")))
             .max_by(|&(_, ref a), &(_, ref b)| date_cmp(a, b))
-            .unwrap()
+            .unwrap() // safe to assume >0 files
             .0
     }
     fn select<'b>(&self, dups: &'b Duplicates) -> &'b Path {

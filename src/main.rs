@@ -1,20 +1,30 @@
+//! Identify and handle duplicate files in a fast and extensible way
+
 extern crate clap;
 extern crate env_logger;
 #[macro_use]
 extern crate log;
 extern crate md5;
 extern crate regex;
+extern crate tiny_keccak;
 
+// import from external libraries
 use clap::{App, Arg};
 
+// import from standard library
 use std::path::Path;
 use std::ffi::OsStr;
+
+// import from our own modules
+
+mod helpers;
+use helpers::prettify_bytes;
 
 pub mod walker;
 use walker::DirWalker;
 
 pub mod vfs;
-use vfs::RealFileSystem;
+pub use vfs::{RealFileSystem, TestFileSystem};
 
 pub mod catalog;
 use catalog::FileCataloger;
@@ -23,22 +33,8 @@ pub mod actor;
 use actor::{FileActor, FileDeleter, FileLinker, FilePrinter};
 use actor::selector::{DateSelect, PathSelect, Selector};
 
-
-/// Uniquely identify a file by its device id and inode
-#[derive(Clone, Copy, Hash, PartialEq, Eq)]
-pub struct ID {
-    dev: u64,
-    inode: u64,
-}
-
-/// Represent the first K bytes of a file
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct FirstBytes(pub(crate) [u8; FIRST_K_BYTES]);
-const FIRST_K_BYTES: usize = 32;
-
-/// Represent the md5 hash of a complete file
-pub type Hash = [u8; 16];
-
+pub mod hash;
+use hash::{Md5Sum, Sha3Sum};
 
 fn main() {
     // build arg parser
@@ -80,7 +76,7 @@ fn main() {
              )
         .arg(Arg::with_name("newest-file")
              .long("newest-file")
-             .help("Preserve the file that was made most recently")
+             .help("Preserve the file that was modified most recently")
              )
         .arg(Arg::with_name("invert-selector")
              .long("invert-selector")
@@ -105,16 +101,25 @@ fn main() {
         .get_matches();
 
     // decide which files are fair game
-    let dirs: Vec<&OsStr> = matches.values_of_os("paths").unwrap().collect();
+    let dirs: Vec<&OsStr> = matches
+        .values_of_os("paths")
+        .expect("Failed to get `paths` from the command line arguments")
+        .collect();
     // if the user supplied blacklisted paths, collect them
     let dirs_n: Vec<&OsStr> = if matches.is_present("bad_paths") {
-        matches.values_of_os("bad_paths").unwrap().collect()
+        matches
+            .values_of_os("bad_paths")
+            .expect("Failed to get `bad_paths`")
+            .collect()
     } else {
         vec![]
     };
     // if the user supplied blacklisted file regexes, collect them
     let pats_n: Vec<_> = if matches.is_present("bad_regex") {
-        matches.values_of("bad_regex").unwrap().collect()
+        matches
+            .values_of("bad_regex")
+            .expect("Failed to get `bad_regex`")
+            .collect()
     } else {
         vec![]
     };
@@ -122,7 +127,7 @@ fn main() {
     // print log info to stderr
     // to alter granularity, set environmental variable RUST_LOG
     // e.g. `RUST_LOG=debug ./smllr ... 2> /tmp/smllr_log`
-    env_logger::init().unwrap();
+    env_logger::init().expect("Failed to initialize logging");
 
     // create and customize a DirWalker over the real filesystem
     // collect all relevant files
@@ -132,14 +137,22 @@ fn main() {
         .blacklist_folders(dirs_n)
         .blacklist_patterns(pats_n);
     let files = dw.traverse_all();
+    println!("Traversing {} files...", files.len());
 
     // catalog all files from the DirWalker
     // duplicates are identified as files are inserted one at a time
-    let mut fc = FileCataloger::new(fs);
-    for file in &files {
-        fc.insert(file);
-    }
-    let repeats = fc.get_repeats();
+    // can't combine code because Sha3Sum and Md5Sum might be different sizes
+    let repeats = if matches.is_present("paranoid") {
+        info!("Using SHA-3");
+        let mut fc: FileCataloger<_, Sha3Sum> = FileCataloger::new(fs);
+        files.iter().for_each(|f| fc.insert(f));
+        fc.get_repeats()
+    } else {
+        info!("Using MD5");
+        let mut fc: FileCataloger<_, Md5Sum> = FileCataloger::new(fs);
+        files.iter().for_each(|f| fc.insert(f));
+        fc.get_repeats()
+    };
 
     // use a Box to put the Selector and Actor on the heap as trait objects
     // different selectors or actors are different sizes (e.g. test_fs contains
@@ -178,7 +191,14 @@ fn main() {
     };
 
     // act on all sets of duplicates
-    for dups in repeats {
-        actor.act(dups);
+    if repeats.is_empty() {
+        println!("No duplicates found");
+    } else {
+        println!("Acting on {} sets of duplicates...", repeats.len());
+        let mut saved_bytes = 0;
+        for dups in repeats {
+            saved_bytes += actor.act(dups);
+        }
+        println!("Idenfied {}", prettify_bytes(saved_bytes));
     }
 }
