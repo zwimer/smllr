@@ -70,7 +70,7 @@ pub trait File: Debug {
 /// Define common interface for real of mock metadata object
 pub trait MetaData: Debug {
     fn get_len(&self) -> u64;
-    fn get_creation_time(&self) -> io::Result<time::SystemTime>;
+    fn get_mod_time(&self) -> io::Result<time::SystemTime>;
     fn get_type(&self) -> FileType;
     fn get_inode(&self) -> Inode;
     fn get_device(&self) -> io::Result<DeviceId>;

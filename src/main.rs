@@ -76,7 +76,7 @@ fn main() {
              )
         .arg(Arg::with_name("newest-file")
              .long("newest-file")
-             .help("Preserve the file that was made most recently")
+             .help("Preserve the file that was modified most recently")
              )
         .arg(Arg::with_name("invert-selector")
              .long("invert-selector")

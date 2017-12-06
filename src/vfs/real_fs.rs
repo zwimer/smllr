@@ -18,8 +18,8 @@ impl MetaData for fs::Metadata {
     fn get_len(&self) -> u64 {
         self.len()
     }
-    fn get_creation_time(&self) -> io::Result<time::SystemTime> {
-        self.created()
+    fn get_mod_time(&self) -> io::Result<time::SystemTime> {
+        self.modified()
     }
     fn get_type(&self) -> FileType {
         self.file_type().into()

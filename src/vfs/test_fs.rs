@@ -15,7 +15,7 @@ use hash::FileHash;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TestMD {
     len: u64,
-    creation: SystemTime,
+    modified: SystemTime,
     kind: FileType,
     id: ID,
 }
@@ -25,8 +25,8 @@ impl MetaData for TestMD {
     fn get_len(&self) -> u64 {
         self.len
     }
-    fn get_creation_time(&self) -> io::Result<SystemTime> {
-        Ok(self.creation)
+    fn get_mod_time(&self) -> io::Result<SystemTime> {
+        Ok(self.modified)
     }
     fn get_type(&self) -> FileType {
         self.kind
@@ -46,7 +46,7 @@ impl TestMD {
     pub fn new() -> Self {
         TestMD {
             len: 0,
-            creation: SystemTime::now(),
+            modified: SystemTime::now(),
             kind: FileType::File,
             id: ID { dev: 0, inode: 0 },
         }
@@ -55,8 +55,8 @@ impl TestMD {
         self.len = n;
         self
     }
-    pub fn with_creation_time(mut self, t: SystemTime) -> Self {
-        self.creation = t;
+    pub fn with_mod_time(mut self, t: SystemTime) -> Self {
+        self.modified = t;
         self
     }
     pub fn with_kind(mut self, k: FileType) -> Self {
@@ -209,7 +209,7 @@ impl TestFileSystem {
         // Create the metadata for the file
         let md = TestMD {
             len: 0,
-            creation: time::UNIX_EPOCH,
+            modified: time::UNIX_EPOCH,
             kind,
             id: ID {
                 inode: inode.0,

@@ -25,7 +25,7 @@ pub struct PathSelect<V: VFS> {
     vfs: PhantomData<V>, // must be generic over VFS but don't need as field
 }
 
-/// Chose between files based on their creation date
+/// Chose between files based on which was most recently modified
 pub struct DateSelect<V: VFS> {
     reverse: bool,
     vfs: V,
@@ -110,10 +110,10 @@ impl<V: VFS> Selector<V> for PathSelect<V> {
 fn date_cmp<'a, T: File>(a: &'a T, b: &'a T) -> Ordering {
     let md_a = a.get_metadata().expect("Failed to get metadata");
     let md_b = b.get_metadata().expect("Failed to get metadata");
-    let date_a = md_a.get_creation_time()
-        .expect("Failed to get creation time");
-    let date_b = md_b.get_creation_time()
-        .expect("Failed to get creation time");
+    let date_a = md_a.get_mod_time()
+        .expect("Failed to get modification time");
+    let date_b = md_b.get_mod_time()
+        .expect("Failed to get modification time");
     date_a.cmp(&date_b)
 }
 

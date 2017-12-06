@@ -64,10 +64,10 @@ mod test {
         let time_b = UNIX_EPOCH + Duration::new(2, 0); // + 2 seconds
         let time_c = UNIX_EPOCH + Duration::new(3, 0); // + 3 seconds
         let time_d = UNIX_EPOCH + Duration::new(4, 0); // + 4 seconds
-        let md_a = TestMD::new().with_creation_time(time_a);
-        let md_b = TestMD::new().with_creation_time(time_b);
-        let md_c = TestMD::new().with_creation_time(time_c);
-        let md_d = TestMD::new().with_creation_time(time_d);
+        let md_a = TestMD::new().with_mod_time(time_a);
+        let md_b = TestMD::new().with_mod_time(time_b);
+        let md_c = TestMD::new().with_mod_time(time_c);
+        let md_d = TestMD::new().with_mod_time(time_d);
         {
             let mut fs = fs.borrow_mut();
             fs.create_dir("/");
@@ -93,10 +93,10 @@ mod test {
         let time_b = UNIX_EPOCH + Duration::new(2, 0); // + 2 seconds
         let time_c = UNIX_EPOCH + Duration::new(3, 0); // + 3 seconds
         let time_d = UNIX_EPOCH + Duration::new(4, 0); // + 4 seconds
-        let md_a = TestMD::new().with_creation_time(time_a);
-        let md_b = TestMD::new().with_creation_time(time_b);
-        let md_c = TestMD::new().with_creation_time(time_c);
-        let md_d = TestMD::new().with_creation_time(time_d);
+        let md_a = TestMD::new().with_mod_time(time_a);
+        let md_b = TestMD::new().with_mod_time(time_b);
+        let md_c = TestMD::new().with_mod_time(time_c);
+        let md_d = TestMD::new().with_mod_time(time_d);
         {
             let mut fs = fs.borrow_mut();
             fs.create_dir("/");
