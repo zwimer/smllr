@@ -8,18 +8,18 @@ use std::os::linux::fs::MetadataExt as MetadataExt_linux; // ew
 use std::{io, time};
 use std::io::Read;
 
-use super::{DeviceId, File, FileType, Inode, MetaData, VFS};
-use super::{FirstBytes, Hash, FIRST_K_BYTES};
+use vfs::{File, MetaData, VFS};
+use vfs::{DeviceId, FileType, Inode};
+use helpers::FIRST_K_BYTES;
+use hash::FileHash;
 
-use md5;
-
-//Wrap our metadata trait around fs::Metadata.
+// Wrap our metadata trait around fs::Metadata.
 impl MetaData for fs::Metadata {
     fn get_len(&self) -> u64 {
         self.len()
     }
-    fn get_creation_time(&self) -> io::Result<time::SystemTime> {
-        self.created()
+    fn get_mod_time(&self) -> io::Result<time::SystemTime> {
+        self.modified()
     }
     fn get_type(&self) -> FileType {
         self.file_type().into()
@@ -53,59 +53,67 @@ impl File for DirEntry {
     fn get_metadata(&self) -> io::Result<fs::Metadata> {
         self.metadata()
     }
-    fn get_first_bytes(&self) -> io::Result<FirstBytes> {
+    //fn get_first_bytes(&self) -> io::Result<FirstBytes> { }
+    fn get_first_bytes<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output> {
         let mut bytes = [0u8; FIRST_K_BYTES];
         let path = self.get_path();
         let mut file = fs::File::open(&path)?;
         file.read(&mut bytes)?;
-        Ok(FirstBytes(bytes))
+        Ok(H::hash(&bytes))
+        //Ok(FirstBytes(bytes))
     }
-    fn get_hash(&self) -> io::Result<Hash> {
+    fn get_hash<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output> {
         let path = self.get_path();
         let mut file = fs::File::open(&path)?;
         let mut v = vec![];
         file.read_to_end(&mut v)?;
-        Ok(*md5::compute(v))
+        Ok(H::hash(&v))
     }
 }
 
-//Empty struct which represents the 'Real Filesystem'
-//all of its 'Member variables' are on the drive.
+/// Empty struct representing the Real Filesystem. Calls go through `std::fs` to access real files
 #[derive(Debug, Clone, Copy)]
 pub struct RealFileSystem;
 
 impl VFS for RealFileSystem {
     type FileIter = DirEntry;
-    /// get an iterator over the contents of directory P
+
+    /// Get an iterator over the contents of directory P
     fn list_dir<P: AsRef<Path>>(
         &self,
         p: P,
     ) -> io::Result<Box<Iterator<Item = io::Result<DirEntry>>>> {
-        //::std::fs::read_dir(p).map(Box::new) // uhhh why doesn't this work??
         match ::std::fs::read_dir(p) {
             Ok(rd) => Ok(Box::new(rd)),
             Err(e) => Err(e),
         }
     }
-    /// get the metadata for P
+
+    /// Look up the metadata for P (follows symlinks)
     fn get_metadata<P: AsRef<Path>>(&self, p: P) -> io::Result<<Self::FileIter as File>::MD> {
         fs::metadata(p)
     }
-    /// get the metadata for symlink P
+
+    /// Look up the metadata for symlink P (don't follow symlinks)
     fn get_symlink_metadata<P: AsRef<Path>>(
         &self,
         p: P,
     ) -> io::Result<<Self::FileIter as File>::MD> {
         fs::symlink_metadata(p)
     }
-    /// resolve symlink P to its target path
+
+    /// Resolve symlink P to its target path
     fn read_link<P: AsRef<Path>>(&self, p: P) -> io::Result<PathBuf> {
         fs::read_link(p)
     }
 
+    /// Look up a File object from its path
     fn get_file(&self, p: &Path) -> io::Result<Self::FileIter> {
+        // this is a little hacky for the RealFileSystem
+        // the only way to generate a DirEntry is by iterating over a directory
+        // so we have to iterate over the parent directory and identify `p`
         let dir = p.parent().expect("Called get_file() on root dir");
-        match ::std::fs::read_dir(dir)
+        match fs::read_dir(dir)
             .expect("Couldn't ls file dir")
             .find(|e| e.as_ref().map(|i| i.path() == p).unwrap_or(false))
         {
@@ -114,11 +122,13 @@ impl VFS for RealFileSystem {
         }
     }
 
+    /// Delete a file on the real system
     fn rm_file<P: AsRef<Path>>(&mut self, p: &P) -> io::Result<()> {
-        ::std::fs::remove_file(p)
+        fs::remove_file(p)
     }
 
+    /// Create hard link from `src` to `dst`
     fn make_link(&mut self, src: &Path, dst: &Path) -> io::Result<()> {
-        ::std::fs::hard_link(dst, src)
+        fs::hard_link(dst, src)
     }
 }

@@ -1,30 +1,34 @@
+//! Identify duplicates in a collection of files
+
 use std::path::Path;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 
-pub use super::ID;
+pub use helpers::ID;
 use vfs::{File, MetaData, VFS};
+use hash::FileHash;
 
 pub mod proxy;
 use self::proxy::{Duplicates, FirstKBytesProxy};
 
-mod print;
+mod print; // include debug printing info
 
 mod test; // include unit tests
 
 
-pub struct FileCataloger<T: VFS> {
-    catalog: HashMap<u64, FirstKBytesProxy>,
+/// Catalog files, determining lazily if files are identical
+///  by checking filesize, the first K bytes, and then the whole file hash
+///  but only when necessary to check
+pub struct FileCataloger<T: VFS, H: FileHash> {
+    catalog: HashMap<u64, FirstKBytesProxy<H>>,
     vfs: T,
-    // For now, omit the shortcut. We're just using the real fs right now, so
-    // a file is just a Path, which has no associated metadata.
-    // In the future we could get the ID from the DirWalker for free*, but
-    // for now we need to retrieve the metadata to get the ID which gives the
-    // size for no extra cost. So no need to map ID to size
+    // In the future, it would also be helpful to include a shortcut to know
+    // which FirstKBytesProxies contain duplicates to avoid a full search when
+    // get_repeats() is called.
 }
 
-impl<T: VFS> FileCataloger<T> {
-    ///Initilize the filecataloger
+impl<T: VFS, H: FileHash> FileCataloger<T, H> {
+    /// Initilize the filecataloger
     pub fn new(vfs: T) -> Self {
         FileCataloger {
             catalog: HashMap::new(),
@@ -34,26 +38,26 @@ impl<T: VFS> FileCataloger<T> {
 
     // each Vec<Duplicates> is a vector of all the Duplicates w/ the same content
     // Each Duplicate is a vector of links that point to one inode
-    /// get_repeats() returns a vector of vectors of lists of duplicates
-    /// such that all duplicates in the catalog are grouped together
+    /// Check all included Proxies for duplicates
     pub fn get_repeats(&self) -> Vec<Duplicates> {
         let mut all = vec![];
         // for each subgrouping (done by size), get all the list of duplicates and
         // add them to are return variable.
         for fkbp in self.catalog.values() {
+            //for (_size, ref fkbp) in &self.catalog {
             all.append(&mut fkbp.get_repeats());
         }
         all
     }
 
-    /// inserts path into the catalog.
+    /// Inserts path into the catalog
     pub fn insert(&mut self, path: &Path) {
         // get the metadata (needed for preliminary comparision and storage)
         let file = self.vfs.get_file(path).expect("No such file");
         let md = file.get_metadata().expect("IO Error getting Metadata");
         let size: u64 = md.get_len();
         let id = ID {
-            dev: md.get_device().unwrap().0,
+            dev: md.get_device().expect("Failed to read device info").0,
             inode: md.get_inode().0,
         };
         // sort by size into the appropriate proxy

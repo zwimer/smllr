@@ -1,5 +1,4 @@
-// This file defines a number of traits and helper
-// for filesystem interface used for dependancy injection.
+//! Define a mock filesystem for more fine-grained control over unit tests
 
 use std::{fs, io, time};
 use std::fmt::Debug;
@@ -11,7 +10,7 @@ pub use self::real_fs::RealFileSystem;
 mod test_fs;
 pub use self::test_fs::{TestFile, TestFileSystem, TestMD};
 
-use super::{FirstBytes, Hash, FIRST_K_BYTES};
+use hash::FileHash;
 
 //definition of traits
 //RUST NOTE: the "trait foo: baz" denotes that foo reuires that
@@ -20,49 +19,58 @@ use super::{FirstBytes, Hash, FIRST_K_BYTES};
 // employ the methods of baz
 
 /// The VFS [virtual file system] trait is the interface we require
-///for the injection into the directectory walker.
+/// for the injection into the directectory walker.
 pub trait VFS: Clone + Debug {
     type FileIter: File;
-    // lists all the subobjects of a directory; essentially ls.
+    /// Recursively enumerate all files beneath a given path
     fn list_dir<P: AsRef<Path>>(
         &self,
         p: P,
     ) -> io::Result<Box<Iterator<Item = io::Result<Self::FileIter>>>>;
 
-    // follow symlink
+    /// Get the metadata of a file (follows symlinks)
     fn get_metadata<P: AsRef<Path>>(&self, p: P) -> io::Result<<Self::FileIter as File>::MD>;
-    // information on symlink
+
+    /// Get the metadata of a file (doesn't follow symlinks)
     fn get_symlink_metadata<P: AsRef<Path>>(
         &self,
         p: P,
     ) -> io::Result<<Self::FileIter as File>::MD>;
 
+    /// Resolve a link path to the path of its target
     fn read_link<P: AsRef<Path>>(&self, p: P) -> io::Result<PathBuf>;
 
     // must be of type "File" (not a dir/link/other)
+    /// Get a File handle from a path
     fn get_file(&self, p: &Path) -> io::Result<Self::FileIter>;
 
     // must be of type "File" (not a dir/link/other)
+    /// Delete a file
     fn rm_file<P: AsRef<Path>>(&mut self, p: &P) -> io::Result<()>;
 
+    // create
+    /// Create a haard link at `src` pointing to what's at `dst`
     fn make_link(&mut self, src: &Path, dst: &Path) -> io::Result<()>;
 }
 
-// the File trait defines the common interface for files.
+/// Define common interface for a real or mock file
 pub trait File: Debug {
     type MD: MetaData;
     fn get_inode(&self) -> io::Result<Inode>;
     fn get_path(&self) -> PathBuf;
     fn get_type(&self) -> io::Result<FileType>;
     fn get_metadata(&self) -> io::Result<Self::MD>;
-    fn get_first_bytes(&self) -> io::Result<FirstBytes>;
-    fn get_hash(&self) -> io::Result<Hash>;
+    /// Read and hash first K bytes of the file
+    fn get_first_bytes<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output>;
+    /// Hash the contents of the file
+    fn get_hash<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output>;
 }
-// the MetaData trait defines the interface for metadata
+
 // it is the subset of the interface of fs::MetaData that we use
+/// Define common interface for real of mock metadata object
 pub trait MetaData: Debug {
     fn get_len(&self) -> u64;
-    fn get_creation_time(&self) -> io::Result<time::SystemTime>;
+    fn get_mod_time(&self) -> io::Result<time::SystemTime>;
     fn get_type(&self) -> FileType;
     fn get_inode(&self) -> Inode;
     fn get_device(&self) -> io::Result<DeviceId>;

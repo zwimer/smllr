@@ -1,45 +1,43 @@
+//! Identify and handle duplicate files in a fast and extensible way
+
 extern crate clap;
 extern crate env_logger;
 #[macro_use]
 extern crate log;
 extern crate md5;
 extern crate regex;
+extern crate tiny_keccak;
 
+// import from external libraries
 use clap::{App, Arg};
 
+// import from standard library
 use std::path::Path;
 use std::ffi::OsStr;
 
-mod walker;
-pub use walker::DirWalker;
+// import from our own modules
+
+mod helpers;
+use helpers::prettify_bytes;
+
+pub mod walker;
+use walker::DirWalker;
 
 pub mod vfs;
-use vfs::RealFileSystem;
+pub use vfs::{RealFileSystem, TestFileSystem};
 
-mod catalog;
+pub mod catalog;
 use catalog::FileCataloger;
 
-mod actor;
-pub use actor::{FileActor, FileDeleter, FileLinker, FilePrinter};
+pub mod actor;
+use actor::{FileActor, FileDeleter, FileLinker, FilePrinter};
 use actor::selector::{DateSelect, PathSelect, Selector};
 
-// Helpers:
-
-#[derive(Clone, Copy, Hash, PartialEq, Eq)]
-pub struct ID {
-    dev: u64,
-    inode: u64,
-}
-
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct FirstBytes(pub(crate) [u8; FIRST_K_BYTES]);
-
-pub type Hash = [u8; 16];
-
-const FIRST_K_BYTES: usize = 32;
-
+pub mod hash;
+use hash::{Md5Sum, Sha3Sum};
 
 fn main() {
+    // build arg parser
     let matches = App::new("smllr")
         // paths without an argument after
         .arg(Arg::with_name("paths")
@@ -78,7 +76,7 @@ fn main() {
              )
         .arg(Arg::with_name("newest-file")
              .long("newest-file")
-             .help("Preserve the file that was made most recently")
+             .help("Preserve the file that was modified most recently")
              )
         .arg(Arg::with_name("invert-selector")
              .long("invert-selector")
@@ -103,52 +101,86 @@ fn main() {
         .get_matches();
 
     // decide which files are fair game
-    let dirs: Vec<&OsStr> = matches.values_of_os("paths").unwrap().collect();
+    let dirs: Vec<&OsStr> = matches
+        .values_of_os("paths")
+        .expect("Failed to get `paths` from the command line arguments")
+        .collect();
+    // if the user supplied blacklisted paths, collect them
     let dirs_n: Vec<&OsStr> = if matches.is_present("bad_paths") {
-        matches.values_of_os("bad_paths").unwrap().collect()
+        matches
+            .values_of_os("bad_paths")
+            .expect("Failed to get `bad_paths`")
+            .collect()
     } else {
         vec![]
     };
+    // if the user supplied blacklisted file regexes, collect them
     let pats_n: Vec<_> = if matches.is_present("bad_regex") {
-        matches.values_of("bad_regex").unwrap().collect()
+        matches
+            .values_of("bad_regex")
+            .expect("Failed to get `bad_regex`")
+            .collect()
     } else {
         vec![]
     };
 
-    // print all log info
-    env_logger::init().unwrap();
+    // print log info to stderr
+    // to alter granularity, set environmental variable RUST_LOG
+    // e.g. `RUST_LOG=debug ./smllr ... 2> /tmp/smllr_log`
+    env_logger::init().expect("Failed to initialize logging");
 
     // create and customize a DirWalker over the real filesystem
+    // collect all relevant files
     let fs = RealFileSystem;
     let paths: Vec<&Path> = dirs.iter().map(Path::new).collect();
     let dw = DirWalker::new(fs, &paths)
         .blacklist_folders(dirs_n)
         .blacklist_patterns(pats_n);
     let files = dw.traverse_all();
+    println!("Traversing {} files...", files.len());
 
-    // catalog all files
-    let mut fc = FileCataloger::new(fs);
-    for file in &files {
-        fc.insert(file);
-    }
+    // catalog all files from the DirWalker
+    // duplicates are identified as files are inserted one at a time
+    // can't combine code because Sha3Sum and Md5Sum might be different sizes
+    let repeats = if matches.is_present("paranoid") {
+        info!("Using SHA-3");
+        let mut fc: FileCataloger<_, Sha3Sum> = FileCataloger::new(fs);
+        files.iter().for_each(|f| fc.insert(f));
+        fc.get_repeats()
+    } else {
+        info!("Using MD5");
+        let mut fc: FileCataloger<_, Md5Sum> = FileCataloger::new(fs);
+        files.iter().for_each(|f| fc.insert(f));
+        fc.get_repeats()
+    };
 
-    // identify repeats
-    let repeats = fc.get_repeats();
+    // use a Box to put the Selector and Actor on the heap as trait objects
+    // different selectors or actors are different sizes (e.g. test_fs contains
+    //  lots of data but real_fs has none), and the stack size must be known
+    //  at compile time but the selector type is only known at runtime
+    //  all boxes are the same size (a pointer)
+    // this has the same small performance hit as C++ inheritance because it
+    //  is basically a vtable
+    // this works because we impl'd these traits for Box<T>
 
-    // select and act on them
+    // select which of the duplicates are "true" and act on the others
     let mut selector: Box<Selector<RealFileSystem>> = {
+        // `--newest-file` or `--path-len` (default)
         if matches.is_present("newest-file") {
             Box::new(DateSelect::new(fs))
         } else {
             Box::new(PathSelect::new(fs))
         }
     };
+    // invert selector if necessary (e.g. use longest path instead of shortest)
     if matches.is_present("invert-selector") {
         selector.reverse();
     }
     let selector = selector; // remove mutability
 
+    // determine what action should be taken on non-selected files
     let mut actor: Box<FileActor<RealFileSystem, Box<Selector<RealFileSystem>>>> = {
+        // `--link`, `--delete`, or `--print` (default)
         if matches.is_present("link") {
             Box::new(FileLinker::new(fs, selector))
         } else if matches.is_present("delete") {
@@ -158,19 +190,15 @@ fn main() {
         }
     };
 
-    /*
-     * TODO
-     *  change firstkbytes to a hash instead of just the first 32 bytes
-     *      change the Debug impl probably too
-     *          maybe just change them all
-     *  consider consolidating FirstKBytesProxy and HashProxy somehow
-     *  register duplicates up? or maybe just fetch more efficiently
-     *      get ID not just a vec of duplicates?
-     */
-
-    // print the duplicates
-
-    for dups in repeats {
-        actor.act(dups);
+    // act on all sets of duplicates
+    if repeats.is_empty() {
+        println!("No duplicates found");
+    } else {
+        println!("Acting on {} sets of duplicates...", repeats.len());
+        let mut saved_bytes = 0;
+        for dups in repeats {
+            saved_bytes += actor.act(dups);
+        }
+        println!("Idenfied {}", prettify_bytes(saved_bytes));
     }
 }

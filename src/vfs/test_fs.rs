@@ -6,17 +6,16 @@ use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::time::{self, SystemTime};
 use std::collections::{HashMap, HashSet};
-//RUST NOTE: `super` means up a module (often up a directory)
+
 use vfs::{DeviceId, File, FileType, Inode, MetaData, VFS};
-use super::{FirstBytes, Hash, FIRST_K_BYTES};
-use super::super::ID;
-use md5;
+use helpers::{FIRST_K_BYTES, ID};
+use hash::FileHash;
 
 /// `TestMD` is the mock metadata struct.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TestMD {
     len: u64,
-    creation: SystemTime,
+    modified: SystemTime,
     kind: FileType,
     id: ID,
 }
@@ -26,8 +25,8 @@ impl MetaData for TestMD {
     fn get_len(&self) -> u64 {
         self.len
     }
-    fn get_creation_time(&self) -> io::Result<SystemTime> {
-        Ok(self.creation)
+    fn get_mod_time(&self) -> io::Result<SystemTime> {
+        Ok(self.modified)
     }
     fn get_type(&self) -> FileType {
         self.kind
@@ -40,17 +39,14 @@ impl MetaData for TestMD {
     }
 }
 
-impl Default for TestMD {
-    fn default() -> Self {
-        TestMD::new()
-    }
-}
-
+// TestMD must be easy to make and also customize for unit testing
+// We provide a series of chainable setters to easily construct test objects
+// e.g. `TestMD::new().with_len(4096).with_id(42)`
 impl TestMD {
     pub fn new() -> Self {
         TestMD {
             len: 0,
-            creation: SystemTime::now(),
+            modified: SystemTime::now(),
             kind: FileType::File,
             id: ID { dev: 0, inode: 0 },
         }
@@ -59,8 +55,8 @@ impl TestMD {
         self.len = n;
         self
     }
-    pub fn with_creation_time(mut self, t: SystemTime) -> Self {
-        self.creation = t;
+    pub fn with_mod_time(mut self, t: SystemTime) -> Self {
+        self.modified = t;
         self
     }
     pub fn with_kind(mut self, k: FileType) -> Self {
@@ -87,6 +83,8 @@ pub struct TestFile {
 }
 
 // build up a File object for mock testing
+// Chainable setters to easily construct test objects
+// e.g. `TestFile::new().with_kind(FileType::Dir).with_inode(42)`
 impl TestFile {
     pub fn new(s: &str) -> Self {
         TestFile {
@@ -137,6 +135,8 @@ impl TestFile {
         // fix inode discrepancy
         if self.inode.0 != 0 {
             md.id.inode = self.inode.0;
+        } else if md.id.inode != 0 {
+            self.inode.0 = md.id.inode;
         }
         self.metadata = Some(md);
         self
@@ -160,28 +160,32 @@ impl File for TestFile {
         self.metadata
             .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "No MD"))
     }
-    fn get_first_bytes(&self) -> io::Result<FirstBytes> {
+    //fn get_first_bytes(&self) -> io::Result<FirstBytes> {
+    fn get_first_bytes<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output> {
+        // read the first K bytes of the file
+        // if the file is less than K bytes, the remaining bytes are treated as zeros
         if let Some(ref cont) = self.contents {
             let mut bytes = [0u8; FIRST_K_BYTES];
             for (c, b) in cont.bytes().zip(bytes.iter_mut()) {
                 *b = c;
             }
-            Ok(FirstBytes(bytes))
+            //Ok(FirstBytes(bytes))
+            Ok(H::hash(&bytes))
         } else {
             Err(io::Error::new(io::ErrorKind::NotFound, "No contents set"))
         }
     }
-    fn get_hash(&self) -> io::Result<Hash> {
+    fn get_hash<H: FileHash>(&self) -> io::Result<<H as FileHash>::Output> {
         if let Some(ref cont) = self.contents {
-            Ok(*md5::compute(cont))
+            Ok(H::hash(cont.as_bytes()))
         } else {
             Err(io::Error::new(io::ErrorKind::NotFound, "No contents set"))
         }
     }
 }
 
-/// `TestFileSystem` denotes a Mock Filesystem we use instead of risking
-/// our own data or dealing with the actual filesystem
+/// Denotes a Mock Filesystem used instead of risking
+/// real data or dealing with the actual filesystem
 #[derive(Debug)]
 pub struct TestFileSystem {
     files: HashMap<PathBuf, TestFile>,
@@ -205,7 +209,7 @@ impl TestFileSystem {
         // Create the metadata for the file
         let md = TestMD {
             len: 0,
-            creation: time::UNIX_EPOCH,
+            modified: time::UNIX_EPOCH,
             kind,
             id: ID {
                 inode: inode.0,
@@ -252,7 +256,7 @@ impl TestFileSystem {
         self.create_regular(path.as_ref(), FileType::Dir);
     }
     /// Creates a new symlink from path to target. analogous to
-    /// '$ln -s -t target path
+    /// `ln -s -t target path`
     pub fn create_symlink<P: AsRef<Path>>(&mut self, path: P, target: P) {
         // Create the symlink file.
         let tf = TestFile {
@@ -266,6 +270,7 @@ impl TestFileSystem {
         let val = (tf, target.as_ref().to_owned());
         self.symlinks.insert(path.as_ref().to_owned(), val);
     }
+    /// Register a new file
     pub fn add(&mut self, tf: TestFile) {
         self.files.insert(tf.path.to_owned(), tf);
     }
@@ -275,14 +280,15 @@ impl TestFileSystem {
     // unique to rust; essentially they are used to pass the parent
     // through so they are invalidated when the parent is.
 
-    ///Resolves the
+    /// Resolves the path into a TestFile
     fn lookup<'a>(&'a self, path: &Path) -> io::Result<&'a TestFile> {
         if let Some(tf) = self.files.get(path) {
             Ok(tf)
         } else {
             // traverse the symlink chain
             let mut cur = self.symlinks.get(path);
-            let mut seen: Vec<&Path> = vec![]; // SystemTime isn't Hash
+            // `seen` can't be a Hash table because SystemTime isn't Hash
+            let mut seen: Vec<&Path> = vec![];
             while let Some(c) = cur {
                 if seen.contains(&c.1.as_path()) {
                     // infinite symlink loop
@@ -399,16 +405,38 @@ impl VFS for Rc<RefCell<TestFileSystem>> {
         }
     }
 
+    // create a hard link
     fn make_link(&mut self, src: &Path, dst: &Path) -> io::Result<()> {
         let mut fs = self.borrow_mut();
-        let old_inode = fs.files
+        let old_md = fs.files
             .get(dst)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "No dst"))?
-            .inode
-            .0;
+            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "No dst file"))?
+            .get_metadata()?;
+        // need to know the old inode so the new can have the same
+        let old_inode = old_md.get_inode();
+        let old_device = old_md.get_device()?;
+
+        // verify new file is going to be
+        let new_dir = src.parent().unwrap(); // can't be root
+        let new_device = fs.files
+            .get(new_dir)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "No src md"))?
+            .get_metadata()?
+            .get_device()?;
+
+        if old_device != new_device {
+            // can't make a hard link across devices (on most filesystems)
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "Cannot make hard link across filesystems",
+            ));
+        }
+
         let name = src.to_str().expect("invalid unicode link name");
-        fs.files
-            .insert(src.to_path_buf(), TestFile::new(name).with_inode(old_inode));
+        fs.files.insert(
+            src.to_path_buf(),
+            TestFile::new(name).with_inode(old_inode.0),
+        );
         Ok(())
     }
 }
