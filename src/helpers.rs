@@ -1,5 +1,5 @@
 /// The number of bytes that will be read and hashed for a file
-/// for the FirstKBytesProxy pass
+/// for the `FirstKBytesProxy` pass
 pub const FIRST_K_BYTES: usize = 4096;
 
 /// Uniquely identify a file by its device id and inode

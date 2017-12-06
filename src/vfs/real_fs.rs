@@ -71,7 +71,7 @@ impl File for DirEntry {
     }
 }
 
-/// Empty struct representing the Real Filesystem. Calls go through std::fs to access real files
+/// Empty struct representing the Real Filesystem. Calls go through `std::fs` to access real files
 #[derive(Debug, Clone, Copy)]
 pub struct RealFileSystem;
 
