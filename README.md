@@ -22,6 +22,8 @@ To build documentation, `cd` into into the `smllr` directory then run
 cargo doc
 ```
 
+Documentation detailing our process, static class diagrams, sequence diagrams, etc. can all be found [here](https://drive.google.com/drive/folders/0B_AfCowl-zKRNklUMXZPS202STA?usp=sharing)
+
 ## Installation
 
 ### Pre-Built
