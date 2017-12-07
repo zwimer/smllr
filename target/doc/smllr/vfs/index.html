@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `vfs` mod in crate `smllr`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, vfs">
+
+    <title>smllr::vfs - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc mod">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'>Module vfs</p><div class="block items"><ul><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#traits">Traits</a></li></ul></div><p class='location'><a href='../index.html'>smllr</a></p><script>window.sidebarCurrent = {name: 'vfs', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content">
+<h1 class='fqn'><span class='in-band'>Module <a href='../index.html'>smllr</a>::<wbr><a class="mod" href=''>vfs</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../../src/smllr/vfs/mod.rs.html#1-121' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'><p>Define a mock filesystem for more fine-grained control over unit tests</p>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.DeviceId.html"
+                                  title='struct smllr::vfs::DeviceId'>DeviceId</a></td>
+                           <td class='docblock-short'>
+                                <p><code>DeviceId</code> is a wraper around a &#39;long&#39; with several traits
+represents a device id.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Inode.html"
+                                  title='struct smllr::vfs::Inode'>Inode</a></td>
+                           <td class='docblock-short'>
+                                <p>Inode is wraper around a &#39;long&#39; with several added traits (interface)
+which represents the inode of a file</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.RealFileSystem.html"
+                                  title='struct smllr::vfs::RealFileSystem'>RealFileSystem</a></td>
+                           <td class='docblock-short'>
+                                <p>Empty struct representing the Real Filesystem. Calls go through <code>std::fs</code> to access real files</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.TestFile.html"
+                                  title='struct smllr::vfs::TestFile'>TestFile</a></td>
+                           <td class='docblock-short'>
+                                <p><code>TestFile</code> denotes a mockfile.
+Note that we are mocking the linux-style filesystem
+where many things are &#39;files&#39;, including directories,
+links, devices (/dev/sda might be familair).</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.TestFileSystem.html"
+                                  title='struct smllr::vfs::TestFileSystem'>TestFileSystem</a></td>
+                           <td class='docblock-short'>
+                                <p>Denotes a Mock Filesystem used instead of risking
+real data or dealing with the actual filesystem</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.TestMD.html"
+                                  title='struct smllr::vfs::TestMD'>TestMD</a></td>
+                           <td class='docblock-short'>
+                                <p><code>TestMD</code> is the mock metadata struct.</p>
+                           </td>
+                       </tr></table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.FileType.html"
+                                  title='enum smllr::vfs::FileType'>FileType</a></td>
+                           <td class='docblock-short'>
+                                <p><code>Filetype</code> is an enum of all types used for filesystem objects.</p>
+                           </td>
+                       </tr></table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.File.html"
+                                  title='trait smllr::vfs::File'>File</a></td>
+                           <td class='docblock-short'>
+                                <p>Define common interface for a real or mock file</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.MetaData.html"
+                                  title='trait smllr::vfs::MetaData'>MetaData</a></td>
+                           <td class='docblock-short'>
+                                <p>Define common interface for real of mock metadata object</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.VFS.html"
+                                  title='trait smllr::vfs::VFS'>VFS</a></td>
+                           <td class='docblock-short'>
+                                <p>The VFS [virtual file system] trait is the interface we require
+for the injection into the directectory walker.</p>
+                           </td>
+                       </tr></table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../";
+        window.currentCrate = "smllr";
+    </script>
+    <script src="../../main.js"></script>
+    <script defer src="../../search-index.js"></script>
+</body>
+</html>

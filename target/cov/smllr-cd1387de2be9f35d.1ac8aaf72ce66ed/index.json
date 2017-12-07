@@ -1,0 +1,18 @@
+var data = {files:[
+{"link":"main.rs.31da89a4.html","title":"main.rs","summary_name":"[...]/smllr/src/main.rs","covered_class":"lineCov","covered":"100.0","covered_lines":"1","uncovered_lines":"0","total_lines" : "1"},
+{"link":"mod.rs.23fb6460.html","title":"mod.rs","summary_name":"[...]/smllr/src/vfs/mod.rs","covered_class":"lineCov","covered":"100.0","covered_lines":"5","uncovered_lines":"0","total_lines" : "5"},
+{"link":"helpers.rs.eafaed5f.html","title":"helpers.rs","summary_name":"[...]/smllr/src/helpers.rs","covered_class":"lineCov","covered":"100.0","covered_lines":"3","uncovered_lines":"0","total_lines" : "3"},
+{"link":"hash.rs.6cd976fc.html","title":"hash.rs","summary_name":"[...]/smllr/src/hash.rs","covered_class":"linePartCov","covered":"30.0","covered_lines":"3","uncovered_lines":"7","total_lines" : "10"},
+{"link":"mod.rs.3d7db730.html","title":"mod.rs","summary_name":"[...]/smllr/src/actor/mod.rs","covered_class":"lineCov","covered":"97.2","covered_lines":"69","uncovered_lines":"2","total_lines" : "71"},
+{"link":"selector.rs.15c4f6f3.html","title":"selector.rs","summary_name":"[...]/smllr/src/actor/selector.rs","covered_class":"lineCov","covered":"96.6","covered_lines":"56","uncovered_lines":"2","total_lines" : "58"},
+{"link":"mod.rs.bff78355.html","title":"mod.rs","summary_name":"[...]/smllr/src/walker/mod.rs","covered_class":"lineCov","covered":"87.0","covered_lines":"94","uncovered_lines":"14","total_lines" : "108"},
+{"link":"test_fs.rs.33b3fde0.html","title":"test_fs.rs","summary_name":"[...]/smllr/src/vfs/test_fs.rs","covered_class":"lineCov","covered":"92.2","covered_lines":"213","uncovered_lines":"18","total_lines" : "231"},
+{"link":"test.rs.59a02549.html","title":"test.rs","summary_name":"[...]/smllr/src/walker/test.rs","covered_class":"lineCov","covered":"94.3","covered_lines":"82","uncovered_lines":"5","total_lines" : "87"},
+{"link":"test.rs.64fa3aaa.html","title":"test.rs","summary_name":"[...]/smllr/src/actor/test.rs","covered_class":"lineCov","covered":"95.5","covered_lines":"171","uncovered_lines":"8","total_lines" : "179"},
+{"link":"mod.rs.ad6f1030.html","title":"mod.rs","summary_name":"[...]/smllr/src/catalog/mod.rs","covered_class":"lineCov","covered":"100.0","covered_lines":"23","uncovered_lines":"0","total_lines" : "23"},
+{"link":"test.rs.646a280d.html","title":"test.rs","summary_name":"[...]/smllr/src/catalog/test.rs","covered_class":"lineCov","covered":"96.2","covered_lines":"128","uncovered_lines":"5","total_lines" : "133"},
+{"link":"proxy.rs.d86b8b4b.html","title":"proxy.rs","summary_name":"[...]/smllr/src/catalog/proxy.rs","covered_class":"lineCov","covered":"93.7","covered_lines":"133","uncovered_lines":"9","total_lines" : "142"},
+]};
+var percent_low = 25;var percent_high = 75;
+var header = { "command" : "smllr-cd1387de2be9f35d", "date" : "2017-12-06 19:01:08", "instrumented" : 1051, "covered" : 981,};
+var merged_data = [];

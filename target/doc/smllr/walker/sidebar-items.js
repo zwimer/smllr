@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["DirWalker","Customizable object to traverse a series of directories, efficiently identifying files and omitting files in certain paths or that match certain patterns"]]});

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `TestFile` struct in crate `smllr`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, TestFile">
+
+    <title>smllr::vfs::TestFile - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc struct">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'>Struct TestFile</p><div class="block items"><ul><li><a href="#methods">Methods</a></li><li><a href="#implementations">Trait Implementations</a></li></ul></div><p class='location'><a href='../index.html'>smllr</a>::<wbr><a href='index.html'>vfs</a></p><script>window.sidebarCurrent = {name: 'TestFile', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content">
+<h1 class='fqn'><span class='in-band'>Struct <a href='../index.html'>smllr</a>::<wbr><a href='index.html'>vfs</a>::<wbr><a class="struct" href=''>TestFile</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#77-83' title='goto source code'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct TestFile { /* fields omitted */ }</pre><div class='docblock'><p><code>TestFile</code> denotes a mockfile.
+Note that we are mocking the linux-style filesystem
+where many things are &#39;files&#39;, including directories,
+links, devices (/dev/sda might be familair).</p>
+</div>
+                    <h2 id='methods' class='small-section-header'>
+                      Methods<a href='#methods' class='anchor'></a>
+                    </h2>
+                <h3 id='impl' class='impl'><span class='in-band'><code>impl <a class="struct" href="../../smllr/vfs/struct.TestFile.html" title="struct smllr::vfs::TestFile">TestFile</a></code><a href='#impl' class='anchor'></a></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#88-144' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.new' class="method"><span id='new.v' class='invisible'><code>fn <a href='#method.new' class='fnname'>new</a>(s: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>) -&gt; Self</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#89-97' title='goto source code'>[src]</a></span></h4>
+<h4 id='method.with_contents' class="method"><span id='with_contents.v' class='invisible'><code>fn <a href='#method.with_contents' class='fnname'>with_contents</a>(self, c: <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>) -&gt; Self</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#98-104' title='goto source code'>[src]</a></span></h4>
+<h4 id='method.with_kind' class="method"><span id='with_kind.v' class='invisible'><code>fn <a href='#method.with_kind' class='fnname'>with_kind</a>(self, k: <a class="enum" href="../../smllr/vfs/enum.FileType.html" title="enum smllr::vfs::FileType">FileType</a>) -&gt; Self</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#105-111' title='goto source code'>[src]</a></span></h4>
+<h4 id='method.with_inode' class="method"><span id='with_inode.v' class='invisible'><code>fn <a href='#method.with_inode' class='fnname'>with_inode</a>(self, i: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u64.html">u64</a>) -&gt; Self</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#112-118' title='goto source code'>[src]</a></span></h4>
+<h4 id='method.with_metadata' class="method"><span id='with_metadata.v' class='invisible'><code>fn <a href='#method.with_metadata' class='fnname'>with_metadata</a>(self, md: <a class="struct" href="../../smllr/vfs/struct.TestMD.html" title="struct smllr::vfs::TestMD">TestMD</a>) -&gt; Self</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#119-143' title='goto source code'>[src]</a></span></h4>
+</div>
+            <h2 id='implementations' class='small-section-header'>
+              Trait Implementations<a href='#implementations' class='anchor'></a>
+            </h2>
+        <h3 id='impl-Debug' class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html" title="trait core::fmt::Debug">Debug</a> for <a class="struct" href="../../smllr/vfs/struct.TestFile.html" title="struct smllr::vfs::TestFile">TestFile</a></code><a href='#impl-Debug' class='anchor'></a></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#76' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.fmt' class="method"><span id='fmt.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html#tymethod.fmt' class='fnname'>fmt</a>(&amp;self, __arg_0: &amp;mut <a class="struct" href="https://doc.rust-lang.org/nightly/core/fmt/struct.Formatter.html" title="struct core::fmt::Formatter">Formatter</a>) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/core/fmt/type.Result.html" title="type core::fmt::Result">Result</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#76' title='goto source code'>[src]</a></span></h4>
+<div class='docblock'><p>Formats the value using the given formatter.</p>
+</div></div><h3 id='impl-Clone' class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> for <a class="struct" href="../../smllr/vfs/struct.TestFile.html" title="struct smllr::vfs::TestFile">TestFile</a></code><a href='#impl-Clone' class='anchor'></a></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#76' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.clone' class="method"><span id='clone.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#tymethod.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class="struct" href="../../smllr/vfs/struct.TestFile.html" title="struct smllr::vfs::TestFile">TestFile</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#76' title='goto source code'>[src]</a></span></h4>
+<div class='docblock'><p>Returns a copy of the value. <a href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#tymethod.clone">Read more</a></p>
+</div><h4 id='method.clone_from' class="method"><span id='clone_from.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.reference.html">&amp;</a>Self)</code></span><span class='out-of-band'><div class='ghost'></div><div class='since' title='Stable since Rust version 1.0.0'>1.0.0</div><a class='srclink' href='https://doc.rust-lang.org/nightly/src/core/clone.rs.html#112-114' title='goto source code'>[src]</a></span></h4>
+<div class='docblock'><p>Performs copy-assignment from <code>source</code>. <a href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from">Read more</a></p>
+</div></div><h3 id='impl-PartialEq' class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html" title="trait core::cmp::PartialEq">PartialEq</a> for <a class="struct" href="../../smllr/vfs/struct.TestFile.html" title="struct smllr::vfs::TestFile">TestFile</a></code><a href='#impl-PartialEq' class='anchor'></a></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#76' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.eq' class="method"><span id='eq.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#tymethod.eq' class='fnname'>eq</a>(&amp;self, __arg_0: &amp;<a class="struct" href="../../smllr/vfs/struct.TestFile.html" title="struct smllr::vfs::TestFile">TestFile</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#76' title='goto source code'>[src]</a></span></h4>
+<div class='docblock'><p>This method tests for <code>self</code> and <code>other</code> values to be equal, and is used by <code>==</code>. <a href="https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#tymethod.eq">Read more</a></p>
+</div><h4 id='method.ne' class="method"><span id='ne.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#method.ne' class='fnname'>ne</a>(&amp;self, __arg_0: &amp;<a class="struct" href="../../smllr/vfs/struct.TestFile.html" title="struct smllr::vfs::TestFile">TestFile</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#76' title='goto source code'>[src]</a></span></h4>
+<div class='docblock'><p>This method tests for <code>!=</code>.</p>
+</div></div><h3 id='impl-File' class='impl'><span class='in-band'><code>impl <a class="trait" href="../../smllr/vfs/trait.File.html" title="trait smllr::vfs::File">File</a> for <a class="struct" href="../../smllr/vfs/struct.TestFile.html" title="struct smllr::vfs::TestFile">TestFile</a></code><a href='#impl-File' class='anchor'></a></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#147-185' title='goto source code'>[src]</a></span></h3>
+<div class='docblock'><p>Implementation of the File trait for <code>TestFile</code></p>
+</div><div class='impl-items'><h4 id='associatedtype.MD' class="type"><span id='MD.t' class='invisible'><code>type <a href='../../smllr/vfs/trait.File.html#associatedtype.MD' class="type">MD</a> = <a class="struct" href="../../smllr/vfs/struct.TestMD.html" title="struct smllr::vfs::TestMD">TestMD</a></code></span></h4>
+<h4 id='method.get_path' class="method"><span id='get_path.v' class='invisible'><code>fn <a href='../../smllr/vfs/trait.File.html#tymethod.get_path' class='fnname'>get_path</a>(&amp;self) -&gt; <a class="struct" href="https://doc.rust-lang.org/nightly/std/path/struct.PathBuf.html" title="struct std::path::PathBuf">PathBuf</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#150-152' title='goto source code'>[src]</a></span></h4>
+<h4 id='method.get_inode' class="method"><span id='get_inode.v' class='invisible'><code>fn <a href='../../smllr/vfs/trait.File.html#tymethod.get_inode' class='fnname'>get_inode</a>(&amp;self) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="struct" href="../../smllr/vfs/struct.Inode.html" title="struct smllr::vfs::Inode">Inode</a>&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#153-155' title='goto source code'>[src]</a></span></h4>
+<h4 id='method.get_type' class="method"><span id='get_type.v' class='invisible'><code>fn <a href='../../smllr/vfs/trait.File.html#tymethod.get_type' class='fnname'>get_type</a>(&amp;self) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="enum" href="../../smllr/vfs/enum.FileType.html" title="enum smllr::vfs::FileType">FileType</a>&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#156-158' title='goto source code'>[src]</a></span></h4>
+<h4 id='method.get_metadata' class="method"><span id='get_metadata.v' class='invisible'><code>fn <a href='../../smllr/vfs/trait.File.html#tymethod.get_metadata' class='fnname'>get_metadata</a>(&amp;self) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="struct" href="../../smllr/vfs/struct.TestMD.html" title="struct smllr::vfs::TestMD">TestMD</a>&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#159-162' title='goto source code'>[src]</a></span></h4>
+<h4 id='method.get_first_bytes' class="method"><span id='get_first_bytes.v' class='invisible'><code>fn <a href='../../smllr/vfs/trait.File.html#tymethod.get_first_bytes' class='fnname'>get_first_bytes</a>&lt;H:&nbsp;<a class="trait" href="../../smllr/hash/trait.FileHash.html" title="trait smllr::hash::FileHash">FileHash</a>&gt;(&amp;self) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;&lt;H as <a class="trait" href="../../smllr/hash/trait.FileHash.html" title="trait smllr::hash::FileHash">FileHash</a>&gt;::<a class="type" href="../../smllr/hash/trait.FileHash.html#associatedtype.Output" title="type smllr::hash::FileHash::Output">Output</a>&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#164-177' title='goto source code'>[src]</a></span></h4>
+<div class='docblock'><p>Read and hash first K bytes of the file</p>
+</div><h4 id='method.get_hash' class="method"><span id='get_hash.v' class='invisible'><code>fn <a href='../../smllr/vfs/trait.File.html#tymethod.get_hash' class='fnname'>get_hash</a>&lt;H:&nbsp;<a class="trait" href="../../smllr/hash/trait.FileHash.html" title="trait smllr::hash::FileHash">FileHash</a>&gt;(&amp;self) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;&lt;H as <a class="trait" href="../../smllr/hash/trait.FileHash.html" title="trait smllr::hash::FileHash">FileHash</a>&gt;::<a class="type" href="../../smllr/hash/trait.FileHash.html#associatedtype.Output" title="type smllr::hash::FileHash::Output">Output</a>&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/smllr/vfs/test_fs.rs.html#178-184' title='goto source code'>[src]</a></span></h4>
+<div class='docblock'><p>Hash the contents of the file</p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../";
+        window.currentCrate = "smllr";
+    </script>
+    <script src="../../main.js"></script>
+    <script defer src="../../search-index.js"></script>
+</body>
+</html>
