@@ -22,6 +22,8 @@ To build documentation, `cd` into into the `smllr` directory then run
 cargo doc
 ```
 
+Code coverage documentation is hosted at [http://zwimer.com/smllr/cov](http://zwimer.com/smllr/cov)
+
 Documentation detailing our process, static class diagrams, sequence diagrams, etc. can all be found [here](https://drive.google.com/drive/folders/0B_AfCowl-zKRNklUMXZPS202STA?usp=sharing)
 
 ## Installation
