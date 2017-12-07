@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["DateSelect","Chose between files based on their creation date"],["PathSelect","Choose between files based on their path"]],"trait":[["Selector","Interface for choosing between files"]]});

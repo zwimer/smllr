@@ -1,1 +1,0 @@
-initSidebarItems({"mod":[["selector",""]],"struct":[["FileDeleter","Actor that deletes all but the selected file"],["FileLinker","Actor that replaces all but the selected file with links to it"],["FilePrinter","Actor that prints file names but doesn't modify the filesystem"]],"trait":[["FileActor","Trait for acting on duplicate files"]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"mod":[["actor",""],["catalog",""],["vfs",""],["walker",""]],"struct":[["FirstBytes","Represent the first K bytes of a file"],["ID","Uniquely identify a file by its device id and inode"]],"type":[["Hash","Represent the md5 hash of a complete file"]]});
